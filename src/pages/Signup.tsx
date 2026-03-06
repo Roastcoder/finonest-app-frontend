@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Mail, Lock, User, Building2, Shield, BarChart3, Users, Zap, Download, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Mail, Lock, User, Building2, Shield, BarChart3, Users as UsersIcon, Zap, Download, Eye, EyeOff, UserCircle } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { toast } from 'sonner';
 import React from 'react';
@@ -14,15 +13,17 @@ export default function Signup() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [branchId, setBranchId] = useState('');
+  const [role, setRole] = useState('executive');
+  const [reportingTo, setReportingTo] = useState('');
+  const [branch, setBranch] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { data: branches = [] } = useQuery({
-    queryKey: ['branches-signup'],
+  const { data: users = [] } = useQuery({
+    queryKey: ['users-signup'],
     queryFn: async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`);
         if (!response.ok) return [];
         return await response.json();
       } catch {
@@ -33,16 +34,31 @@ export default function Signup() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !email || !password || !branchId) {
-      toast.error('Please fill all fields');
+    if (!fullName || !email || !password || !role) {
+      toast.error('Please fill required fields');
       return;
     }
     setLoading(true);
 
     try {
-      const result = await signUp(email, password, fullName);
-      if (result.error) {
-        toast.error(result.error);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: fullName,
+          email,
+          password,
+          role,
+          reporting_to: reportingTo || null,
+          branch: branch || null,
+          joining_date: new Date().toISOString().split('T')[0]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to create account');
         setLoading(false);
         return;
       }
@@ -59,7 +75,7 @@ export default function Signup() {
   const features = [
     { icon: <Shield size={22} />, title: 'Role-Based Access', desc: 'Multi-level permissions for admins, managers, brokers & employees' },
     { icon: <BarChart3 size={22} />, title: 'Real-Time Analytics', desc: 'Track applications, commissions & performance metrics live' },
-    { icon: <Users size={22} />, title: 'Multi-Party Management', desc: 'Banks, NBFCs, brokers & customers — all in one place' },
+    { icon: <UsersIcon size={22} />, title: 'Multi-Party Management', desc: 'Banks, NBFCs, brokers & customers — all in one place' },
     { icon: <Zap size={22} />, title: 'Streamlined Workflow', desc: 'Application to disbursement with full document tracking' },
   ];
 
@@ -183,21 +199,54 @@ export default function Signup() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Branch</label>
+                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Role</label>
                 <div className="relative">
-                  <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <Shield size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                   <select
-                    value={branchId}
-                    onChange={(e) => setBranchId(e.target.value)}
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none shadow-sm backdrop-blur-md font-medium"
                   >
-                    <option value="">Select your branch</option>
-                    {branches.map((branch: any) => (
-                      <option key={branch.id} value={branch.id} className="text-gray-900 bg-white dark:bg-slate-800 dark:text-white">
-                        {branch.name} ({branch.code})
+                    <option value="executive">Executive</option>
+                    <option value="team_leader">Team Leader</option>
+                    <option value="dsa">DSA</option>
+                    <option value="sales_manager">Sales Manager</option>
+                    <option value="ops_team">Ops Team</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Reporting To (Optional)</label>
+                <div className="relative">
+                  <UserCircle size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <select
+                    value={reportingTo}
+                    onChange={(e) => setReportingTo(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none shadow-sm backdrop-blur-md font-medium"
+                  >
+                    <option value="">Select manager</option>
+                    {users.map((user: any) => (
+                      <option key={user.id} value={user.id} className="text-gray-900 bg-white dark:bg-slate-800 dark:text-white">
+                        {user.name} ({user.role})
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Branch (Optional)</label>
+                <div className="relative">
+                  <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <input
+                    type="text"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    placeholder="Enter branch name"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
+                  />
                 </div>
               </div>
 
