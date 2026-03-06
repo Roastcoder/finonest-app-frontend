@@ -193,13 +193,20 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="mt-6 pt-5 border-t border-gray-200/50 dark:border-gray-700/50 text-center">
+            <div className="mt-6 pt-5 border-t border-gray-200/50 dark:border-gray-700/50 text-center space-y-3">
               <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                 Don't have an account?{' '}
                 <a href="/signup" className="text-blue-700 dark:text-blue-400 font-bold hover:underline underline-offset-2">
                   Sign Up
                 </a>
               </p>
+              <a
+                href="/customer-login"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary glass-card hover:bg-white/60 dark:hover:bg-white/10 transition-all shadow-sm border border-white/40 dark:border-white/10"
+              >
+                <Users size={16} />
+                Customer Login
+              </a>
             </div>
           </div>
 

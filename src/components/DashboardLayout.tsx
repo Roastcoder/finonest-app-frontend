@@ -79,7 +79,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-base font-bold text-gray-900 dark:text-white truncate tracking-tight">Finonest India</p>
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Portal</p>
             </div>
           )}
           <button className="lg:hidden ml-auto text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
