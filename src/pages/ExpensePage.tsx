@@ -102,7 +102,15 @@ export default function ExpensePage() {
 }
 
 function ExpenseForm({ onClose, onSubmit }: any) {
-  const [form, setForm] = useState({ expense_type: 'salary', description: '', amount: '', expense_date: '' });
+  const [form, setForm] = useState({ expense_type: 'salary', description: '', amount: '', expense_date: new Date().toISOString().split('T')[0] });
+
+  const handleSubmit = () => {
+    if (!form.amount || !form.expense_date) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+    onSubmit(form);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -122,7 +130,7 @@ function ExpenseForm({ onClose, onSubmit }: any) {
           <input type="date" value={form.expense_date} onChange={e => setForm({...form, expense_date: e.target.value})} className="w-full px-3 py-2 border rounded" />
         </div>
         <div className="flex gap-2 mt-4">
-          <button onClick={() => onSubmit(form)} className="flex-1 px-4 py-2 bg-accent text-accent-foreground rounded">Submit</button>
+          <button onClick={handleSubmit} className="flex-1 px-4 py-2 bg-accent text-accent-foreground rounded">Submit</button>
           <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
         </div>
       </div>

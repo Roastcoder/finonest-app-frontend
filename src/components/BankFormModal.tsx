@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface BankFormModalProps {
@@ -11,14 +11,27 @@ interface BankFormModalProps {
 
 export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalProps) {
   const [form, setForm] = useState({
-    name: bank?.name || '',
-    contact_person: bank?.contact_person || '',
-    email: bank?.email || '',
-    phone: bank?.phone || '',
-    interest_rate: bank?.interest_rate || '',
-    is_active: bank?.is_active ?? true,
+    name: '',
+    contact_person: '',
+    email: '',
+    phone: '',
+    interest_rate: '',
+    is_active: true,
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        name: bank?.name || '',
+        contact_person: bank?.contact_person || '',
+        email: bank?.email || '',
+        phone: bank?.phone || '',
+        interest_rate: bank?.interest_rate || '',
+        is_active: bank?.is_active ?? true,
+      });
+    }
+  }, [open, bank]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

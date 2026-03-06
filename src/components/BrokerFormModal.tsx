@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface BrokerFormModalProps {
@@ -11,14 +11,27 @@ interface BrokerFormModalProps {
 
 export function BrokerFormModal({ open, onClose, onSuccess, broker }: BrokerFormModalProps) {
   const [form, setForm] = useState({
-    name: broker?.name || '',
-    email: broker?.email || '',
-    phone: broker?.phone || '',
-    area: broker?.area || '',
-    commission_rate: broker?.commission_rate || '1.5',
-    is_active: broker?.is_active ?? true,
+    name: '',
+    email: '',
+    phone: '',
+    area: '',
+    commission_rate: '1.5',
+    is_active: true,
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        name: broker?.name || '',
+        email: broker?.email || '',
+        phone: broker?.phone || '',
+        area: broker?.area || '',
+        commission_rate: broker?.commission_rate || '1.5',
+        is_active: broker?.is_active ?? true,
+      });
+    }
+  }, [open, broker]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
