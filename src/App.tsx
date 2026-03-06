@@ -28,6 +28,8 @@ import RCLimitModule from "@/pages/RCLimitModule";
 import InsuranceModule from "@/pages/InsuranceModule";
 import SystemConfig from "@/pages/SystemConfig";
 import CustomerPortal from "@/pages/CustomerPortal";
+import CustomerLogin from "@/pages/CustomerLogin";
+import CustomerDashboard from "@/pages/CustomerDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -78,6 +80,8 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><SystemConfig /></ProtectedRoute>} />
 
       {/* External Portals */}
+      <Route path="/customer-login" element={<CustomerLogin />} />
+      <Route path="/customer-dashboard" element={<CustomerDashboard />} />
       <Route path="/tracker" element={<CustomerPortal />} />
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
