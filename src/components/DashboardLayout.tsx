@@ -154,16 +154,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-20 lg:h-24 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-2xl lg:rounded-[2rem] flex items-center px-6 gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
+        <header className="h-16 lg:h-24 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-2xl lg:rounded-[2rem] flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
           {/* Mobile: Logo */}
-          <div className="lg:hidden flex items-center gap-2">
-            <img src={logo} alt="Finonest India" className="h-10 w-auto object-contain drop-shadow-md" />
+          <div className="lg:hidden flex items-center">
+            <img src={logo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
           </div>
 
           {/* Page title / User greeting */}
-          <div className="flex-1 min-w-0 flex items-center ml-2 border-l border-white/50 dark:border-white/10 pl-6 h-10 lg:h-12">
+          <div className="flex-1 min-w-0 flex items-center lg:ml-2 lg:border-l border-white/50 dark:border-white/10 lg:pl-6 h-10 lg:h-12">
             <div>
-              <p className="text-base font-bold text-gray-900 dark:text-white truncate lg:text-lg tracking-tight drop-shadow-sm">
+              <p className="text-sm lg:text-lg font-bold text-gray-900 dark:text-white truncate tracking-tight drop-shadow-sm">
                 Hi, <span className="text-primary dark:text-primary">{user.name?.split(' ')[0] || 'User'}</span>
               </p>
               <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 font-medium truncate tracking-wide">
@@ -174,22 +174,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
 
           {/* Notification Bell */}
-          <div className="glass-card rounded-xl p-2 shadow-sm border border-white/40 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-colors">
+          <div className="glass-card rounded-xl p-1.5 lg:p-2 shadow-sm border border-white/40 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-colors">
             <NotificationBell />
           </div>
 
-          {/* Mobile: Profile Dropdown */}
-          <div className="lg:hidden relative">
+          {/* Profile Avatar */}
+          <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center text-white font-bold text-sm shadow-md border border-white/20 hover:shadow-lg transition-all"
+              className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center text-white font-bold text-xs lg:text-sm shadow-md border border-white/20 hover:shadow-lg transition-all"
             >
               {initials}
             </button>
             {profileOpen && (
               <>
                 <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-sm" onClick={() => setProfileOpen(false)} />
-                <div className="absolute right-0 top-14 w-60 glass-panel border border-white/20 dark:border-white/5 rounded-2xl shadow-xl z-50 overflow-hidden transform origin-top-right transition-all backdrop-blur-2xl bg-white/10 dark:bg-black/20">
+                <div className="absolute right-0 top-12 lg:top-14 w-60 glass-panel border border-white/20 dark:border-white/5 rounded-2xl shadow-xl z-50 overflow-hidden transform origin-top-right transition-all backdrop-blur-2xl bg-white/10 dark:bg-black/20">
                   <div className="p-4 border-b border-white/10">
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name || 'User'}</p>
                     <p className="text-xs font-semibold text-primary dark:text-primary">{user.role ? ROLE_LABELS[user.role] : 'No role'}</p>

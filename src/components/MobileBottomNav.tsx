@@ -27,21 +27,21 @@ export default function MobileBottomNav() {
   const filteredNav = MOBILE_NAV_ITEMS.filter(item => !user.role || item.roles.includes(user.role));
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40 safe-area-bottom">
-      <div className="flex items-center justify-around px-2 py-2">
+    <nav className="lg:hidden fixed bottom-4 left-4 right-4 glass-panel border border-white/20 dark:border-white/5 rounded-[2rem] shadow-xl z-40 backdrop-blur-xl bg-white/5 dark:bg-black/10">
+      <div className="flex items-center justify-around px-2 py-3">
         {filteredNav.slice(0, 5).map(item => {
           const active = location.pathname === item.path;
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-0 flex-1 ${active
-                ? 'text-accent'
-                : 'text-muted-foreground hover:text-foreground'
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-300 min-w-0 flex-1 ${active
+                ? 'bg-gradient-to-r from-secondary to-primary text-white shadow-lg shadow-primary/20'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5'
                 }`}
             >
-              <span className={active ? 'scale-110' : ''}>{item.icon}</span>
-              <span className="text-[10px] font-medium truncate w-full text-center">{item.label}</span>
+              <span className={`transition-transform ${active ? 'scale-110' : ''}`}>{item.icon}</span>
+              <span className="text-[10px] font-semibold truncate w-full text-center tracking-wide">{item.label}</span>
             </Link>
           );
         })}
