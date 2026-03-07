@@ -8,7 +8,7 @@ import { exportToCSV, parseCSV } from '@/lib/export-utils';
 import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
-import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle } from 'lucide-react';
+import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2 } from 'lucide-react';
 
 type LeadStatusFilter = 'new' | 'contacted' | 'documents_collected' | 'in_process' | 'approved' | 'rejected' | 'disbursed' | 'all';
 
@@ -23,6 +23,25 @@ export default function Loans() {
   const { data: loans = [], isLoading } = useQuery({
     queryKey: ['loans', user?.branch_id],
     queryFn: async () => {
+      if (user?.role === 'team_leader') {
+        const dummyLead = {
+          id: 'DUMMY-001',
+          loan_number: 'LOAN-DUMMY-001',
+          applicant_name: 'Rajesh Kumar',
+          mobile: '9876543210',
+          car_make: 'Maruti',
+          car_model: 'Swift',
+          maker_name: 'Maruti',
+          model_variant_name: 'Swift',
+          vehicle_number: 'MH12AB1234',
+          loan_amount: 500000,
+          emi: 15000,
+          status: 'pending',
+          banks: { name: 'HDFC Bank' },
+        };
+        const stored = localStorage.getItem('team_leader_dummy_lead');
+        return [stored ? JSON.parse(stored) : dummyLead];
+      }
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
           headers: {
@@ -58,6 +77,7 @@ export default function Loans() {
   });
 
   const canEditStatus = user?.role === 'admin' || user?.role === 'manager';
+  const isTeamLeader = user?.role === 'team_leader';
 
   const handleExport = () => {
     if (filtered.length === 0) { toast.error('No data to export'); return; }
@@ -255,12 +275,13 @@ export default function Loans() {
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">EMI</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
                   {canEditStatus && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Update</th>}
-                  <th className="py-3 px-3"></th>
+                  {isTeamLeader && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Action</th>}
+                  {!isTeamLeader && <th className="py-3 px-3"></th>}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((loan: any) => (
-                  <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
+                  <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group" style={{ cursor: isTeamLeader ? 'default' : 'pointer' }} onClick={() => !isTeamLeader && navigate(`/loans/${loan.id}`)}>
                     <td className="py-3.5 px-3 mono text-xs text-accent font-medium">{loan.loan_number || loan.id}</td>
                     <td className="py-3.5 px-3">
                       <p className="font-medium text-foreground">{loan.applicant_name}</p>
@@ -286,9 +307,18 @@ export default function Loans() {
                         </select>
                       </td>
                     )}
-                    <td className="py-3.5 px-3">
-                      <ChevronRight size={16} className="text-muted-foreground group-hover:text-accent transition-colors" />
-                    </td>
+                    {isTeamLeader && (
+                      <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => navigate(`/loans/${loan.id}/edit`)} className="flex items-center gap-1 px-2 py-1 bg-accent text-accent-foreground rounded text-xs">
+                          <Edit2 size={14} /> Edit
+                        </button>
+                      </td>
+                    )}
+                    {!isTeamLeader && (
+                      <td className="py-3.5 px-3">
+                        <ChevronRight size={16} className="text-muted-foreground group-hover:text-accent transition-colors" />
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
