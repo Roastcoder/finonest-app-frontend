@@ -24,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Leads', path: '/leads-list', icon: <UserPlus size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader', 'executive'] },
   { label: 'Loan Applications', path: '/loans', icon: <FileText size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader', 'executive'] },
   { label: 'Create Loan', path: '/loans/new', icon: <Car size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader', 'executive'] },
+  { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['team_leader'] },
   { label: 'PDD Tracking', path: '/pdd', icon: <Shield size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'executive'] },
 
   // New PRD Modules
