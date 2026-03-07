@@ -48,6 +48,17 @@ export default function UserManagement() {
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage system users and their roles</p>
         </div>
+        {(user?.role === 'admin' || user?.role === 'manager') && (
+          <button
+            onClick={() => {
+              setSelectedUser(null);
+              setModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm"
+          >
+            <Users size={16} /> Add New User
+          </button>
+        )}
       </div>
 
       {/* Role summary cards */}
