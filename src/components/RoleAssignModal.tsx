@@ -16,6 +16,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
   const { user } = useAuth();
   const [role, setRole] = useState(targetUser?.role || 'executive');
   const [branchId, setBranchId] = useState(targetUser?.branch_id || '');
+  const [reportingTo, setReportingTo] = useState(targetUser?.reporting_to || '');
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(targetUser?.full_name || '');
   const [email, setEmail] = useState(targetUser?.email || '');
@@ -38,16 +39,30 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
     },
   });
 
+  const { data: managers = [] } = useQuery({
+    queryKey: ['managers'],
+    queryFn: async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const users = await res.json();
+      return users.filter((u: any) => ['admin', 'manager', 'team_leader'].includes(u.role));
+    },
+  });
+
   useEffect(() => {
     if (targetUser) {
       setRole(targetUser.role || 'executive');
       setBranchId(targetUser.branch_id || '');
+      setReportingTo(targetUser.reporting_to || '');
       setFullName(targetUser.full_name || '');
       setEmail(targetUser.email || '');
       setPhone(targetUser.phone || '');
     } else {
       setRole('executive');
       setBranchId('');
+      setReportingTo('');
       setFullName('');
       setEmail('');
       setPhone('');
@@ -67,7 +82,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           },
-          body: JSON.stringify({ role, branch_id: branchId || null }),
+          body: JSON.stringify({ role, branch_id: branchId || null, reporting_to: reportingTo || null }),
         });
         if (!res.ok) throw new Error('Failed to update user');
         toast.success('User updated successfully!');
@@ -85,7 +100,8 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
             phone, 
             password, 
             role, 
-            branch_id: branchId || null 
+            branch_id: branchId || null,
+            reporting_to: reportingTo || null
           }),
         });
         if (!res.ok) throw new Error('Failed to create user');
@@ -169,6 +185,15 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
               <option value="">No Branch</option>
               {branches.map((branch: any) => (
                 <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Reporting To (Manager/Team Leader)</label>
+            <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+              <option value="">No Manager</option>
+              {managers.map((manager: any) => (
+                <option key={manager.id} value={manager.id}>{manager.full_name} ({manager.role})</option>
               ))}
             </select>
           </div>

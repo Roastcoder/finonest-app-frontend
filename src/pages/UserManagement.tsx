@@ -107,6 +107,7 @@ export default function UserManagement() {
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-foreground truncate">{u.full_name || '(No name)'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.user_id && `(${u.user_id})`}</p>
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   </div>
                 </div>
@@ -164,6 +165,7 @@ export default function UserManagement() {
                           {(u.full_name || u.email || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                         </div>
                         <span className="font-medium text-foreground">{u.full_name || '(No name)'}</span>
+                        {u.user_id && <span className="text-xs text-muted-foreground ml-2">({u.user_id})</span>}
                       </div>
                     </td>
                     <td className="py-3 px-3 text-muted-foreground">{u.email}</td>
