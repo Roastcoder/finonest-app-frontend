@@ -269,7 +269,6 @@ export default function CreateLoan() {
 
   const createLoan = useMutation({
     mutationFn: async () => {
-      const loanId = form.loanNumber || generateLoanId();
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
         method: 'POST',
         headers: {
@@ -277,8 +276,6 @@ export default function CreateLoan() {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify({
-          id: loanId,
-          loan_number: loanId,
           customer_id: form.customerId || null,
           applicant_name: form.customerName,
           mobile: form.mobile,
@@ -346,7 +343,7 @@ export default function CreateLoan() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
-      toast.success('Loan application created successfully!');
+      toast.success(`Loan created successfully! Loan ID: ${data.loan_number}`);
       navigate(`/loans/${data.id}`);
     },
     onError: (err: any) => {
