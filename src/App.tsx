@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import Loans from "@/pages/Loans";
 import CreateLoan from "@/pages/CreateLoan";
 import LoanDetail from "@/pages/LoanDetail";
+import EditLead from "@/pages/EditLead";
 import PDDTracking from "@/pages/PDDTracking";
 import UserManagement from "@/pages/UserManagement";
 import BankManagement from "@/pages/BankManagement";
@@ -27,6 +28,7 @@ import ExpenseManagement from "@/pages/ExpenseManagement";
 import RCLimitModule from "@/pages/RCLimitModule";
 import InsuranceModule from "@/pages/InsuranceModule";
 import SystemConfig from "@/pages/SystemConfig";
+import AuditLogPage from "@/pages/AuditLogPage";
 import CustomerPortal from "@/pages/CustomerPortal";
 import CustomerLogin from "@/pages/CustomerLogin";
 import CustomerDashboard from "@/pages/CustomerDashboard";
@@ -59,6 +61,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
       <Route path="/loans/new" element={<ProtectedRoute><CreateLoan /></ProtectedRoute>} />
+      <Route path="/loans/:id/edit" element={<ProtectedRoute><EditLead /></ProtectedRoute>} />
       <Route path="/loans/:id" element={<ProtectedRoute><LoanDetail /></ProtectedRoute>} />
       <Route path="/add-lead" element={<ProtectedRoute><AddLead /></ProtectedRoute>} />
       <Route path="/leads-list" element={<ProtectedRoute><LeadsList /></ProtectedRoute>} />
@@ -78,6 +81,7 @@ function AppRoutes() {
       <Route path="/rc-limits" element={<ProtectedRoute><RCLimitModule /></ProtectedRoute>} />
       <Route path="/insurance" element={<ProtectedRoute><InsuranceModule /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SystemConfig /></ProtectedRoute>} />
+      <Route path="/audit-logs" element={<ProtectedRoute><AuditLogPage /></ProtectedRoute>} />
 
       {/* External Portals */}
       <Route path="/customer-login" element={<CustomerLogin />} />
