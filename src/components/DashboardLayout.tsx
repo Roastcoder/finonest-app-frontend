@@ -131,6 +131,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name || 'User'}</p>
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{user.role ? ROLE_LABELS[user.role] : 'No role'}</p>
+                {user.role === 'executive' && (
+                  <p className="text-xs text-primary dark:text-primary font-medium">
+                    Team Laeder: {user.manager_name || 'No team leader assigned'}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -189,6 +194,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <div className="p-4 border-b border-white/10">
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name || 'User'}</p>
                     <p className="text-xs font-semibold text-primary dark:text-primary">{user.role ? ROLE_LABELS[user.role] : 'No role'}</p>
+                    {user.role === 'executive' && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Team: {user.manager_name || 'No team leader assigned'}
+                      </p>
+                    )}
                   </div>
                   <div className="p-2">
                     <button
