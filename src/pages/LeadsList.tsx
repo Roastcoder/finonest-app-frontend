@@ -52,11 +52,16 @@ export default function LeadsList() {
     enabled: !!user,
   });
 
-  const filtered = leads.filter((l: any) =>
-    !search ||
-    l.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-    l.phone_no?.includes(search)
-  );
+  const filtered = leads.filter((l: any) => {
+    // DSA leads only visible to admin
+    if (l.created_by_role === 'dsa' && user?.role !== 'admin') {
+      return false;
+    }
+    
+    return !search ||
+      l.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+      l.phone_no?.includes(search);
+  });
 
   return (
     <div>
