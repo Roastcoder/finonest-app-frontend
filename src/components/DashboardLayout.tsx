@@ -81,13 +81,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <p className="text-base font-bold text-gray-900 dark:text-white truncate tracking-tight">Finonest India</p>
             </div>
           )}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden lg:block p-2 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 transition-all duration-300"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
           <button className="lg:hidden ml-auto text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 relative z-10">
+        <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-1 relative z-10">
           {filteredNav.map(item => {
             const active = location.pathname === item.path;
             return (
@@ -96,7 +103,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
                 title={collapsed ? item.label : undefined}
-                className={`group flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 ${collapsed ? 'justify-center px-3' : ''} ${active
+                className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${collapsed ? 'justify-center px-3' : ''} ${active
                   ? 'bg-gradient-to-r from-secondary to-primary text-white shadow-lg shadow-primary/20 border border-white/20'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 border border-transparent'
                   }`}
@@ -112,17 +119,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-
-        {/* Collapse toggle (desktop only) */}
-        <div className="hidden lg:flex justify-center py-4 border-t border-white/20 dark:border-white/5">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-2.5 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 transition-all duration-300 border border-transparent hover:border-white/20 dark:hover:border-white/10"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
-        </div>
 
         {/* User */}
         <div className={`px-4 pb-6 pt-6 border-t border-white/20 dark:border-white/5 ${collapsed ? 'flex flex-col items-center' : ''}`}>
