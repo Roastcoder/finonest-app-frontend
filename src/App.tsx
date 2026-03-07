@@ -12,6 +12,7 @@ import Loans from "@/pages/Loans";
 import CreateLoan from "@/pages/CreateLoan";
 import LoanDetail from "@/pages/LoanDetail";
 import EditLead from "@/pages/EditLead";
+import EditLoan from "@/pages/EditLoan";
 import PDDTracking from "@/pages/PDDTracking";
 import UserManagement from "@/pages/UserManagement";
 import BankManagement from "@/pages/BankManagement";
@@ -62,7 +63,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
       <Route path="/loans/new" element={<ProtectedRoute><CreateLoan /></ProtectedRoute>} />
-      <Route path="/loans/:id/edit" element={<ProtectedRoute><EditLead /></ProtectedRoute>} />
+      <Route path="/loans/:id/edit" element={<ProtectedRoute><EditLoan /></ProtectedRoute>} />
       <Route path="/loans/:id" element={<ProtectedRoute><LoanDetail /></ProtectedRoute>} />
       <Route path="/add-lead" element={<ProtectedRoute><AddLead /></ProtectedRoute>} />
       <Route path="/leads-list" element={<ProtectedRoute><LeadsList /></ProtectedRoute>} />
