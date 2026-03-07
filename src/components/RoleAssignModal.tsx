@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ROLE_LABELS } from '@/lib/auth';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface RoleAssignModalProps {
   open: boolean;
@@ -11,10 +12,20 @@ interface RoleAssignModalProps {
   user: any;
 }
 
-export function RoleAssignModal({ open, onClose, onSuccess, user }: RoleAssignModalProps) {
-  const [role, setRole] = useState(user?.role || 'executive');
-  const [branchId, setBranchId] = useState(user?.branch_id || '');
+export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: RoleAssignModalProps) {
+  const { user } = useAuth();
+  const [role, setRole] = useState(targetUser?.role || 'executive');
+  const [branchId, setBranchId] = useState(targetUser?.branch_id || '');
   const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState(targetUser?.full_name || '');
+  const [email, setEmail] = useState(targetUser?.email || '');
+  const [phone, setPhone] = useState(targetUser?.phone || '');
+  const [password, setPassword] = useState('');
+
+  // Manager can only assign team_leader and executive roles
+  const allowedRoles = user?.role === 'manager' 
+    ? { team_leader: ROLE_LABELS.team_leader, executive: ROLE_LABELS.executive }
+    : ROLE_LABELS;
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
@@ -28,31 +39,63 @@ export function RoleAssignModal({ open, onClose, onSuccess, user }: RoleAssignMo
   });
 
   useEffect(() => {
-    if (user) {
-      setRole(user.role || 'executive');
-      setBranchId(user.branch_id || '');
+    if (targetUser) {
+      setRole(targetUser.role || 'executive');
+      setBranchId(targetUser.branch_id || '');
+      setFullName(targetUser.full_name || '');
+      setEmail(targetUser.email || '');
+      setPhone(targetUser.phone || '');
+    } else {
+      setRole('executive');
+      setBranchId('');
+      setFullName('');
+      setEmail('');
+      setPhone('');
+      setPassword('');
     }
-  }, [user]);
+  }, [targetUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${user.id}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({ role, branch_id: branchId || null }),
-      });
-      if (!res.ok) throw new Error('Failed to update user');
+      if (targetUser) {
+        // Update existing user
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${targetUser.id}/role`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+          body: JSON.stringify({ role, branch_id: branchId || null }),
+        });
+        if (!res.ok) throw new Error('Failed to update user');
+        toast.success('User updated successfully!');
+      } else {
+        // Create new user
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+          body: JSON.stringify({ 
+            full_name: fullName, 
+            email, 
+            phone, 
+            password, 
+            role, 
+            branch_id: branchId || null 
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to create user');
+        toast.success('User created successfully!');
+      }
 
-      toast.success('User updated successfully!');
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error('Failed to update user');
+      toast.error(targetUser ? 'Failed to update user' : 'Failed to create user');
     } finally {
       setLoading(false);
     }
@@ -62,13 +105,60 @@ export function RoleAssignModal({ open, onClose, onSuccess, user }: RoleAssignMo
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Assign Role & Branch to {user?.full_name || user?.email}</DialogTitle>
+          <DialogTitle>{targetUser ? `Edit ${targetUser?.full_name || targetUser?.email}` : 'Add New User'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!targetUser && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Email *</label>
+                <input
+                  type="email"
+                  required
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Enter email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Phone</label>
+                <input
+                  type="tel"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Password *</label>
+                <input
+                  type="password"
+                  required
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                />
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-sm font-medium mb-1.5">Select Role *</label>
             <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={role} onChange={e => setRole(e.target.value)}>
-              {Object.entries(ROLE_LABELS).map(([key, label]) => (
+              {Object.entries(allowedRoles).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
             </select>
@@ -84,7 +174,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user }: RoleAssignMo
           </div>
           <div className="flex gap-3 justify-end pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-border text-sm font-medium">Cancel</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-semibold disabled:opacity-60">{loading ? 'Saving...' : 'Save Changes'}</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-semibold disabled:opacity-60">{loading ? 'Saving...' : (targetUser ? 'Save Changes' : 'Create User')}</button>
           </div>
         </form>
       </DialogContent>
