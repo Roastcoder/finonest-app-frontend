@@ -62,13 +62,14 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
     } else {
       setRole('executive');
       setBranchId('');
-      setReportingTo('');
+      // Auto-set reporting_to for team leaders creating new users
+      setReportingTo(user?.role === 'team_leader' ? user.id : '');
       setFullName('');
       setEmail('');
       setPhone('');
       setPassword('');
     }
-  }, [targetUser]);
+  }, [targetUser, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
