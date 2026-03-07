@@ -269,6 +269,7 @@ export default function CreateLoan() {
 
   const createLoan = useMutation({
     mutationFn: async () => {
+      const loanId = form.loanNumber || generateLoanId();
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
         method: 'POST',
         headers: {
@@ -276,6 +277,8 @@ export default function CreateLoan() {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify({
+          id: loanId,
+          loan_number: loanId,
           customer_id: form.customerId || null,
           applicant_name: form.customerName,
           mobile: form.mobile,
@@ -343,7 +346,7 @@ export default function CreateLoan() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
-      toast.success(`Loan created successfully! Loan ID: ${data.loan_number}`);
+      toast.success('Loan application created successfully!');
       navigate(`/loans/${data.id}`);
     },
     onError: (err: any) => {
@@ -360,10 +363,11 @@ export default function CreateLoan() {
     createLoan.mutate();
   };
 
-  // Check if mandatory documents are uploaded (for executive role)
+  // Check if mandatory documents are uploaded (for executive and team_leader roles)
   const isExecutive = user?.role === 'executive';
+  const isTeamLeader = user?.role === 'team_leader';
   const mandatoryDocsUploaded = form.aadharFront && form.aadharBack && form.panCard && form.rcFront && form.rcBack;
-  const showOtherDocs = !isExecutive || mandatoryDocsUploaded;
+  const showOtherDocs = (!isExecutive && !isTeamLeader) || mandatoryDocsUploaded;
 
   const inputClass = "w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all";
   const labelClass = "block text-[10px] font-medium text-foreground/70 mb-1";
@@ -616,33 +620,33 @@ export default function CreateLoan() {
               
               {/* Customer Documents */}
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Customer Documents {isExecutive && <span className="text-xs text-red-500">(Upload mandatory documents first)</span>}</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-3">Customer Documents {(isExecutive || isTeamLeader) && <span className="text-xs text-red-500">(Upload mandatory documents first)</span>}</h3>
                 
                 {/* Mandatory Documents for Executive */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className={labelClass}>Aadhar Card Front {isExecutive && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    <label className={labelClass}>Aadhar Card Front {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
                     {form.aadharFront && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharFront as File).name}</p>}
                   </div>
                   <div>
-                    <label className={labelClass}>Aadhar Card Back {isExecutive && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('aadharBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    <label className={labelClass}>Aadhar Card Back {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('aadharBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
                     {form.aadharBack && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharBack as File).name}</p>}
                   </div>
                   <div>
-                    <label className={labelClass}>Pan Card {isExecutive && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('panCard', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    <label className={labelClass}>Pan Card {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('panCard', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
                     {form.panCard && <p className="text-xs text-green-600 mt-1">✓ {(form.panCard as File).name}</p>}
                   </div>
                   <div>
-                    <label className={labelClass}>RC (Front) {isExecutive && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('rcFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    <label className={labelClass}>RC (Front) {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('rcFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
                     {form.rcFront && <p className="text-xs text-green-600 mt-1">✓ {(form.rcFront as File).name}</p>}
                   </div>
                   <div>
-                    <label className={labelClass}>RC (Back) {isExecutive && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('rcBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    <label className={labelClass}>RC (Back) {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('rcBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
                     {form.rcBack && <p className="text-xs text-green-600 mt-1">✓ {(form.rcBack as File).name}</p>}
                   </div>
                 </div>
@@ -650,7 +654,7 @@ export default function CreateLoan() {
                 {/* Other Documents - Show only after mandatory docs are uploaded */}
                 {showOtherDocs ? (
                   <>
-                    {isExecutive && <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-300">✓ Mandatory documents uploaded. You can now upload additional documents.</div>}
+                    {(isExecutive || isTeamLeader) && <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-300">✓ Mandatory documents uploaded. You can now upload additional documents.</div>}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div><label className={labelClass}>Driving Licence</label><input type="file" className={inputClass} onChange={e => update('drivingLicence', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
                       <div><label className={labelClass}>Light Bill</label><input type="file" className={inputClass} onChange={e => update('lightBill', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
