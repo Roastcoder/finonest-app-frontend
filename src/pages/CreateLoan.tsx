@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CAR_MAKES, calculateEMI, formatCurrency } from '@/lib/mock-data';
 import { ArrowLeft, Calculator, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
+import '@/styles/floating-labels.css';
 
 export default function CreateLoan() {
   const navigate = useNavigate();
@@ -361,8 +363,13 @@ export default function CreateLoan() {
     createLoan.mutate();
   };
 
-  const inputClass = "w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all";
-  const labelClass = "block text-xs font-medium text-foreground/70 mb-1.5";
+  // Check if mandatory documents are uploaded (for executive role)
+  const isExecutive = user?.role === 'executive';
+  const mandatoryDocsUploaded = form.aadharFront && form.aadharBack && form.panCard && form.rcFront && form.rcBack;
+  const showOtherDocs = !isExecutive || mandatoryDocsUploaded;
+
+  const inputClass = "w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all";
+  const labelClass = "block text-[10px] font-medium text-foreground/70 mb-1";
 
   return (
     <div className="w-full mx-auto px-4">
@@ -375,13 +382,13 @@ export default function CreateLoan() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="bg-card rounded-lg border border-border p-5 shadow-sm mb-6 space-y-8">
+        <div className="bg-card rounded-lg border border-border p-4 shadow-sm mb-4 space-y-6">
           {/* Customer Details */}
           <div>
-            <h2 className="text-lg font-bold text-foreground mb-4">Customer Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <h2 className="text-base font-bold text-foreground mb-3">Customer Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="relative" ref={dropdownRef}>
-                  <label className={labelClass}>Customer ID</label>
+                  
                   <div className="relative">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     <input
@@ -395,7 +402,7 @@ export default function CreateLoan() {
                         setShowLeadDropdown(true);
                       }}
                       onFocus={() => setShowLeadDropdown(true)}
-                      placeholder="Search by ID, name or phone..."
+                      placeholder="Search by Customer ID, name or phone..."
                     />
                     {leadSearch && (
                       <button
@@ -432,9 +439,9 @@ export default function CreateLoan() {
                     </div>
                   )}
                 </div>
-                <div><label className={labelClass}>Customer Name *</label><input required className={inputClass} value={form.customerName} onChange={e => update('customerName', e.target.value)} /></div>
-                <div><label className={labelClass}>Mobile No *</label><input required className={inputClass} value={form.mobile} onChange={e => update('mobile', e.target.value)} maxLength={10} /></div>
-                <div><label className={labelClass}>Our Branch</label><input className={inputClass} value={form.ourBranch} onChange={e => update('ourBranch', e.target.value)} /></div>
+                <div className="floating-input-wrapper"><input required className={inputClass} value={form.customerName} onChange={e => update('customerName', e.target.value)} placeholder=" " /><label className={labelClass}>Customer Name *</label></div>
+                <div className="floating-input-wrapper"><input required className={inputClass} value={form.mobile} onChange={e => update('mobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Mobile No *</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.ourBranch} onChange={e => update('ourBranch', e.target.value)} placeholder=" " /><label className={labelClass}>Our Branch</label></div>
                 
                 {/* Co-Applicant Section */}
                 <div className="md:col-span-3 mt-4">
@@ -448,8 +455,8 @@ export default function CreateLoan() {
                 </div>
                 {showOptionalFields.coApplicant && (
                   <>
-                    <div><label className={labelClass}>Co-Applicant Name</label><input className={inputClass} value={form.coApplicantName} onChange={e => update('coApplicantName', e.target.value)} /></div>
-                    <div><label className={labelClass}>Co-Applicant Mobile</label><input className={inputClass} value={form.coApplicantMobile} onChange={e => update('coApplicantMobile', e.target.value)} maxLength={10} /></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantName} onChange={e => update('coApplicantName', e.target.value)} placeholder=" " /><label className={labelClass}>Co-Applicant Name</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantMobile} onChange={e => update('coApplicantMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Co-Applicant Mobile</label></div>
                   </>
                 )}
                 
@@ -465,18 +472,18 @@ export default function CreateLoan() {
                 </div>
                 {showOptionalFields.guarantor && (
                   <>
-                    <div><label className={labelClass}>Guarantor Name</label><input className={inputClass} value={form.guarantorName} onChange={e => update('guarantorName', e.target.value)} /></div>
-                    <div><label className={labelClass}>Guarantor Mobile</label><input className={inputClass} value={form.guarantorMobile} onChange={e => update('guarantorMobile', e.target.value)} maxLength={10} /></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorName} onChange={e => update('guarantorName', e.target.value)} placeholder=" " /><label className={labelClass}>Guarantor Name</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorMobile} onChange={e => update('guarantorMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Guarantor Mobile</label></div>
                   </>
                 )}
                 
-                <div className="md:col-span-3 mt-6"><h3 className="font-semibold text-foreground mb-3">Current Address</h3></div>
-                <div className="md:col-span-3"><label className={labelClass}>Address</label><textarea className={inputClass} rows={2} value={form.currentAddress} onChange={e => update('currentAddress', e.target.value)} /></div>
-                <div><label className={labelClass}>Village</label><input className={inputClass} value={form.currentVillage} onChange={e => update('currentVillage', e.target.value)} /></div>
-                <div><label className={labelClass}>Tehsil</label><input className={inputClass} value={form.currentTehsil} onChange={e => update('currentTehsil', e.target.value)} /></div>
-                <div><label className={labelClass}>District</label><input className={inputClass} value={form.currentDistrict} onChange={e => update('currentDistrict', e.target.value)} /></div>
-                <div><label className={labelClass}>State</label><input className={inputClass} value={form.currentState} onChange={e => update('currentState', e.target.value)} /></div>
-                <div><label className={labelClass}>Pincode</label><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} /></div>
+                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Current Address</h3></div>
+                <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.currentAddress} onChange={e => update('currentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentVillage} onChange={e => update('currentVillage', e.target.value)} placeholder=" " /><label className={labelClass}>Village</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentTehsil} onChange={e => update('currentTehsil', e.target.value)} placeholder=" " /><label className={labelClass}>Tehsil</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentDistrict} onChange={e => update('currentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentState} onChange={e => update('currentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
                 <div className="md:col-span-3 mt-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={form.sameAsCurrentAddress} onChange={e => handleSameAddress(e.target.checked)} className="w-4 h-4 rounded border-border" />
@@ -485,13 +492,13 @@ export default function CreateLoan() {
                 </div>
                 {!form.sameAsCurrentAddress && (
                   <>
-                    <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-3">Permanent Address</h3></div>
-                    <div className="md:col-span-3"><label className={labelClass}>Address</label><textarea className={inputClass} rows={2} value={form.permanentAddress} onChange={e => update('permanentAddress', e.target.value)} /></div>
-                    <div><label className={labelClass}>Village</label><input className={inputClass} value={form.permanentVillage} onChange={e => update('permanentVillage', e.target.value)} /></div>
-                    <div><label className={labelClass}>Tehsil</label><input className={inputClass} value={form.permanentTehsil} onChange={e => update('permanentTehsil', e.target.value)} /></div>
-                    <div><label className={labelClass}>District</label><input className={inputClass} value={form.permanentDistrict} onChange={e => update('permanentDistrict', e.target.value)} /></div>
-                    <div><label className={labelClass}>State</label><input className={inputClass} value={form.permanentState} onChange={e => update('permanentState', e.target.value)} /></div>
-                    <div><label className={labelClass}>Pincode</label><input className={inputClass} value={form.permanentPincode} onChange={e => update('permanentPincode', e.target.value)} maxLength={6} /></div>
+                    <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Permanent Address</h3></div>
+                    <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.permanentAddress} onChange={e => update('permanentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentVillage} onChange={e => update('permanentVillage', e.target.value)} placeholder=" " /><label className={labelClass}>Village</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentTehsil} onChange={e => update('permanentTehsil', e.target.value)} placeholder=" " /><label className={labelClass}>Tehsil</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentDistrict} onChange={e => update('permanentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentState} onChange={e => update('permanentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentPincode} onChange={e => update('permanentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
                   </>
                 )}
               </div>
@@ -499,10 +506,9 @@ export default function CreateLoan() {
 
           {/* Vehicle & Loan */}
           <div>
-            <h2 className="text-lg font-bold text-foreground mb-4">Vehicle & Loan Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                  <label className={labelClass}>Vehicle Reg. No</label>
+            <h2 className="text-base font-bold text-foreground mb-3">Vehicle & Loan Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="relative floating-input-wrapper">
                   <input 
                     className={inputClass} 
                     value={form.vehicleNumber} 
@@ -513,39 +519,40 @@ export default function CreateLoan() {
                         fetchVehicleDetails(value);
                       }
                     }}
-                    placeholder="e.g., RJ60SW9525"
+                    placeholder=" "
                   />
+                  <label className={labelClass}>Vehicle Reg. No</label>
                   {fetchingVehicleData && (
                     <div className="absolute right-3 top-8">
                       <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
                 </div>
-                <div><label className={labelClass}>Maker's Name</label><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} /></div>
-                <div><label className={labelClass}>Model / Variant</label><input className={inputClass} value={form.modelVariantName} onChange={e => update('modelVariantName', e.target.value)} /></div>
-                <div><label className={labelClass}>Mfg Year</label><input type="number" className={inputClass} value={form.mfgYear} onChange={e => update('mfgYear', e.target.value)} min="2000" max="2030" /></div>
-                <div><label className={labelClass}>Vertical</label><select className={inputClass} value={form.vertical} onChange={e => update('vertical', e.target.value)}><option value="">Select</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV (Car)">PV (Car)</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select></div>
-                <div><label className={labelClass}>Scheme</label><select className={inputClass} value={form.scheme} onChange={e => update('scheme', e.target.value)}><option value="">Select</option><option value="Re-finance">Re-finance</option><option value="New Finance">New Finance</option><option value="Balance Transfer">Balance Transfer</option><option value="Purchase">Purchase</option><option value="Purchase+BT">Purchase+BT</option><option value="SVSH">SVSH</option><option value="SVOH">SVOH</option></select></div>
-                <div className="md:col-span-3 mt-4"><h3 className="font-semibold text-foreground mb-3">Loan Details</h3></div>
-                <div><label className={labelClass}>Purpose Loan Amount</label><input className={inputClass} value={form.purposeLoanAmount} onChange={e => update('purposeLoanAmount', e.target.value)} placeholder="Optional" /></div>
-                <div><label className={labelClass}>Loan Amount (₹) *</label><input required type="number" className={inputClass} value={form.loanAmount} onChange={e => update('loanAmount', e.target.value)} placeholder="Enter loan amount" /></div>
-                <div><label className={labelClass}>LTV (%)</label><input type="number" className={inputClass} value={form.ltv} onChange={e => update('ltv', e.target.value)} placeholder="Optional" /></div>
-                <div><label className={labelClass}>Loan Type</label><select className={inputClass} value={form.loanTypeVehicle} onChange={e => update('loanTypeVehicle', e.target.value)}><option value="">Select</option><option value="New Vehicle Loan">New Vehicle Loan</option><option value="Used Vehicle Loan">Used Vehicle Loan</option></select></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " /><label className={labelClass}>Maker's Name</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.modelVariantName} onChange={e => update('modelVariantName', e.target.value)} placeholder=" " /><label className={labelClass}>Model / Variant</label></div>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.mfgYear} onChange={e => update('mfgYear', e.target.value)} min="2000" max="2030" placeholder=" " /><label className={labelClass}>Mfg Year</label></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.vertical} onChange={e => update('vertical', e.target.value)}><option value="">Select</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV (Car)">PV (Car)</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Vertical</label></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.scheme} onChange={e => update('scheme', e.target.value)}><option value="">Select</option><option value="Re-finance">Re-finance</option><option value="New Finance">New Finance</option><option value="Balance Transfer">Balance Transfer</option><option value="Purchase">Purchase</option><option value="Purchase+BT">Purchase+BT</option><option value="SVSH">SVSH</option><option value="SVOH">SVOH</option></select><label className={labelClass}>Scheme</label></div>
+                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Loan Details</h3></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.purposeLoanAmount} onChange={e => update('purposeLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Purpose Loan Amount</label></div>
+                <div className="floating-input-wrapper"><input required type="number" className={inputClass} value={form.loanAmount} onChange={e => update('loanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount (₹) *</label></div>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.ltv} onChange={e => update('ltv', e.target.value)} placeholder=" " /><label className={labelClass}>LTV (%)</label></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.loanTypeVehicle} onChange={e => update('loanTypeVehicle', e.target.value)}><option value="">Select</option><option value="New Vehicle Loan">New Vehicle Loan</option><option value="Used Vehicle Loan">Used Vehicle Loan</option></select><label className={labelClass}>Loan Type</label></div>
               </div>
             </div>
 
           {/* EMI & Financier */}
           <div>
-            <h2 className="text-lg font-bold text-foreground mb-4">EMI & Financier Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><label className={labelClass}>IRR (%) *</label><input required type="number" step="0.01" className={inputClass} value={form.irr} onChange={e => update('irr', e.target.value)} placeholder="e.g., 12.5" /></div>
-                <div><label className={labelClass}>Tenure *</label><select required className={inputClass} value={form.tenure} onChange={e => update('tenure', e.target.value)}>{[12, 18, 24, 36, 48, 60, 72, 84].map(t => <option key={t} value={t}>{t} MONTH</option>)}</select></div>
-                <div><label className={labelClass}>EMI Mode</label><select className={inputClass} value={form.emiMode} onChange={e => update('emiMode', e.target.value)}><option value="Monthly">Monthly</option><option value="Quarterly">Quarterly</option><option value="Half Yearly">Half Yearly</option><option value="Yearly">Yearly</option></select></div>
-                <div><label className={labelClass}>Processing Fee (₹)</label><input type="number" className={inputClass} value={form.processingFee} onChange={e => update('processingFee', e.target.value)} placeholder="Optional" /></div>
+            <h2 className="text-base font-bold text-foreground mb-3">EMI & Financier Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="floating-input-wrapper"><input required type="number" step="0.01" className={inputClass} value={form.irr} onChange={e => update('irr', e.target.value)} placeholder=" " /><label className={labelClass}>IRR (%) *</label></div>
+                <div className="floating-input-wrapper"><select required className={inputClass} value={form.tenure} onChange={e => update('tenure', e.target.value)}>{[12, 18, 24, 36, 48, 60, 72, 84].map(t => <option key={t} value={t}>{t} MONTH</option>)}</select><label className={labelClass}>Tenure *</label></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.emiMode} onChange={e => update('emiMode', e.target.value)}><option value="Monthly">Monthly</option><option value="Quarterly">Quarterly</option><option value="Half Yearly">Half Yearly</option><option value="Yearly">Yearly</option></select><label className={labelClass}>EMI Mode</label></div>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.processingFee} onChange={e => update('processingFee', e.target.value)} placeholder=" " /><label className={labelClass}>Processing Fee (₹)</label></div>
                 {(form.irr && form.loanAmount) && (
                   <>
-                    <div><label className={labelClass}>EMI Start Date</label><input type="date" className={inputClass} value={form.emiStartDate} onChange={e => update('emiStartDate', e.target.value)} /></div>
-                    <div><label className={labelClass}>EMI End Date</label><input type="date" className={inputClass} value={form.emiEndDate} onChange={e => update('emiEndDate', e.target.value)} /></div>
+                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.emiStartDate} onChange={e => update('emiStartDate', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Start Date</label></div>
+                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.emiEndDate} onChange={e => update('emiEndDate', e.target.value)} placeholder=" " /><label className={labelClass}>EMI End Date</label></div>
                   </>
                 )}
               </div>
@@ -559,17 +566,17 @@ export default function CreateLoan() {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-3">Financier Details</h3></div>
-                <div><label className={labelClass}>Financier Name</label><select className={inputClass} value={form.assignedBankId} onChange={e => update('assignedBankId', e.target.value)}><option value="">Select Financier Name</option>{(banks as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-                <div><label className={labelClass}>Financier Executive Name</label><input className={inputClass} value={form.financierExecutiveName} onChange={e => update('financierExecutiveName', e.target.value)} placeholder="Financier Executive Name" /></div>
-                <div><label className={labelClass}>Financier Team Vertical</label><select className={inputClass} value={form.financierTeamVertical} onChange={e => update('financierTeamVertical', e.target.value)}><option value="">Select Team Vertical</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV">PV</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select></div>
-                <div><label className={labelClass}>Disburse Branch Name</label><input className={inputClass} value={form.disburseBranchName} onChange={e => update('disburseBranchName', e.target.value)} placeholder="Disburse Branch Name" /></div>
-                <div><label className={labelClass}>Broker</label><select className={inputClass} value={form.assignedBrokerId} onChange={e => update('assignedBrokerId', e.target.value)}><option value="">Select Broker (Optional)</option>{(brokers as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Financier Details</h3></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.assignedBankId} onChange={e => update('assignedBankId', e.target.value)}><option value="">Select Financier Name</option>{(banks as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select><label className={labelClass}>Financier Name</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.financierExecutiveName} onChange={e => update('financierExecutiveName', e.target.value)} placeholder=" " /><label className={labelClass}>Financier Executive Name</label></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.financierTeamVertical} onChange={e => update('financierTeamVertical', e.target.value)}><option value="">Select Team Vertical</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV">PV</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Financier Team Vertical</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.disburseBranchName} onChange={e => update('disburseBranchName', e.target.value)} placeholder=" " /><label className={labelClass}>Disburse Branch Name</label></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.assignedBrokerId} onChange={e => update('assignedBrokerId', e.target.value)}><option value="">Select Broker (Optional)</option>{(brokers as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select><label className={labelClass}>Broker</label></div>
                 {form.assignedBankId && (
                   <>
-                    <div><label className={labelClass}>Sanction Amount (₹)</label><input type="number" className={inputClass} value={form.sanctionAmount} onChange={e => update('sanctionAmount', e.target.value)} placeholder="Optional" /></div>
-                    <div><label className={labelClass}>Sanction Date</label><input type="date" className={inputClass} value={form.sanctionDate} onChange={e => update('sanctionDate', e.target.value)} /></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.sanctionAmount} onChange={e => update('sanctionAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Amount (₹)</label></div>
+                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.sanctionDate} onChange={e => update('sanctionDate', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Date</label></div>
                   </>
                 )}
               </div>
@@ -577,65 +584,100 @@ export default function CreateLoan() {
 
           {/* Insurance & RTO */}
           <div>
-            <h2 className="text-lg font-bold text-foreground mb-4">Insurance & RTO Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><label className={labelClass}>Insurance Company</label><input className={inputClass} value={form.insuranceCompanyName} onChange={e => update('insuranceCompanyName', e.target.value)} /></div>
-                <div><label className={labelClass}>Premium Amount (₹)</label><input type="number" className={inputClass} value={form.premiumAmount} onChange={e => update('premiumAmount', e.target.value)} /></div>
-                <div><label className={labelClass}>Insurance Expiry Date</label><input type="date" className={inputClass} value={form.insuranceDate} onChange={e => update('insuranceDate', e.target.value)} /></div>
-                <div><label className={labelClass}>Policy Number</label><input className={inputClass} value={form.insurancePolicyNumber} onChange={e => update('insurancePolicyNumber', e.target.value)} /></div>
-                <div className="md:col-span-3 mt-4"><h3 className="font-semibold text-foreground mb-3">RTO Details</h3></div>
-                <div><label className={labelClass}>RC Owner Name</label><input className={inputClass} value={form.rcOwnerName} onChange={e => update('rcOwnerName', e.target.value)} /></div>
-                <div><label className={labelClass}>HPN / Financed Status</label><input className={inputClass} value={form.hpnAtLogin} onChange={e => update('hpnAtLogin', e.target.value)} placeholder="Auto-filled from RC" /></div>
-                <div><label className={labelClass}>RTO Agent Name</label><input className={inputClass} value={form.rtoAgentName} onChange={e => update('rtoAgentName', e.target.value)} /></div>
-                <div><label className={labelClass}>Agent Mobile</label><input className={inputClass} value={form.agentMobileNo} onChange={e => update('agentMobileNo', e.target.value)} maxLength={10} /></div>
+            <h2 className="text-base font-bold text-foreground mb-3">Insurance & RTO Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompanyName} onChange={e => update('insuranceCompanyName', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.premiumAmount} onChange={e => update('premiumAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Premium Amount (₹)</label></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceDate} onChange={e => update('insuranceDate', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Expiry Date</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.insurancePolicyNumber} onChange={e => update('insurancePolicyNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Policy Number</label></div>
+                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">RTO Details</h3></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.rcOwnerName} onChange={e => update('rcOwnerName', e.target.value)} placeholder=" " /><label className={labelClass}>RC Owner Name</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.hpnAtLogin} onChange={e => update('hpnAtLogin', e.target.value)} placeholder=" " /><label className={labelClass}>HPN / Financed Status</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.rtoAgentName} onChange={e => update('rtoAgentName', e.target.value)} placeholder=" " /><label className={labelClass}>RTO Agent Name</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.agentMobileNo} onChange={e => update('agentMobileNo', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Agent Mobile</label></div>
               </div>
             </div>
 
           {/* Deduction & Disbursement */}
           <div>
-            <h2 className="text-lg font-bold text-foreground mb-4">Deduction & Disbursement</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><label className={labelClass}>Total Deduction (₹)</label><input type="number" className={inputClass} value={form.totalDeduction} onChange={e => update('totalDeduction', e.target.value)} /></div>
-                <div><label className={labelClass}>Net Disbursement Amount (₹)</label><input type="number" className={inputClass} value={form.netDisbursementAmount} onChange={e => update('netDisbursementAmount', e.target.value)} /></div>
-                <div><label className={labelClass}>Payment Received Date</label><input type="date" className={inputClass} value={form.paymentReceivedDate} onChange={e => update('paymentReceivedDate', e.target.value)} /></div>
-                <div className="md:col-span-3 mt-4"><h3 className="font-semibold text-foreground mb-3">Other Details</h3></div>
-                <div><label className={labelClass}>Login Date</label><input type="date" className={inputClass} value={form.loginDate} onChange={e => update('loginDate', e.target.value)} /></div>
-                <div><label className={labelClass}>Approval Date</label><input type="date" className={inputClass} value={form.approvalDate} onChange={e => update('approvalDate', e.target.value)} /></div>
-                <div><label className={labelClass}>Sourcing Person</label><input className={inputClass} value={form.sourcingPersonName} onChange={e => update('sourcingPersonName', e.target.value)} /></div>
-                <div className="md:col-span-3"><label className={labelClass}>Remark</label><textarea className={inputClass} rows={3} value={form.remark} onChange={e => update('remark', e.target.value)} /></div>
+            <h2 className="text-base font-bold text-foreground mb-3">Deduction & Disbursement</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalDeduction} onChange={e => update('totalDeduction', e.target.value)} placeholder=" " /><label className={labelClass}>Total Deduction (₹)</label></div>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netDisbursementAmount} onChange={e => update('netDisbursementAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Net Disbursement Amount (₹)</label></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.paymentReceivedDate} onChange={e => update('paymentReceivedDate', e.target.value)} placeholder=" " /><label className={labelClass}>Payment Received Date</label></div>
+                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Other Details</h3></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.loginDate} onChange={e => update('loginDate', e.target.value)} placeholder=" " /><label className={labelClass}>Login Date</label></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.approvalDate} onChange={e => update('approvalDate', e.target.value)} placeholder=" " /><label className={labelClass}>Approval Date</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.sourcingPersonName} onChange={e => update('sourcingPersonName', e.target.value)} placeholder=" " /><label className={labelClass}>Sourcing Person</label></div>
+                <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={3} value={form.remark} onChange={e => update('remark', e.target.value)} placeholder=" " /><label className={labelClass}>Remark</label></div>
               </div>
             </div>
 
           {/* Documents */}
           <div>
-            <h2 className="text-lg font-bold text-foreground mb-4">Documents</h2>
+            <h2 className="text-base font-bold text-foreground mb-3">Documents</h2>
               
               {/* Customer Documents */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Customer Documents</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className={labelClass}>Aadhar Card Front</label><input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Aadhar Card Back</label><input type="file" className={inputClass} onChange={e => update('aadharBack', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Pan Card</label><input type="file" className={inputClass} onChange={e => update('panCard', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Driving Licence</label><input type="file" className={inputClass} onChange={e => update('drivingLicence', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Light Bill</label><input type="file" className={inputClass} onChange={e => update('lightBill', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Last 6 Month Bank Statement</label><input type="file" className={inputClass} onChange={e => update('bankStatement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Cheque</label><input type="file" className={inputClass} onChange={e => update('cheque', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>RC (Front)</label><input type="file" className={inputClass} onChange={e => update('rcFront', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>RC (Back)</label><input type="file" className={inputClass} onChange={e => update('rcBack', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Income Proof</label><input type="file" className={inputClass} onChange={e => update('incomeProof', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Rent Agreement</label><input type="file" className={inputClass} onChange={e => update('rentAgreement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Customer Photo</label><input type="file" className={inputClass} onChange={e => update('customerPhoto', e.target.files?.[0] || null)} accept="image/*" /></div>
-                  <div><label className={labelClass}>Disbursement Memo</label><input type="file" className={inputClass} onChange={e => update('disbursementMemo', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Insurance</label><input type="file" className={inputClass} onChange={e => update('insurance', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                  <div><label className={labelClass}>Customer Ledger</label><input type="file" className={inputClass} onChange={e => update('customerLedger', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Customer Documents {isExecutive && <span className="text-xs text-red-500">(Upload mandatory documents first)</span>}</h3>
+                
+                {/* Mandatory Documents for Executive */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className={labelClass}>Aadhar Card Front {isExecutive && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    {form.aadharFront && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharFront as File).name}</p>}
+                  </div>
+                  <div>
+                    <label className={labelClass}>Aadhar Card Back {isExecutive && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('aadharBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    {form.aadharBack && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharBack as File).name}</p>}
+                  </div>
+                  <div>
+                    <label className={labelClass}>Pan Card {isExecutive && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('panCard', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    {form.panCard && <p className="text-xs text-green-600 mt-1">✓ {(form.panCard as File).name}</p>}
+                  </div>
+                  <div>
+                    <label className={labelClass}>RC (Front) {isExecutive && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('rcFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    {form.rcFront && <p className="text-xs text-green-600 mt-1">✓ {(form.rcFront as File).name}</p>}
+                  </div>
+                  <div>
+                    <label className={labelClass}>RC (Back) {isExecutive && <span className="text-red-500">*</span>}</label>
+                    <input type="file" className={inputClass} onChange={e => update('rcBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive} />
+                    {form.rcBack && <p className="text-xs text-green-600 mt-1">✓ {(form.rcBack as File).name}</p>}
+                  </div>
                 </div>
+
+                {/* Other Documents - Show only after mandatory docs are uploaded */}
+                {showOtherDocs ? (
+                  <>
+                    {isExecutive && <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-300">✓ Mandatory documents uploaded. You can now upload additional documents.</div>}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div><label className={labelClass}>Driving Licence</label><input type="file" className={inputClass} onChange={e => update('drivingLicence', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Light Bill</label><input type="file" className={inputClass} onChange={e => update('lightBill', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Last 6 Month Bank Statement</label><input type="file" className={inputClass} onChange={e => update('bankStatement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Cheque</label><input type="file" className={inputClass} onChange={e => update('cheque', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Income Proof</label><input type="file" className={inputClass} onChange={e => update('incomeProof', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Rent Agreement</label><input type="file" className={inputClass} onChange={e => update('rentAgreement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Customer Photo</label><input type="file" className={inputClass} onChange={e => update('customerPhoto', e.target.files?.[0] || null)} accept="image/*" /></div>
+                      <div><label className={labelClass}>Disbursement Memo</label><input type="file" className={inputClass} onChange={e => update('disbursementMemo', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Insurance</label><input type="file" className={inputClass} onChange={e => update('insurance', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div><label className={labelClass}>Customer Ledger</label><input type="file" className={inputClass} onChange={e => update('customerLedger', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-xs text-yellow-700 dark:text-yellow-300">
+                    ⚠️ Please upload all 5 mandatory documents (Aadhar Front, Aadhar Back, PAN Card, RC Front, RC Back) to unlock additional document uploads.
+                  </div>
+                )}
               </div>
 
             </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end gap-3 pb-8">
+        <div className="flex justify-end gap-3 pb-6">
           <button 
             type="button" 
             onClick={() => navigate(-1)} 
