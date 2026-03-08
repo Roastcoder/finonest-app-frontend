@@ -48,7 +48,7 @@ export default function UserManagement() {
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage system users and their roles</p>
         </div>
-        {(user?.role === 'admin' || user?.role === 'manager') && (
+        {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'team_leader') && (
           <button
             onClick={() => {
               setSelectedUser(null);
@@ -56,7 +56,7 @@ export default function UserManagement() {
             }}
             className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm"
           >
-            <Users size={16} /> Add New User
+            <Users size={16} /> {user?.role === 'team_leader' ? 'Add Team Member' : 'Add New User'}
           </button>
         )}
       </div>
@@ -111,7 +111,7 @@ export default function UserManagement() {
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   </div>
                 </div>
-                {user?.role === 'admin' && (
+                {(user?.role === 'admin' || user?.role === 'team_leader') && (
                   <button onClick={() => handleAssignRole(u)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
                     <Edit size={14} />
                   </button>
@@ -153,7 +153,7 @@ export default function UserManagement() {
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Role</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Branch</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Joined</th>
-                  {user?.role === 'admin' && <th className="py-3 px-3"></th>}
+                  {(user?.role === 'admin' || user?.role === 'team_leader') && <th className="py-3 px-3"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -184,7 +184,7 @@ export default function UserManagement() {
                     <td className="py-3 px-3 text-muted-foreground text-xs">
                       {new Date(u.created_at).toLocaleDateString('en-IN')}
                     </td>
-                    {user?.role === 'admin' && (
+                    {(user?.role === 'admin' || user?.role === 'team_leader') && (
                       <td className="py-3 px-3">
                         <button onClick={() => handleAssignRole(u)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                           <Edit size={14} />
