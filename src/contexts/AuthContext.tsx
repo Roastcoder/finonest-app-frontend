@@ -11,6 +11,9 @@ export interface AppUser {
   phone?: string;
   status?: string;
   branch_id?: number;
+  reporting_to?: number;
+  manager_name?: string;
+  manager_role?: string;
 }
 
 interface AuthContextType {
