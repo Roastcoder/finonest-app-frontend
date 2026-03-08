@@ -347,7 +347,7 @@ export default function CreateLoan() {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
       toast.success('Loan application created successfully!');
-      navigate(`/loans/${data.id}`);
+      navigate('/loans');
     },
     onError: (err: any) => {
       toast.error(err.message || 'Failed to create loan');
