@@ -23,25 +23,6 @@ export default function Loans() {
   const { data: loans = [], isLoading } = useQuery({
     queryKey: ['loans', user?.branch_id],
     queryFn: async () => {
-      if (user?.role === 'team_leader') {
-        const dummyLead = {
-          id: 'DUMMY-001',
-          loan_number: 'LOAN-DUMMY-001',
-          applicant_name: 'Rajesh Kumar',
-          mobile: '9876543210',
-          car_make: 'Maruti',
-          car_model: 'Swift',
-          maker_name: 'Maruti',
-          model_variant_name: 'Swift',
-          vehicle_number: 'MH12AB1234',
-          loan_amount: 500000,
-          emi: 15000,
-          status: 'pending',
-          banks: { name: 'HDFC Bank' },
-        };
-        const stored = localStorage.getItem('team_leader_dummy_lead');
-        return [stored ? JSON.parse(stored) : dummyLead];
-      }
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
           headers: {
