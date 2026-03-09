@@ -34,6 +34,10 @@ import TeamUsers from "@/pages/TeamUsers";
 import CustomerPortal from "@/pages/CustomerPortal";
 import CustomerLogin from "@/pages/CustomerLogin";
 import CustomerDashboard from "@/pages/CustomerDashboard";
+import AccountantDashboard from "@/pages/AccountantDashboard";
+import FolioAccounts from "@/pages/FolioAccounts";
+import AccountPayments from "@/pages/AccountPayments";
+import BankAccounts from "@/pages/BankAccounts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +89,13 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><SystemConfig /></ProtectedRoute>} />
       <Route path="/audit-logs" element={<ProtectedRoute><AuditLogPage /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><TeamUsers /></ProtectedRoute>} />
+
+      {/* External Portals */}
+      {/* Accountant Portal */}
+      <Route path="/accountant/dashboard" element={<ProtectedRoute><AccountantDashboard /></ProtectedRoute>} />
+      <Route path="/accountant/folio" element={<ProtectedRoute><FolioAccounts /></ProtectedRoute>} />
+      <Route path="/accountant/payments" element={<ProtectedRoute><AccountPayments /></ProtectedRoute>} />
+      <Route path="/accountant/bank-accounts" element={<ProtectedRoute><BankAccounts /></ProtectedRoute>} />
 
       {/* External Portals */}
       <Route path="/customer-login" element={<CustomerLogin />} />
