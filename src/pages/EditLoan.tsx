@@ -650,21 +650,33 @@ export default function EditLoan() {
               </div>
             </div>
 
-            {/* Common Fields for All Stages */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-              <div className="floating-input-wrapper">
-                <input type="number" className={inputClass} value={form.appScore} onChange={e => update('appScore', e.target.value)} placeholder=" " />
-                <label className={labelClass}>App Score</label>
+            {/* Login Stage Fields */}
+            {form.appStage === 'login' && (
+              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
+                <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-3">Login Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="floating-input-wrapper">
+                    <input type="number" className={inputClass} value={form.appScore} onChange={e => update('appScore', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>App Score</label>
+                  </div>
+                  <div className="floating-input-wrapper">
+                    <input type="number" className={inputClass} value={form.creditScore} onChange={e => update('creditScore', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Credit Score</label>
+                  </div>
+                </div>
               </div>
-              <div className="floating-input-wrapper">
-                <input type="number" className={inputClass} value={form.creditScore} onChange={e => update('creditScore', e.target.value)} placeholder=" " />
-                <label className={labelClass}>Credit Score</label>
+            )}
+
+            {/* In Process Stage Fields */}
+            {form.appStage === 'in_process' && (
+              <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800">
+                <h3 className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-3">In Process Details</h3>
+                <div className="floating-input-wrapper">
+                  <input className={inputClass} value={form.tags} onChange={e => update('tags', e.target.value)} placeholder=" " />
+                  <label className={labelClass}>Add Tags</label>
+                </div>
               </div>
-              <div className="floating-input-wrapper">
-                <input className={inputClass} value={form.tags} onChange={e => update('tags', e.target.value)} placeholder=" " />
-                <label className={labelClass}>Add Tags</label>
-              </div>
-            </div>
+            )}
 
             {/* Rejected Stage Fields */}
             {form.appStage === 'rejected' && (
