@@ -27,6 +27,12 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['team_leader'] },
   { label: 'PDD Tracking', path: '/pdd', icon: <Shield size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'executive'] },
 
+  // Accountant Portal
+  { label: 'Accountant Dashboard', path: '/accountant/dashboard', icon: <BarChart3 size={18} />, roles: ['accountant'] },
+  { label: 'Folio Accounts', path: '/accountant/folio', icon: <Wallet size={18} />, roles: ['accountant'] },
+  { label: 'Account Payments', path: '/accountant/payments', icon: <Receipt size={18} />, roles: ['accountant'] },
+  { label: 'Bank Accounts', path: '/accountant/bank-accounts', icon: <Building2 size={18} />, roles: ['accountant'] },
+
   // New PRD Modules
   { label: 'RC Limits', path: '/rc-limits', icon: <Wallet size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa'] },
   { label: 'Payouts', path: '/payouts', icon: <Receipt size={18} />, roles: ['admin', 'manager', 'dsa'] },
