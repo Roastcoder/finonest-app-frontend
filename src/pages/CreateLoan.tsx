@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { CAR_MAKES, calculateEMI, formatCurrency } from '@/lib/mock-data';
+import { FINANCIERS } from '@/lib/financiers';
 import { ArrowLeft, Calculator, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
@@ -98,76 +99,64 @@ export default function CreateLoan() {
     
     setFetchingVehicleData(true);
     try {
-      toast.info('Fetching vehicle details...');
-      
-      // Fetch RC details
-      const rcResponse = await fetch('https://kyc-api.surepass.io/api/v1/rc/rc-full', {
+      console.log('Fetching from API');
+      toast.info('Fetching from API...');
+      const response = await fetch('https://kyc-api.surepass.app/api/v1/rc/rc-v2', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg'
         },
-        body: JSON.stringify({ id_number: rcNumber }),
+        body: JSON.stringify({ id_number: rcNumber, enrich: true }),
       });
       
-      if (!rcResponse.ok) throw new Error('Failed to fetch RC details');
-      const rcData = await rcResponse.json();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const rcData = await response.json();
+      console.log('RC API Response:', rcData);
+      console.log('RC Data fields:', Object.keys(rcData.data || {}));
       
       if (rcData.success && rcData.data) {
         const rc = rcData.data;
         
-        // Fetch challan details
-        let challanInfo = 'No';
-        try {
-          const challanResponse = await fetch('https://kyc-api.surepass.io/api/v1/rc/rc-related/challan-details', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg'
-            },
-            body: JSON.stringify({
-              rc_number: rcNumber,
-              chassis_number: rc.vehicle_chasi_number || rc.chassis_number || '',
-              engine_number: rc.vehicle_engine_number || rc.engine_number || '',
-              state_only: false,
-              state_portal: ['DL', 'TS', 'KA', 'GJ', 'RJ', 'MH', 'UP', 'HR']
-            }),
-          });
-          
-          if (challanResponse.ok) {
-            const challanData = await challanResponse.json();
-            if (challanData.success && challanData.data?.challan_details?.challans?.length > 0) {
-              const challans = challanData.data.challan_details.challans;
-              const pendingChallans = challans.filter((c: any) => c.challan_status === 'Pending');
-              challanInfo = pendingChallans.length > 0 ? `Yes (${pendingChallans.length} pending)` : 'No';
-              
-              if (pendingChallans.length > 0) {
-                toast.warning(`${pendingChallans.length} pending challan(s) found!`);
-              }
-            }
-          }
-        } catch (err) {
-          console.log('Challan check failed:', err);
-        }
-        
         setForm(f => ({
           ...f,
-          makerName: rc.maker_description || rc.maker_model || '',
-          modelVariantName: rc.maker_model || rc.model || '',
-          mfgYear: rc.manufacturing_date_formatted?.split('-')[0] || rc.manufacturing_date?.split('-')[0] || '',
+          // Vehicle Details
+          makerName: rc.maker_model || rc.vehicle_manufacturer_name || rc.manufacturer || rc.make || '',
+          modelVariantName: rc.model || rc.vehicle_model || rc.variant || rc.model_name || rc.vehicle_class || '',
+          mfgYear: rc.manufacturing_date?.split('-')[0] || rc.registration_date?.split('-')[0] || rc.mfg_year || rc.year || rc.manufacturing_year || rc.model_year || '',
+          
+          // RC/RTO Details  
           rcOwnerName: rc.owner_name || '',
           rcMfgDate: rc.manufacturing_date || rc.registration_date || '',
-          rcExpiryDate: rc.fit_up_to || rc.tax_upto || '',
-          hpnAtLogin: rc.financer || 'Not Financed',
-          isFinanced: rc.financed ? 'Yes' : 'No',
-          fc: rc.fit_up_to ? 'Yes' : 'No',
-          challan: challanInfo,
+          rcExpiryDate: rc.fitness_upto ? (rc.fitness_upto.includes('/') ? 
+            (() => {
+              const [month, year] = rc.fitness_upto.split('/');
+              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+              return date.toISOString().split('T')[0];
+            })() : rc.fitness_upto) : rc.tax_upto ? (rc.tax_upto.includes('/') ? 
+            (() => {
+              const [month, year] = rc.tax_upto.split('/');
+              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+              return date.toISOString().split('T')[0];
+            })() : rc.tax_upto) : '',
+          hpnAtLogin: rc.financer ? (rc.financer || 'Financed') : 'Not Financed',
+          isFinanced: rc.financer ? 'Yes' : 'No',
+          fc: rc.fitness_upto ? 'Yes' : 'No',
+          
+          // Customer Details (only if empty)
           customerName: f.customerName || rc.owner_name || '',
           mobile: f.mobile || rc.mobile_number || '',
-          currentAddress: f.currentAddress || rc.present_address || '',
+          
+          // Address from RC (only if empty)
+          currentAddress: f.currentAddress || rc.present_address || rc.permanent_address || '',
           permanentAddress: f.permanentAddress || rc.permanent_address || '',
-          currentPincode: f.currentPincode || rc.present_address?.match(/\d{6}/)?.[0] || '',
+          currentPincode: f.currentPincode || rc.present_address?.match(/\d{6}/)?.[0] || rc.permanent_address?.match(/\d{6}/)?.[0] || '',
           permanentPincode: f.permanentPincode || rc.permanent_address?.match(/\d{6}/)?.[0] || '',
+          
+          // Insurance Details
           insuranceCompanyName: rc.insurance_company || '',
           insurancePolicyNumber: rc.insurance_policy_number || '',
           insuranceDate: rc.insurance_upto || '',
@@ -178,7 +167,7 @@ export default function CreateLoan() {
         toast.error('Could not fetch vehicle details');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching vehicle details:', error);
       toast.error('Failed to fetch vehicle details');
     } finally {
       setFetchingVehicleData(false);
@@ -206,7 +195,7 @@ export default function CreateLoan() {
     // EMI Details
     irr: '', tenure: '60', emiMode: 'Monthly', emiStartDate: '', emiEndDate: '',
     // Financier Details
-    assignedBankId: '', assignedBrokerId: '', financierExecutiveName: '', financierTeamVertical: '', disburseBranchName: '', sanctionAmount: '', sanctionDate: '',
+    assignedBankId: '', assignedBrokerId: '', financierExecutiveName: '', financierTeamVertical: '', disburseBranchName: '', sanctionAmount: '', sanctionDate: '', financierName: '', otherFinancierName: '',
     // Insurance Details
     insuranceCompanyName: '', premiumAmount: '', insuranceDate: '', insurancePolicyNumber: '',
     // Deductions & Disbursement Details
@@ -332,6 +321,7 @@ export default function CreateLoan() {
           interest_rate: Number(form.irr) || null,
           assigned_bank_id: form.assignedBankId || null,
           assigned_broker_id: form.assignedBrokerId || null,
+          financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
           sanction_amount: Number(form.sanctionAmount) || null,
           sanction_date: form.sanctionDate || null,
           insurance_company_name: form.insuranceCompanyName || null,
@@ -581,12 +571,24 @@ export default function CreateLoan() {
               )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
                 <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Financier Details</h3></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.assignedBankId} onChange={e => update('assignedBankId', e.target.value)}><option value="">Select Financier Name</option>{(banks as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select><label className={labelClass}>Financier Name</label></div>
+                <div className="floating-input-wrapper">
+                  <select className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)}>
+                    <option value="">Select Financier Name</option>
+                    {FINANCIERS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                  <label className={labelClass}>Financier Name</label>
+                </div>
+                {form.financierName === 'Others' && (
+                  <div className="floating-input-wrapper">
+                    <input className={inputClass} value={form.otherFinancierName} onChange={e => update('otherFinancierName', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Enter Financier Name</label>
+                  </div>
+                )}
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.financierExecutiveName} onChange={e => update('financierExecutiveName', e.target.value)} placeholder=" " /><label className={labelClass}>Financier Executive Name</label></div>
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.financierTeamVertical} onChange={e => update('financierTeamVertical', e.target.value)}><option value="">Select Team Vertical</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV">PV</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Financier Team Vertical</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.disburseBranchName} onChange={e => update('disburseBranchName', e.target.value)} placeholder=" " /><label className={labelClass}>Disburse Branch Name</label></div>
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.assignedBrokerId} onChange={e => update('assignedBrokerId', e.target.value)}><option value="">Select Broker (Optional)</option>{(brokers as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select><label className={labelClass}>Broker</label></div>
-                {form.assignedBankId && (
+                {form.financierName && (
                   <>
                     <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.sanctionAmount} onChange={e => update('sanctionAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Amount (₹)</label></div>
                     <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.sanctionDate} onChange={e => update('sanctionDate', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Date</label></div>
