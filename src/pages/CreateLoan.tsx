@@ -98,64 +98,76 @@ export default function CreateLoan() {
     
     setFetchingVehicleData(true);
     try {
-      console.log('Fetching from API');
-      toast.info('Fetching from API...');
-      const response = await fetch('https://kyc-api.surepass.app/api/v1/rc/rc-v2', {
+      toast.info('Fetching vehicle details...');
+      
+      // Fetch RC details
+      const rcResponse = await fetch('https://kyc-api.surepass.io/api/v1/rc/rc-full', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg'
         },
-        body: JSON.stringify({ id_number: rcNumber, enrich: true }),
+        body: JSON.stringify({ id_number: rcNumber }),
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const rcData = await response.json();
-      console.log('RC API Response:', rcData);
-      console.log('RC Data fields:', Object.keys(rcData.data || {}));
+      if (!rcResponse.ok) throw new Error('Failed to fetch RC details');
+      const rcData = await rcResponse.json();
       
       if (rcData.success && rcData.data) {
         const rc = rcData.data;
         
+        // Fetch challan details
+        let challanInfo = 'No';
+        try {
+          const challanResponse = await fetch('https://kyc-api.surepass.io/api/v1/rc/rc-related/challan-details', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg'
+            },
+            body: JSON.stringify({
+              rc_number: rcNumber,
+              chassis_number: rc.vehicle_chasi_number || rc.chassis_number || '',
+              engine_number: rc.vehicle_engine_number || rc.engine_number || '',
+              state_only: false,
+              state_portal: ['DL', 'TS', 'KA', 'GJ', 'RJ', 'MH', 'UP', 'HR']
+            }),
+          });
+          
+          if (challanResponse.ok) {
+            const challanData = await challanResponse.json();
+            if (challanData.success && challanData.data?.challan_details?.challans?.length > 0) {
+              const challans = challanData.data.challan_details.challans;
+              const pendingChallans = challans.filter((c: any) => c.challan_status === 'Pending');
+              challanInfo = pendingChallans.length > 0 ? `Yes (${pendingChallans.length} pending)` : 'No';
+              
+              if (pendingChallans.length > 0) {
+                toast.warning(`${pendingChallans.length} pending challan(s) found!`);
+              }
+            }
+          }
+        } catch (err) {
+          console.log('Challan check failed:', err);
+        }
+        
         setForm(f => ({
           ...f,
-          // Vehicle Details
-          makerName: rc.maker_model || rc.vehicle_manufacturer_name || rc.manufacturer || rc.make || '',
-          modelVariantName: rc.model || rc.vehicle_model || rc.variant || rc.model_name || rc.vehicle_class || '',
-          mfgYear: rc.manufacturing_date?.split('-')[0] || rc.registration_date?.split('-')[0] || rc.mfg_year || rc.year || rc.manufacturing_year || rc.model_year || '',
-          
-          // RC/RTO Details  
+          makerName: rc.maker_description || rc.maker_model || '',
+          modelVariantName: rc.maker_model || rc.model || '',
+          mfgYear: rc.manufacturing_date_formatted?.split('-')[0] || rc.manufacturing_date?.split('-')[0] || '',
           rcOwnerName: rc.owner_name || '',
           rcMfgDate: rc.manufacturing_date || rc.registration_date || '',
-          rcExpiryDate: rc.fitness_upto ? (rc.fitness_upto.includes('/') ? 
-            (() => {
-              const [month, year] = rc.fitness_upto.split('/');
-              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-              return date.toISOString().split('T')[0];
-            })() : rc.fitness_upto) : rc.tax_upto ? (rc.tax_upto.includes('/') ? 
-            (() => {
-              const [month, year] = rc.tax_upto.split('/');
-              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-              return date.toISOString().split('T')[0];
-            })() : rc.tax_upto) : '',
-          hpnAtLogin: rc.financer ? (rc.financer || 'Financed') : 'Not Financed',
-          isFinanced: rc.financer ? 'Yes' : 'No',
-          fc: rc.fitness_upto ? 'Yes' : 'No',
-          
-          // Customer Details (only if empty)
+          rcExpiryDate: rc.fit_up_to || rc.tax_upto || '',
+          hpnAtLogin: rc.financer || 'Not Financed',
+          isFinanced: rc.financed ? 'Yes' : 'No',
+          fc: rc.fit_up_to ? 'Yes' : 'No',
+          challan: challanInfo,
           customerName: f.customerName || rc.owner_name || '',
           mobile: f.mobile || rc.mobile_number || '',
-          
-          // Address from RC (only if empty)
-          currentAddress: f.currentAddress || rc.present_address || rc.permanent_address || '',
+          currentAddress: f.currentAddress || rc.present_address || '',
           permanentAddress: f.permanentAddress || rc.permanent_address || '',
-          currentPincode: f.currentPincode || rc.present_address?.match(/\d{6}/)?.[0] || rc.permanent_address?.match(/\d{6}/)?.[0] || '',
+          currentPincode: f.currentPincode || rc.present_address?.match(/\d{6}/)?.[0] || '',
           permanentPincode: f.permanentPincode || rc.permanent_address?.match(/\d{6}/)?.[0] || '',
-          
-          // Insurance Details
           insuranceCompanyName: rc.insurance_company || '',
           insurancePolicyNumber: rc.insurance_policy_number || '',
           insuranceDate: rc.insurance_upto || '',
@@ -166,7 +178,7 @@ export default function CreateLoan() {
         toast.error('Could not fetch vehicle details');
       }
     } catch (error) {
-      console.error('Error fetching vehicle details:', error);
+      console.error('Error:', error);
       toast.error('Failed to fetch vehicle details');
     } finally {
       setFetchingVehicleData(false);
