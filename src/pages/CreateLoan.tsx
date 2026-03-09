@@ -186,6 +186,8 @@ export default function CreateLoan() {
     vehicleNumber: '', makerName: '', modelVariantName: '', mfgYear: '', vertical: '', scheme: '',
     // Income Details
     incomeSource: '', monthlyIncome: '',
+    // Financier Selection (for executive/team_leader)
+    selectedFinancier: '', otherSelectedFinancier: '', financierLocation: '',
     // RTO Details
     rcOwnerName: '', rcMfgDate: '', rcExpiryDate: '', hpnAtLogin: '', isFinanced: '', newFinancier: '', rtoDocsHandoverDate: '',
     rtoAgentName: '', agentMobileNo: '', dtoLocation: '', rtoWorkDescription: '', challan: 'No', fc: 'No', rtoPapers: '',
@@ -300,6 +302,8 @@ export default function CreateLoan() {
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
           monthly_income: Number(form.monthlyIncome) || null,
+          selected_financier: form.selectedFinancier === 'Others' ? form.otherSelectedFinancier : form.selectedFinancier,
+          financier_location: form.financierLocation || null,
           loan_amount: Number(form.loanAmount) || 0,
           ltv: Number(form.ltv) || null,
           loan_type_vehicle: form.loanTypeVehicle || null,
@@ -543,6 +547,32 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.loanTypeVehicle} onChange={e => update('loanTypeVehicle', e.target.value)}><option value="">Select</option><option value="New Vehicle Loan">New Vehicle Loan</option><option value="Used Vehicle Loan">Used Vehicle Loan</option></select><label className={labelClass}>Loan Type</label></div>
               </div>
             </div>
+
+          {/* Income & Financier Selection (for Executive/Team Leader) */}
+          {(isExecutive || isTeamLeader) && (
+            <div>
+              <h2 className="text-base font-bold text-foreground mb-3">Income & Financier Selection</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.incomeSource} onChange={e => update('incomeSource', e.target.value)}><option value="">Select Income Source</option><option value="Salaried">Salaried</option><option value="Self Employed">Self Employed</option><option value="Business">Business</option></select><label className={labelClass}>Income Source</label></div>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " /><label className={labelClass}>Monthly Income (₹)</label></div>
+                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Financier Selection</h3></div>
+                <div className="floating-input-wrapper">
+                  <select className={inputClass} value={form.selectedFinancier} onChange={e => update('selectedFinancier', e.target.value)}>
+                    <option value="">Select Financier</option>
+                    {FINANCIERS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                  <label className={labelClass}>Financier Name</label>
+                </div>
+                {form.selectedFinancier === 'Others' && (
+                  <div className="floating-input-wrapper">
+                    <input className={inputClass} value={form.otherSelectedFinancier} onChange={e => update('otherSelectedFinancier', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Enter Financier Name</label>
+                  </div>
+                )}
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.financierLocation} onChange={e => update('financierLocation', e.target.value)} placeholder=" " /><label className={labelClass}>Location</label></div>
+              </div>
+            </div>
+          )}
 
           {/* EMI & Financier */}
           <div>
