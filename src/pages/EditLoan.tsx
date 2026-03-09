@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { CAR_MAKES, calculateEMI, formatCurrency } from '@/lib/mock-data';
+import { FINANCIERS } from '@/lib/financiers';
 import { ArrowLeft, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
@@ -69,6 +70,14 @@ export default function EditLoan() {
     vehicleNumber: '', makerName: '', modelVariantName: '', mfgYear: '', vertical: '', scheme: '',
     // Income Details
     incomeSource: '', monthlyIncome: '',
+    // Financier Name
+    financierName: '', otherFinancierName: '',
+    // Application Stages
+    appStage: 'submitted', appScore: '', creditScore: '', tags: '', rejectedRemarks: '',
+    approvedLoanAmount: '', approvedRoi: '', approvedTenure: '',
+    disbursedLoanAmount: '', disbursedRoi: '', disbursedTenure: '', loanAccountNumber: '',
+    rcStatus: '', rcType: '', rcCollectedBy: '', rtoAgentNameStage: '', rtoAgentMobileStage: '',
+    bankerName: '', bankerMobile: '', cancelledRemarks: '',
     // Salaried Income Details
     companyName: '', designation: '', workExperience: '', currentJobYears: '', totalWorkExp: '',
     netMonthlySalary: '', salaryCreditMode: '', salarySlipAvailable: '',
@@ -134,6 +143,28 @@ export default function EditLoan() {
         scheme: loanData.scheme || '',
         incomeSource: loanData.income_source || '',
         monthlyIncome: loanData.monthly_income?.toString() || '',
+        financierName: loanData.financier_name || '',
+        otherFinancierName: loanData.financier_name && !FINANCIERS.includes(loanData.financier_name) ? loanData.financier_name : '',
+        appStage: loanData.app_stage || 'submitted',
+        appScore: loanData.app_score || '',
+        creditScore: loanData.credit_score || '',
+        tags: loanData.tags || '',
+        rejectedRemarks: loanData.rejected_remarks || '',
+        approvedLoanAmount: loanData.approved_loan_amount?.toString() || '',
+        approvedRoi: loanData.approved_roi?.toString() || '',
+        approvedTenure: loanData.approved_tenure?.toString() || '',
+        disbursedLoanAmount: loanData.disbursed_loan_amount?.toString() || '',
+        disbursedRoi: loanData.disbursed_roi?.toString() || '',
+        disbursedTenure: loanData.disbursed_tenure?.toString() || '',
+        loanAccountNumber: loanData.loan_account_number || '',
+        rcStatus: loanData.rc_status || '',
+        rcType: loanData.rc_type || '',
+        rcCollectedBy: loanData.rc_collected_by || '',
+        rtoAgentNameStage: loanData.rto_agent_name_stage || '',
+        rtoAgentMobileStage: loanData.rto_agent_mobile_stage || '',
+        bankerName: loanData.banker_name || '',
+        bankerMobile: loanData.banker_mobile || '',
+        cancelledRemarks: loanData.cancelled_remarks || '',
         irr: loanData.irr?.toString() || loanData.interest_rate?.toString() || '',
         tenure: loanData.tenure?.toString() || '60',
         emiStartDate: loanData.emi_start_date || '',
@@ -204,6 +235,27 @@ export default function EditLoan() {
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
           monthly_income: Number(form.monthlyIncome) || null,
+          financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName || null,
+          app_stage: form.appStage || null,
+          app_score: form.appScore || null,
+          credit_score: form.creditScore || null,
+          tags: form.tags || null,
+          rejected_remarks: form.rejectedRemarks || null,
+          approved_loan_amount: Number(form.approvedLoanAmount) || null,
+          approved_roi: Number(form.approvedRoi) || null,
+          approved_tenure: Number(form.approvedTenure) || null,
+          disbursed_loan_amount: Number(form.disbursedLoanAmount) || null,
+          disbursed_roi: Number(form.disbursedRoi) || null,
+          disbursed_tenure: Number(form.disbursedTenure) || null,
+          loan_account_number: form.loanAccountNumber || null,
+          rc_status: form.rcStatus || null,
+          rc_type: form.rcType || null,
+          rc_collected_by: form.rcCollectedBy || null,
+          rto_agent_name_stage: form.rtoAgentNameStage || null,
+          rto_agent_mobile_stage: form.rtoAgentMobileStage || null,
+          banker_name: form.bankerName || null,
+          banker_mobile: form.bankerMobile || null,
+          cancelled_remarks: form.cancelledRemarks || null,
           loan_amount: Number(form.loanAmount) || 0,
           ltv: Number(form.ltv) || null,
           loan_type_vehicle: form.loanTypeVehicle || null,
@@ -421,6 +473,19 @@ export default function EditLoan() {
                 <label className={labelClass}>Income Source</label>
               </div>
               <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " /><label className={labelClass}>Monthly Income (₹)</label></div>
+              <div className="floating-input-wrapper">
+                <select className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)}>
+                  <option value="">Select Financier</option>
+                  {FINANCIERS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <label className={labelClass}>Financier Name</label>
+              </div>
+              {form.financierName === 'Others' && (
+                <div className="floating-input-wrapper">
+                  <input className={inputClass} value={form.otherFinancierName} onChange={e => update('otherFinancierName', e.target.value)} placeholder=" " />
+                  <label className={labelClass}>Enter Financier Name</label>
+                </div>
+              )}
             </div>
             
             {/* Salaried Income Fields */}
@@ -560,6 +625,179 @@ export default function EditLoan() {
                     </select>
                     <label className={labelClass}>Subtype</label>
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Application Stages - Separate Box */}
+          <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+            <h2 className="text-base font-bold text-foreground mb-3">Application Stages</h2>
+            
+            {/* Stage Selection */}
+            <div className="mb-4">
+              <div className="floating-input-wrapper">
+                <select className={inputClass} value={form.appStage} onChange={e => update('appStage', e.target.value)}>
+                  <option value="submitted">Submitted</option>
+                  <option value="login">Login</option>
+                  <option value="in_process">In Process</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="approved">Approved</option>
+                  <option value="disbursed">Disbursed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <label className={labelClass}>Current Stage</label>
+              </div>
+            </div>
+
+            {/* Common Fields for All Stages */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="floating-input-wrapper">
+                <input type="number" className={inputClass} value={form.appScore} onChange={e => update('appScore', e.target.value)} placeholder=" " />
+                <label className={labelClass}>App Score</label>
+              </div>
+              <div className="floating-input-wrapper">
+                <input type="number" className={inputClass} value={form.creditScore} onChange={e => update('creditScore', e.target.value)} placeholder=" " />
+                <label className={labelClass}>Credit Score</label>
+              </div>
+              <div className="floating-input-wrapper">
+                <input className={inputClass} value={form.tags} onChange={e => update('tags', e.target.value)} placeholder=" " />
+                <label className={labelClass}>Add Tags</label>
+              </div>
+            </div>
+
+            {/* Rejected Stage Fields */}
+            {form.appStage === 'rejected' && (
+              <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
+                <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-3">Rejection Details</h3>
+                <div className="floating-input-wrapper">
+                  <textarea className={inputClass} rows={3} value={form.rejectedRemarks} onChange={e => update('rejectedRemarks', e.target.value)} placeholder=" " />
+                  <label className={labelClass}>Remarks</label>
+                </div>
+              </div>
+            )}
+
+            {/* Approved Stage Fields */}
+            {form.appStage === 'approved' && (
+              <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800">
+                <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3">Approval Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="floating-input-wrapper">
+                    <input type="number" className={inputClass} value={form.approvedLoanAmount} onChange={e => update('approvedLoanAmount', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Loan Amount (₹)</label>
+                  </div>
+                  <div className="floating-input-wrapper">
+                    <input type="number" step="0.01" className={inputClass} value={form.approvedRoi} onChange={e => update('approvedRoi', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>ROI (%)</label>
+                  </div>
+                  <div className="floating-input-wrapper">
+                    <select className={inputClass} value={form.approvedTenure} onChange={e => update('approvedTenure', e.target.value)}>
+                      <option value="">Select Tenure</option>
+                      {[12, 18, 24, 36, 48, 60, 72, 84].map(t => <option key={t} value={t}>{t} Months</option>)}
+                    </select>
+                    <label className={labelClass}>Tenure</label>
+                  </div>
+                </div>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">⚠️ If not disbursed in 30 days, will auto-move to Cancelled stage</p>
+              </div>
+            )}
+
+            {/* Disbursed Stage Fields */}
+            {form.appStage === 'disbursed' && (
+              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
+                <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-3">Disbursement Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div className="floating-input-wrapper">
+                    <input type="number" className={inputClass} value={form.disbursedLoanAmount} onChange={e => update('disbursedLoanAmount', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Loan Amount (₹)</label>
+                  </div>
+                  <div className="floating-input-wrapper">
+                    <input type="number" step="0.01" className={inputClass} value={form.disbursedRoi} onChange={e => update('disbursedRoi', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>ROI (%)</label>
+                  </div>
+                  <div className="floating-input-wrapper">
+                    <select className={inputClass} value={form.disbursedTenure} onChange={e => update('disbursedTenure', e.target.value)}>
+                      <option value="">Select Tenure</option>
+                      {[12, 18, 24, 36, 48, 60, 72, 84].map(t => <option key={t} value={t}>{t} Months</option>)}
+                    </select>
+                    <label className={labelClass}>Tenure</label>
+                  </div>
+                  <div className="floating-input-wrapper">
+                    <input className={inputClass} value={form.loanAccountNumber} onChange={e => update('loanAccountNumber', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Loan Account Number</label>
+                  </div>
+                </div>
+
+                {/* Vehicle RC Status */}
+                <div className="mt-4 p-3 rounded-lg bg-background/50 border border-border">
+                  <h4 className="text-xs font-semibold text-foreground mb-3">Vehicle RC Status</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.rcStatus} onChange={e => update('rcStatus', e.target.value)}>
+                        <option value="">Select Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="collected">Collected</option>
+                        <option value="submitted">Submitted</option>
+                      </select>
+                      <label className={labelClass}>RC Status</label>
+                    </div>
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.rcType} onChange={e => update('rcType', e.target.value)}>
+                        <option value="">Select Type</option>
+                        <option value="physical">Physical RC</option>
+                        <option value="digital">Digital RC</option>
+                      </select>
+                      <label className={labelClass}>RC Type</label>
+                    </div>
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.rcCollectedBy} onChange={e => update('rcCollectedBy', e.target.value)}>
+                        <option value="">Select Collector</option>
+                        <option value="self">Self</option>
+                        <option value="rto_agent">RTO Agent</option>
+                        <option value="banker">Banker</option>
+                      </select>
+                      <label className={labelClass}>Collected By</label>
+                    </div>
+                  </div>
+
+                  {/* RTO Agent Details */}
+                  {form.rcCollectedBy === 'rto_agent' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                      <div className="floating-input-wrapper">
+                        <input className={inputClass} value={form.rtoAgentNameStage} onChange={e => update('rtoAgentNameStage', e.target.value)} placeholder=" " />
+                        <label className={labelClass}>RTO Agent Name</label>
+                      </div>
+                      <div className="floating-input-wrapper">
+                        <input className={inputClass} value={form.rtoAgentMobileStage} onChange={e => update('rtoAgentMobileStage', e.target.value)} maxLength={10} placeholder=" " />
+                        <label className={labelClass}>Mobile No</label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Banker Details */}
+                  {form.rcCollectedBy === 'banker' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                      <div className="floating-input-wrapper">
+                        <input className={inputClass} value={form.bankerName} onChange={e => update('bankerName', e.target.value)} placeholder=" " />
+                        <label className={labelClass}>Banker Name</label>
+                      </div>
+                      <div className="floating-input-wrapper">
+                        <input className={inputClass} value={form.bankerMobile} onChange={e => update('bankerMobile', e.target.value)} maxLength={10} placeholder=" " />
+                        <label className={labelClass}>Mobile No</label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Cancelled Stage Fields */}
+            {form.appStage === 'cancelled' && (
+              <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900/10 border border-gray-200 dark:border-gray-800">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-400 mb-3">Cancellation Details</h3>
+                <div className="floating-input-wrapper">
+                  <textarea className={inputClass} rows={3} value={form.cancelledRemarks} onChange={e => update('cancelledRemarks', e.target.value)} placeholder=" " />
+                  <label className={labelClass}>Remarks</label>
                 </div>
               </div>
             )}
