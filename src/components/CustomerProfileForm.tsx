@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Briefcase, Building2, UserCircle, Calculator, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CustomerProfileForm({ leadId }: { leadId: number }) {
+    const { user } = useAuth();
     const queryClient = useQueryClient();
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<any>({
@@ -84,14 +86,16 @@ export default function CustomerProfileForm({ leadId }: { leadId: number }) {
                     <span className="text-accent"><Briefcase size={20} /></span>
                     <h2 className="text-lg font-bold text-foreground">Customer Profile</h2>
                 </div>
-                <button
-                    onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                        }`}
-                    disabled={saveMutation.isPending}
-                >
-                    {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save Profile' : 'Edit Profile'}
-                </button>
+                {user?.role !== 'executive' && (
+                    <button
+                        onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                            }`}
+                        disabled={saveMutation.isPending}
+                    >
+                        {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save Profile' : 'Edit Profile'}
+                    </button>
+                )}
             </div>
 
             <div className="space-y-6">

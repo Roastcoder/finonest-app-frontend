@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, X, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -75,7 +75,7 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
   return (
     <div className="stat-card">
       <h3 className="text-lg font-semibold mb-4">Upload Documents</h3>
-      
+
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">Document Type</label>
@@ -166,16 +166,16 @@ export function DocumentList({ leadId }: DocumentListProps) {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     fetchDocuments();
-  });
+  }, [leadId]);
 
   if (loading) return <div>Loading documents...</div>;
 
   return (
     <div className="stat-card mt-4">
       <h3 className="text-lg font-semibold mb-4">Uploaded Documents</h3>
-      
+
       {documents.length === 0 ? (
         <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
       ) : (

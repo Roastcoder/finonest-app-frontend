@@ -77,7 +77,11 @@ export default function AddLead() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createLead.mutate(form);
+    const submissionData = { ...form };
+    if (user?.role === 'executive') {
+      submissionData.financier_id = null; // Executives don't set this
+    }
+    createLead.mutate(submissionData);
   };
 
   const inputClass = "w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent transition-colors";
@@ -165,15 +169,17 @@ export default function AddLead() {
             </select>
           </div>
 
-          <div>
-            <label className={labelClass}>Financier Name *</label>
-            <select required className={inputClass} value={form.financier_id} onChange={e => setForm({ ...form, financier_id: e.target.value })}>
-              <option value="">Select Financier</option>
-              {banks.map((bank: any) => (
-                <option key={bank.id} value={bank.id}>{bank.name}</option>
-              ))}
-            </select>
-          </div>
+          {user?.role !== 'executive' && (
+            <div>
+              <label className={labelClass}>Financier Name *</label>
+              <select required className={inputClass} value={form.financier_id} onChange={e => setForm({ ...form, financier_id: e.target.value })}>
+                <option value="">Select Financier</option>
+                {banks.map((bank: any) => (
+                  <option key={bank.id} value={bank.id}>{bank.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className={labelClass}>Source</label>
