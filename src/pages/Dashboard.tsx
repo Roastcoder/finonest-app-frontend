@@ -108,64 +108,64 @@ export default function Dashboard() {
         </div>
 
         {/* Section 1: Overview Cards (Moved from Monthly Application Tracker) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
           {/* Primary Green Card - Logins */}
-          <div className="p-6 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-3xl shadow-lg relative overflow-hidden group">
-            <div className="absolute top-6 right-6 p-2 rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-sm group-hover:bg-white/20 transition-colors">
-              <ChevronRight size={18} className="-rotate-45" />
+          <div className="p-3 md:p-6 bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] rounded-2xl md:rounded-3xl shadow-lg relative overflow-hidden group">
+            <div className="absolute top-3 right-3 md:top-6 md:right-6 p-1.5 md:p-2 rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-sm group-hover:bg-white/20 transition-colors">
+              <ChevronRight size={14} className="md:w-[18px] md:h-[18px] -rotate-45" />
             </div>
-            <p className="text-white/80 font-medium text-lg mb-4">Total Logins</p>
-            <p className="text-6xl font-medium tracking-tight text-white mb-6">
+            <p className="text-white/80 font-medium text-sm md:text-lg mb-2 md:mb-4">Total Logins</p>
+            <p className="text-3xl md:text-6xl font-medium tracking-tight text-white mb-3 md:mb-6">
               {stats.monthlyTracker?.login || 0}
             </p>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 text-white text-sm">
+            <div className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-white/10 text-white text-xs md:text-sm">
               <span className="text-green-300">↑</span>
               <span>Units</span>
             </div>
           </div>
 
           {/* White Card - In Process */}
-          <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative group transition-all hover:shadow-md hover:border-gray-200">
-            <div className="absolute top-6 right-6 p-2 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 transition-colors">
-              <ChevronRight size={18} className="-rotate-45" />
+          <div className="p-3 md:p-6 bg-white dark:bg-gray-800 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative group transition-all hover:shadow-md hover:border-gray-200">
+            <div className="absolute top-3 right-3 md:top-6 md:right-6 p-1.5 md:p-2 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 transition-colors">
+              <ChevronRight size={14} className="md:w-[18px] md:h-[18px] -rotate-45" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 font-medium text-lg mb-4">In Process</p>
-            <p className="text-6xl font-medium tracking-tight text-gray-900 dark:text-white mb-6">
+            <p className="text-gray-600 dark:text-gray-400 font-medium text-sm md:text-lg mb-2 md:mb-4">In Process</p>
+            <p className="text-3xl md:text-6xl font-medium tracking-tight text-gray-900 dark:text-white mb-3 md:mb-6">
               {stats.monthlyTracker?.inProcess || 0}
             </p>
-            <div className="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-sm">
-              <Clock size={16} />
+            <div className="inline-flex items-center gap-1 md:gap-1.5 text-gray-500 dark:text-gray-400 text-xs md:text-sm">
+              <Clock size={12} className="md:w-4 md:h-4" />
               <span>Units active</span>
             </div>
           </div>
 
           {/* White Card - Approved */}
-          <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative group transition-all hover:shadow-md hover:border-gray-200">
-            <div className="absolute top-6 right-6 p-2 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 transition-colors">
-              <ChevronRight size={18} className="-rotate-45" />
+          <div className="p-3 md:p-6 bg-white dark:bg-gray-800 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative group transition-all hover:shadow-md hover:border-gray-200">
+            <div className="absolute top-3 right-3 md:top-6 md:right-6 p-1.5 md:p-2 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 transition-colors">
+              <ChevronRight size={14} className="md:w-[18px] md:h-[18px] -rotate-45" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 font-medium text-lg mb-4">Approved</p>
-            <p className="text-6xl font-medium tracking-tight text-gray-900 dark:text-white mb-6">
+            <p className="text-gray-600 dark:text-gray-400 font-medium text-sm md:text-lg mb-2 md:mb-4">Approved</p>
+            <p className="text-3xl md:text-6xl font-medium tracking-tight text-gray-900 dark:text-white mb-3 md:mb-6">
               {stats.monthlyTracker?.approved?.units || 0}
             </p>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-sm font-medium">
+            <div className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs md:text-sm font-medium">
               <span>₹{((stats.monthlyTracker?.approved?.amount || 0) / 100000).toFixed(2)}L</span>
-              <span className="text-green-600/70 font-normal ml-1">Volume</span>
+              <span className="text-green-600/70 font-normal ml-1 hidden md:inline">Volume</span>
             </div>
           </div>
 
           {/* White Card - Disbursed */}
-          <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative group transition-all hover:shadow-md hover:border-gray-200">
-            <div className="absolute top-6 right-6 p-2 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 transition-colors">
-              <ChevronRight size={18} className="-rotate-45" />
+          <div className="p-3 md:p-6 bg-white dark:bg-gray-800 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 relative group transition-all hover:shadow-md hover:border-gray-200">
+            <div className="absolute top-3 right-3 md:top-6 md:right-6 p-1.5 md:p-2 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 group-hover:bg-gray-50 dark:group-hover:bg-gray-700 transition-colors">
+              <ChevronRight size={14} className="md:w-[18px] md:h-[18px] -rotate-45" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 font-medium text-lg mb-4">Disbursed</p>
-            <p className="text-6xl font-medium tracking-tight text-gray-900 dark:text-white mb-6">
+            <p className="text-gray-600 dark:text-gray-400 font-medium text-sm md:text-lg mb-2 md:mb-4">Disbursed</p>
+            <p className="text-3xl md:text-6xl font-medium tracking-tight text-gray-900 dark:text-white mb-3 md:mb-6">
               {stats.monthlyTracker?.disbursed?.units || 0}
             </p>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-sm font-medium">
+            <div className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs md:text-sm font-medium">
               <span>₹{((stats.monthlyTracker?.disbursed?.amount || 0) / 100000).toFixed(2)}L</span>
-              <span className="text-blue-600/70 font-normal ml-1">Volume</span>
+              <span className="text-blue-600/70 font-normal ml-1 hidden md:inline">Volume</span>
             </div>
           </div>
         </div>
