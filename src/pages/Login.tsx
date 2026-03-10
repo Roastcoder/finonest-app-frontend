@@ -91,7 +91,7 @@ export default function Login() {
             {/* APK Download - Desktop only */}
             <div className="mt-8 hidden lg:block">
               <a
-                href="/mehar-finance.apk"
+                href="/finonest.apk"
                 download
                 className="inline-flex items-center gap-2.5 glass-card hover:bg-white/60 dark:hover:bg-gray-800/60 text-gray-900 dark:text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-300 text-sm shadow-sm"
               >
@@ -122,7 +122,7 @@ export default function Login() {
             {/* Mobile APK */}
             {!isStandalone && (
               <a
-                href="/mehar-finance.apk"
+                href="/finonest.apk"
                 download
                 className="lg:hidden w-full flex items-center justify-center gap-2 bg-gradient-to-r from-secondary to-primary text-white font-semibold py-2.5 px-4 rounded-xl hover:shadow-lg transition-all text-sm mb-5 border border-white/20"
               >

@@ -99,7 +99,7 @@ export default function AccountantDashboard() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip formatter={(value) => `₹${(value / 100000).toFixed(2)}L`} />
+              <Tooltip formatter={(value: any) => `₹${(Number(value) / 100000).toFixed(2)}L`} />
               <Bar dataKey="amount" fill="#3b82f6" />
             </BarChart>
           </ResponsiveContainer>

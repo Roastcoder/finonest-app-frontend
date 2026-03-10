@@ -316,6 +316,20 @@ export default function EditLoan() {
       toast.error('Customer Name, Mobile, and Loan Amount are required');
       return;
     }
+
+    if (form.appStage === 'login' && (!form.appScore || !form.creditScore)) {
+      return toast.error('App Score and Credit Score are required for Login stage');
+    }
+    if (form.appStage === 'in_process' && !form.tags) {
+      return toast.error('Tags are required for In Process stage');
+    }
+    if (form.appStage === 'approved' && (!form.approvedLoanAmount || !form.approvedRoi || !form.approvedTenure)) {
+      return toast.error('Approved amount, ROI, and tenure are required for Approved stage');
+    }
+    if (form.appStage === 'disbursed' && (!form.disbursedLoanAmount || !form.disbursedRoi || !form.disbursedTenure || !form.loanAccountNumber || !form.rcStatus)) {
+      return toast.error('All disbursement details (Amount, ROI, Tenure, LAN, RC Info) are required for Disbursed stage');
+    }
+
     updateLoan.mutate();
   };
 
@@ -371,7 +385,7 @@ export default function EditLoan() {
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
                   </div>
                 </div>
-                
+
                 {/* Vehicle & Loan Details */}
                 <div>
                   <h3 className="text-sm font-bold text-foreground mb-3">Vehicle & Loan Details</h3>
@@ -387,7 +401,7 @@ export default function EditLoan() {
                     <div className="floating-input-wrapper"><select className={inputClass} value={form.loanTypeVehicle} onChange={e => update('loanTypeVehicle', e.target.value)}><option value="">Select</option><option value="New Vehicle Loan">New Vehicle Loan</option><option value="Used Vehicle Loan">Used Vehicle Loan</option></select><label className={labelClass}>Loan Type</label></div>
                   </div>
                 </div>
-                
+
                 {/* EMI & Financier Details */}
                 <div>
                   <h3 className="text-sm font-bold text-foreground mb-3">EMI & Financier Details</h3>
@@ -409,7 +423,7 @@ export default function EditLoan() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Insurance & RTO Details */}
                 <div>
                   <h3 className="text-sm font-bold text-foreground mb-3">Insurance & RTO Details</h3>
@@ -423,7 +437,7 @@ export default function EditLoan() {
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.agentMobileNo} onChange={e => update('agentMobileNo', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Agent Mobile</label></div>
                   </div>
                 </div>
-                
+
                 {/* Documents */}
                 <div>
                   <h3 className="text-sm font-bold text-foreground mb-3">Documents</h3>
@@ -442,7 +456,7 @@ export default function EditLoan() {
                     <div><label className={labelClass}>Customer Ledger</label><input type="file" className={inputClass} onChange={e => update('customerLedger', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
                   </div>
                 </div>
-                
+
                 {/* Other Details */}
                 <div>
                   <h3 className="text-sm font-bold text-foreground mb-3">Other Details</h3>
@@ -487,7 +501,7 @@ export default function EditLoan() {
                 </div>
               )}
             </div>
-            
+
             {/* Salaried Income Fields */}
             {form.incomeSource === 'Salaried' && (
               <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
@@ -518,7 +532,7 @@ export default function EditLoan() {
                 </div>
               </div>
             )}
-            
+
             {/* Self Employed Fields */}
             {form.incomeSource === 'Self Employed' && (
               <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
@@ -535,7 +549,7 @@ export default function EditLoan() {
                     </select>
                     <label className={labelClass}>Profile</label>
                   </div>
-                  
+
                   {form.profile && (
                     <div className="floating-input-wrapper">
                       <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
@@ -546,14 +560,14 @@ export default function EditLoan() {
                       <label className={labelClass}>ITR Available</label>
                     </div>
                   )}
-                  
+
                   {form.itrAvailable === 'Yes' && (
                     <div className="floating-input-wrapper">
                       <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
                       <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
                     </div>
                   )}
-                  
+
                   {form.profile === 'Business' && (
                     <>
                       <div className="floating-input-wrapper"><input className={inputClass} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder=" " /><label className={labelClass}>Business Name</label></div>
@@ -561,7 +575,7 @@ export default function EditLoan() {
                       <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.businessVintage} onChange={e => update('businessVintage', e.target.value)} placeholder=" " /><label className={labelClass}>Business Vintage (Years)</label></div>
                     </>
                   )}
-                  
+
                   {form.profile === 'Professional' && (
                     <>
                       <div className="floating-input-wrapper">
@@ -580,7 +594,7 @@ export default function EditLoan() {
                       <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.practiceExperience} onChange={e => update('practiceExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Practice Experience (In Yrs)</label></div>
                     </>
                   )}
-                  
+
                   {form.profile === 'Freelancer/Agent' && (
                     <div className="floating-input-wrapper">
                       <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
@@ -594,7 +608,7 @@ export default function EditLoan() {
                       <label className={labelClass}>Subtype</label>
                     </div>
                   )}
-                  
+
                   {form.profile === 'Other Income' && (
                     <div className="floating-input-wrapper">
                       <select className={inputClass} value={form.otherIncomeType} onChange={e => update('otherIncomeType', e.target.value)}>
@@ -608,7 +622,7 @@ export default function EditLoan() {
                 </div>
               </div>
             )}
-            
+
             {/* Freelancer/Agent Fields */}
             {form.incomeSource === 'Freelancer/Agent' && (
               <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
@@ -633,7 +647,7 @@ export default function EditLoan() {
           {/* Application Stages - Separate Box */}
           <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
             <h2 className="text-base font-bold text-foreground mb-3">Application Stages</h2>
-            
+
             {/* Stage Selection */}
             <div className="mb-4">
               <div className="floating-input-wrapper">
@@ -817,16 +831,16 @@ export default function EditLoan() {
 
           {/* Submit Button */}
           <div className="flex justify-end gap-3 pb-6">
-            <button 
-              type="button" 
-              onClick={() => navigate(-1)} 
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
               className="px-6 py-3 rounded-xl border-2 border-border font-semibold hover:bg-muted transition-all"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              disabled={updateLoan.isPending} 
+            <button
+              type="submit"
+              disabled={updateLoan.isPending}
               className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
             >
               {updateLoan.isPending ? (

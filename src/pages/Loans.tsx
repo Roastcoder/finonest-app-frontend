@@ -151,7 +151,23 @@ export default function Loans() {
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
+
+        {/* Mobile: compact select dropdown */}
+        <div className="sm:hidden">
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as LeadStatusFilter)}
+            className="w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm font-medium text-foreground focus:outline-none focus:border-accent transition-all"
+          >
+            <option value="all">All Statuses</option>
+            {LEAD_STATUSES.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop: pill buttons */}
+        <div className="hidden sm:flex gap-2 flex-wrap">
           <button
             onClick={() => setStatusFilter('all')}
             className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${statusFilter === 'all' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
@@ -166,7 +182,7 @@ export default function Loans() {
         </div>
       </div>
 
-      {/* Mobile Card View */}
+      {/* Mobile Card View — only on screens < lg */}
       <div className="lg:hidden space-y-3">
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground text-sm">Loading applications…</div>
@@ -204,31 +220,35 @@ export default function Loans() {
                   <p className="text-foreground truncate">{loan.banks?.name || '—'}</p>
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-border flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                <button
-                  onClick={() => exportLoanPDF(loan)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
-                >
-                  <Printer size={13} className="text-accent" /> PDF
-                </button>
-                <button
-                  onClick={() => downloadLoanPDF(loan)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
-                >
-                  <Download size={13} className="text-accent" /> Save
-                </button>
-                <button
-                  onClick={() => shareLoanPDF(loan)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors"
-                >
-                  <MessageCircle size={13} className="text-green-500" /> Share
-                </button>
+              <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                {/* Action buttons row */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => exportLoanPDF(loan)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                  >
+                    <Printer size={13} className="text-accent" /> PDF
+                  </button>
+                  <button
+                    onClick={() => downloadLoanPDF(loan)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                  >
+                    <Download size={13} className="text-accent" /> Save
+                  </button>
+                  <button
+                    onClick={() => shareLoanPDF(loan)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors"
+                  >
+                    <MessageCircle size={13} className="text-green-500" /> Share
+                  </button>
+                </div>
+                {/* Status update row */}
                 {canEditStatus && (
                   <select
                     value={loan.status}
                     onChange={(e) => updateStatus.mutate({ id: loan.id, status: e.target.value })}
                     disabled={updateStatus.isPending}
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent"
                   >
                     {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
@@ -239,8 +259,8 @@ export default function Loans() {
         )}
       </div>
 
-      {/* Desktop Table View */}
-      <div className="stat-card overflow-hidden hidden lg:block">
+      {/* Desktop Table View — only on lg+ screens */}
+      <div className="stat-card overflow-x-auto max-lg:hidden">
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground text-sm">Loading applications…</div>
         ) : (

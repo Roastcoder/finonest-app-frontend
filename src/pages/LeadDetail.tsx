@@ -1,8 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
-import { ArrowLeft, User, Car, IndianRupee, ArrowRight } from 'lucide-react';
+import { ArrowLeft, User, Car, IndianRupee, ArrowRight, FileText, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/mock-data';
+import DocumentUpload, { DocumentList } from '@/components/DocumentUpload';
+import CustomerProfileForm from '@/components/CustomerProfileForm';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -24,6 +27,30 @@ export default function LeadDetail() {
       }
     },
     enabled: !!id,
+  });
+
+  const queryClient = useQueryClient();
+  const cloneMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${id}/clone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({}) // Can pass new_financier_id if desired
+      });
+      if (!response.ok) throw new Error('Failed to clone lead');
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast.success('Lead successfully cloned for reapplication!');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      navigate(`/leads/${data.leadId}`);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Error cloning lead');
+    }
   });
 
   if (isLoading) return <div className="py-20 text-center text-muted-foreground">Loading…</div>;
@@ -63,13 +90,23 @@ export default function LeadDetail() {
           <p className="text-sm text-muted-foreground mt-1">{lead.customer_name}</p>
         </div>
         {!lead.converted_to_loan && (
-          <button
-            onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            <ArrowRight size={16} />
-            Convert to Loan
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => cloneMutation.mutate()}
+              disabled={cloneMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <Copy size={16} />
+              {cloneMutation.isPending ? 'Working...' : 'Reapply / Clone'}
+            </button>
+            <button
+              onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <ArrowRight size={16} />
+              Convert to Loan
+            </button>
+          </div>
         )}
       </div>
 
@@ -96,7 +133,7 @@ export default function LeadDetail() {
             <h3 className="text-sm font-semibold text-foreground">Vehicle Details</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
-             <Field label="Vehicle Number" value={lead.vehicle_no} />
+            <Field label="Vehicle Number" value={lead.vehicle_no} />
           </div>
         </div>
 
@@ -122,6 +159,21 @@ export default function LeadDetail() {
             <Field label="Created" value={new Date(lead.created_at).toLocaleDateString('en-IN')} />
             <Field label="Last Updated" value={new Date(lead.updated_at).toLocaleDateString('en-IN')} />
           </div>
+        </div>
+      </div>
+
+      {/* Dynamic PRD Loan Application Info (Customer Profiling) */}
+      <div className="mt-4 mb-4 pt-2">
+        <CustomerProfileForm leadId={Number(id)} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Document Upload Component */}
+        <DocumentUpload leadId={Number(id)} />
+
+        {/* Document List Component */}
+        <div className="min-h-[250px]">
+          <DocumentList leadId={Number(id)} />
         </div>
       </div>
     </div>

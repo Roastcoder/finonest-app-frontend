@@ -1,5 +1,5 @@
 // Role labels (used across the app)
-export type UserRole = 'admin' | 'ops_team' | 'manager' | 'dsa' | 'team_leader' | 'executive';
+export type UserRole = 'admin' | 'ops_team' | 'manager' | 'dsa' | 'team_leader' | 'executive' | 'accountant';
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin (L1)',
@@ -7,7 +7,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   manager: 'Sales Team (L3)',
   dsa: 'DSA (L4)',
   team_leader: 'Team Leader (L5)',
-  executive: 'Executive (L6)'
+  executive: 'Executive (L6)',
+  accountant: 'Accountant'
 };
 
 // Demo accounts for quick login (these exist in the real auth system)

@@ -38,18 +38,18 @@ export default function AddLead() {
 
   useEffect(() => {
     if (form.pincode.length === 6) {
-      fetch(`https://api.postalpincode.in/pincode/${form.pincode}`)
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/integrations/pincode/${form.pincode}`)
         .then(res => res.json())
         .then(data => {
-          if (data[0]?.Status === 'Success') {
+          if (data.city && data.state) {
             setForm(prev => ({
               ...prev,
-              city: data[0].PostOffice[0].District,
-              state: data[0].PostOffice[0].State
+              city: data.city,
+              state: data.state
             }));
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [form.pincode]);
 
@@ -100,27 +100,27 @@ export default function AddLead() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Customer Name *</label>
-            <input required className={inputClass} value={form.customer_name} onChange={e => setForm({...form, customer_name: e.target.value})} placeholder="Full legal name" />
+            <input required className={inputClass} value={form.customer_name} onChange={e => setForm({ ...form, customer_name: e.target.value })} placeholder="Full legal name" />
           </div>
 
           <div>
             <label className={labelClass}>Mobile Number *</label>
-            <input required type="tel" maxLength={10} className={inputClass} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="10-digit mobile" />
+            <input required type="tel" maxLength={10} className={inputClass} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="10-digit mobile" />
           </div>
 
           <div>
             <label className={labelClass}>Email</label>
-            <input type="email" className={inputClass} value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="Email address" />
+            <input type="email" className={inputClass} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Email address" />
           </div>
 
           <div className="md:col-span-2">
             <label className={labelClass}>Current Address *</label>
-            <textarea required className={inputClass} rows={2} value={form.current_address} onChange={e => setForm({...form, current_address: e.target.value})} placeholder="Complete address" />
+            <textarea required className={inputClass} rows={2} value={form.current_address} onChange={e => setForm({ ...form, current_address: e.target.value })} placeholder="Complete address" />
           </div>
 
           <div>
             <label className={labelClass}>Pincode *</label>
-            <input required className={inputClass} maxLength={6} value={form.pincode} onChange={e => setForm({...form, pincode: e.target.value})} placeholder="6-digit pincode" />
+            <input required className={inputClass} maxLength={6} value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })} placeholder="6-digit pincode" />
           </div>
 
           <div>
@@ -135,22 +135,22 @@ export default function AddLead() {
 
           <div>
             <label className={labelClass}>PAN Number *</label>
-            <input required className={inputClass} maxLength={10} value={form.pan_number} onChange={e => setForm({...form, pan_number: e.target.value.toUpperCase()})} placeholder="ABCDE1234F" />
+            <input required className={inputClass} maxLength={10} value={form.pan_number} onChange={e => setForm({ ...form, pan_number: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" />
           </div>
 
           <div>
             <label className={labelClass}>Vehicle Number *</label>
-            <input required className={inputClass} value={form.vehicle_number} onChange={e => setForm({...form, vehicle_number: e.target.value.toUpperCase()})} placeholder="MH01AB1234" />
+            <input required className={inputClass} value={form.vehicle_number} onChange={e => setForm({ ...form, vehicle_number: e.target.value.toUpperCase() })} placeholder="MH01AB1234" />
           </div>
 
           <div>
             <label className={labelClass}>Loan Amount Required *</label>
-            <input required type="number" className={inputClass} value={form.loan_amount_required} onChange={e => setForm({...form, loan_amount_required: e.target.value})} placeholder="Amount in ₹" />
+            <input required type="number" className={inputClass} value={form.loan_amount_required} onChange={e => setForm({ ...form, loan_amount_required: e.target.value })} placeholder="Amount in ₹" />
           </div>
 
           <div>
             <label className={labelClass}>Case Type *</label>
-            <select required className={inputClass} value={form.case_type} onChange={e => setForm({...form, case_type: e.target.value})}>
+            <select required className={inputClass} value={form.case_type} onChange={e => setForm({ ...form, case_type: e.target.value })}>
               <option value="purchase">Purchase</option>
               <option value="refinance">Refinance</option>
               <option value="bt">Balance Transfer</option>
@@ -159,7 +159,7 @@ export default function AddLead() {
 
           <div>
             <label className={labelClass}>Lead Type *</label>
-            <select required className={inputClass} value={form.lead_type} onChange={e => setForm({...form, lead_type: e.target.value})}>
+            <select required className={inputClass} value={form.lead_type} onChange={e => setForm({ ...form, lead_type: e.target.value })}>
               <option value="branch_visit">Branch Visit</option>
               <option value="direct_login">Direct Login</option>
             </select>
@@ -167,7 +167,7 @@ export default function AddLead() {
 
           <div>
             <label className={labelClass}>Financier Name *</label>
-            <select required className={inputClass} value={form.financier_id} onChange={e => setForm({...form, financier_id: e.target.value})}>
+            <select required className={inputClass} value={form.financier_id} onChange={e => setForm({ ...form, financier_id: e.target.value })}>
               <option value="">Select Financier</option>
               {banks.map((bank: any) => (
                 <option key={bank.id} value={bank.id}>{bank.name}</option>
@@ -177,12 +177,12 @@ export default function AddLead() {
 
           <div>
             <label className={labelClass}>Source</label>
-            <input className={inputClass} value={form.source} onChange={e => setForm({...form, source: e.target.value})} placeholder="Lead source" />
+            <input className={inputClass} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} placeholder="Lead source" />
           </div>
 
           <div className="md:col-span-2">
             <label className={labelClass}>Notes</label>
-            <textarea className={inputClass} rows={2} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Additional notes" />
+            <textarea className={inputClass} rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes" />
           </div>
         </div>
 
