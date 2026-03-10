@@ -8,7 +8,7 @@ import { exportToCSV, parseCSV } from '@/lib/export-utils';
 import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
-import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2 } from 'lucide-react';
+import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2 } from 'lucide-react';
 
 type LeadStatusFilter = 'new' | 'contacted' | 'documents_collected' | 'in_process' | 'approved' | 'rejected' | 'disbursed' | 'all';
 
@@ -40,7 +40,7 @@ export default function Loans() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -57,8 +57,32 @@ export default function Loans() {
     onError: () => toast.error('Failed to update status'),
   });
 
+  const deleteLoan = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to delete loan');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      toast.success('Loan deleted successfully');
+    },
+    onError: () => toast.error('Failed to delete loan'),
+  });
+
+  const handleDelete = (loan: any) => {
+    if (confirm(`Are you sure you want to delete loan ${loan.loan_number || loan.id}?`)) {
+      deleteLoan.mutate(loan.id);
+    }
+  };
+
   const canEditStatus = user?.role === 'admin' || user?.role === 'manager';
   const isTeamLeader = user?.role === 'team_leader';
+  const canDelete = user?.role === 'admin';
 
   const handleExport = () => {
     if (filtered.length === 0) { toast.error('No data to export'); return; }
@@ -82,7 +106,7 @@ export default function Loans() {
       let imported = 0;
       for (const row of rows) {
         const id = row['Loan ID'] || `IMP-${Date.now()}-${imported}`;
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -241,6 +265,14 @@ export default function Loans() {
                   >
                     <MessageCircle size={13} className="text-green-500" /> Share
                   </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDelete(loan)}
+                      className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  )}
                 </div>
                 {/* Status update row */}
                 {canEditStatus && (
@@ -277,7 +309,8 @@ export default function Loans() {
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
                   {canEditStatus && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Update</th>}
                   {isTeamLeader && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Action</th>}
-                  {!isTeamLeader && <th className="py-3 px-3"></th>}
+                  {canDelete && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Delete</th>}
+                  {!isTeamLeader && !canDelete && <th className="py-3 px-3"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -315,7 +348,14 @@ export default function Loans() {
                         </button>
                       </td>
                     )}
-                    {!isTeamLeader && (
+                    {canDelete && (
+                      <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => handleDelete(loan)} className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </td>
+                    )}
+                    {!isTeamLeader && !canDelete && (
                       <td className="py-3.5 px-3">
                         <ChevronRight size={16} className="text-muted-foreground group-hover:text-accent transition-colors" />
                       </td>
