@@ -9,7 +9,6 @@ import { ROLE_LABELS } from '@/lib/auth';
 import { FileText, IndianRupee, CheckCircle2, Clock, Building2, MapPin, ChevronRight, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Link, useNavigate } from 'react-router-dom';
-import FeatureCarousel from '@/components/FeatureCarousel';
 
 const STATUS_CHART_COLORS = ['#94a3b8', '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#14b8a6', '#6b7280'];
 
@@ -74,10 +73,8 @@ export default function Dashboard() {
     <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 text-text-main-light dark:text-text-main-dark bg-gray-50 dark:bg-gray-900/50">
       <div className="flex-1 overflow-y-auto p-4 lg:p-8">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-          <h1 className="text-[2.5rem] tracking-tight font-medium text-gray-900 dark:text-white">Dashboard</h1>
-
           {/* Timeline Filter */}
-          <div className="flex items-center gap-2 flex-wrap bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-2 flex-wrap bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 ml-auto">
             <Calendar size={18} className="text-gray-500 ml-2" />
             <select
               value={timeline}
@@ -108,11 +105,6 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Top Feature Banner */}
-        <div className="mb-6">
-          <FeatureCarousel />
         </div>
 
         {/* Section 1: Overview Cards (Moved from Monthly Application Tracker) */}

@@ -299,19 +299,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-16 lg:h-24 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-2xl lg:rounded-[2rem] flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
+        <header className="h-12 lg:h-16 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-2xl lg:rounded-[2rem] flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
           {/* Mobile: Logo */}
           <div className="lg:hidden flex items-center">
             <img src={logo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
           </div>
 
           {/* Page title / User greeting */}
-          <div className="flex-1 min-w-0 flex items-center lg:ml-2 lg:border-l border-white/50 dark:border-white/10 lg:pl-6 h-10 lg:h-12">
+          <div className="flex-1 min-w-0 flex items-center lg:ml-2 lg:border-l border-white/50 dark:border-white/10 lg:pl-6 h-8 lg:h-10">
             <div>
-              <p className="text-sm lg:text-lg font-bold text-gray-900 dark:text-white truncate tracking-tight drop-shadow-sm">
+              <p className="text-sm lg:text-base font-bold text-gray-900 dark:text-white truncate tracking-tight drop-shadow-sm">
                 Hi, <span className="text-primary dark:text-primary">{user.name?.split(' ')[0] || 'User'}</span>
               </p>
-              <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 font-medium truncate tracking-wide">
+              <p className="text-xs lg:text-xs text-gray-600 dark:text-gray-400 font-medium truncate tracking-wide">
                 {user.role ? ROLE_LABELS[user.role] : 'User'}
               </p>
             </div>
@@ -319,7 +319,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
 
           {/* Notification Bell */}
-          <div className="bg-white/80 dark:bg-gray-800 rounded-full p-2 lg:p-2.5 shadow-sm border border-gray-200/50 dark:border-gray-700 hover:shadow-md transition-colors cursor-pointer group">
+          <div className="bg-white/80 dark:bg-gray-800 rounded-full p-1.5 lg:p-2 shadow-sm border border-gray-200/50 dark:border-gray-700 hover:shadow-md transition-colors cursor-pointer group">
             <div className="text-gray-600 group-hover:text-primary transition-colors">
               <NotificationBell />
             </div>
@@ -329,7 +329,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-primary font-bold text-xs lg:text-sm shadow-sm border border-gray-200/50 dark:border-gray-700 hover:shadow-md transition-all"
+              className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-primary font-bold text-xs lg:text-sm shadow-sm border border-gray-200/50 dark:border-gray-700 hover:shadow-md transition-all"
             >
               {initials}
             </button>
