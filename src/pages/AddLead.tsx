@@ -30,9 +30,18 @@ export default function AddLead() {
   const { data: banks = [] } = useQuery({
     queryKey: ['banks'],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/banks`);
-      if (!response.ok) return [];
-      return await response.json();
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/banks`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      if (!response.ok) {
+        console.error('Banks API error:', response.status, response.statusText);
+        return [];
+      }
+      const data = await response.json();
+      console.log('Banks loaded:', data.length);
+      return data;
     },
   });
 
@@ -178,6 +187,7 @@ export default function AddLead() {
                   <option key={bank.id} value={bank.id}>{bank.name}</option>
                 ))}
               </select>
+              {banks.length === 0 && <p className="text-xs text-red-500 mt-1">No financiers loaded</p>}
             </div>
           )}
 
