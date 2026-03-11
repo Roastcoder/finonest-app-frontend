@@ -82,7 +82,7 @@ export default function CreateLoan() {
     return leads.filter((l: any) => 
       l.customer_id?.toLowerCase().includes(search) ||
       l.customer_name?.toLowerCase().includes(search) ||
-      l.phone_no?.includes(search)
+      l.phone?.includes(search)
     );
   }, [leads, leadSearch]);
 
@@ -220,21 +220,21 @@ export default function CreateLoan() {
       ...f,
       customerId: lead.customer_id || '',
       customerName: lead.customer_name || '',
-      mobile: lead.phone_no || '',
-      currentAddress: lead.address || '',
-      currentTehsil: lead.tehsil || '',
-      currentDistrict: lead.district || '',
-      currentPincode: lead.pin_code || '',
-      vehicleNumber: lead.vehicle_no || '',
+      mobile: lead.phone || '',
+      currentAddress: lead.current_address || '',
+      currentDistrict: lead.city || '',
+      currentState: lead.state || '',
+      currentPincode: lead.pincode || '',
+      vehicleNumber: lead.vehicle_number || '',
       loanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
-      irr: lead.irr_requested ? String(lead.irr_requested) : '',
-      sourcingPersonName: lead.sourcing_person_name || '',
-      ourBranch: lead.our_branch || '',
+      purposeLoanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
+      loanTypeVehicle: lead.case_type === 'purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
+      scheme: lead.case_type === 'purchase' ? 'Purchase' : lead.case_type === 'refinance' ? 'Re-finance' : 'Balance Transfer',
     }));
     
     // Auto-fetch vehicle details if RC number exists
-    if (lead.vehicle_no && lead.vehicle_no.length >= 8) {
-      fetchVehicleDetails(lead.vehicle_no);
+    if (lead.vehicle_number && lead.vehicle_number.length >= 8) {
+      fetchVehicleDetails(lead.vehicle_number);
     }
   };
 
@@ -439,7 +439,7 @@ export default function CreateLoan() {
                         >
                           <div className="font-medium text-foreground text-sm">{l.customer_name}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">
-                            <span className="font-mono text-accent">{l.customer_id}</span> • {l.phone_no}
+                            <span className="font-mono text-accent">{l.customer_id}</span> • {l.phone}
                           </div>
                         </button>
                       ))}
