@@ -220,23 +220,39 @@ export default function CreateLoan() {
       ...f,
       customerId: lead.customer_id || '',
       customerName: lead.customer_name || '',
-      mobile: lead.phone || '',
+      mobile: lead.phone || lead.phone_no || '',
       currentAddress: lead.current_address || '',
-      currentDistrict: lead.city || '',
+      currentDistrict: lead.city || lead.district || '',
       currentState: lead.state || '',
       currentPincode: lead.pincode || '',
-      vehicleNumber: lead.vehicle_number || '',
+      vehicleNumber: lead.vehicle_number || lead.vehicle_no || '',
       loanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       purposeLoanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       loanTypeVehicle: lead.case_type === 'purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
       scheme: lead.case_type === 'purchase' ? 'Purchase' : lead.case_type === 'refinance' ? 'Re-finance' : 'Balance Transfer',
+      financierName: lead.financier_name || '',
     }));
     
     // Auto-fetch vehicle details if RC number exists
     if (lead.vehicle_number && lead.vehicle_number.length >= 8) {
       fetchVehicleDetails(lead.vehicle_number);
     }
+    
+    // Show success message
+    toast.success(`Lead data loaded for ${lead.customer_name}`);
   };
+
+  // Auto-fetch lead data when leadId is in URL
+  useEffect(() => {
+    const leadId = searchParams.get('leadId');
+    if (leadId && leads.length > 0) {
+      const lead = leads.find((l: any) => l.id === Number(leadId));
+      if (lead) {
+        handleLeadSelect(lead);
+        setLeadSearch(lead.customer_id);
+      }
+    }
+  }, [searchParams, leads]);
 
   const handleSameAddress = (checked: boolean) => {
     setForm(f => ({
