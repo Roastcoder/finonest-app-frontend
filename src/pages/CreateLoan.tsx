@@ -504,28 +504,39 @@ export default function CreateLoan() {
           <div>
             <h2 className="text-base font-bold text-foreground mb-3">Vehicle & Loan Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="relative floating-input-wrapper">
-                  <input 
-                    className={inputClass} 
-                    value={form.vehicleNumber} 
-                    onChange={e => {
-                      const value = e.target.value.toUpperCase();
-                      update('vehicleNumber', value);
-                      if (value.length >= 8) {
-                        fetchVehicleDetails(value);
-                      }
-                    }}
-                    placeholder=" "
-                  />
-                  <label className={labelClass}>Vehicle Reg. No</label>
-                  {fetchingVehicleData && (
-                    <div className="absolute right-3 top-8">
-                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                <div className="relative">
+                  <div className="flex gap-2">
+                    <div className="flex-1 floating-input-wrapper">
+                      <input 
+                        className={inputClass} 
+                        value={form.vehicleNumber} 
+                        onChange={e => {
+                          const value = e.target.value.toUpperCase();
+                          update('vehicleNumber', value);
+                        }}
+                        placeholder=" "
+                      />
+                      <label className={labelClass}>Vehicle Reg. No</label>
                     </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => fetchVehicleDetails(form.vehicleNumber)}
+                      disabled={!form.vehicleNumber || form.vehicleNumber.length < 8 || fetchingVehicleData}
+                      className="px-4 py-2 rounded-lg bg-accent text-white font-medium text-sm hover:bg-accent/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+                    >
+                      {fetchingVehicleData ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Fetching...
+                        </>
+                      ) : (
+                        'Fetch Details'
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " /><label className={labelClass}>Maker's Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.modelVariantName} onChange={e => update('modelVariantName', e.target.value)} placeholder=" " /><label className={labelClass}>Model / Variant</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Company Name</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.modelVariantName} onChange={e => update('modelVariantName', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Model</label></div>
                 <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.mfgYear} onChange={e => update('mfgYear', e.target.value)} min="2000" max="2030" placeholder=" " /><label className={labelClass}>Mfg Year</label></div>
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.vertical} onChange={e => update('vertical', e.target.value)}><option value="">Select</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV (Car)">PV (Car)</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Vertical</label></div>
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.scheme} onChange={e => update('scheme', e.target.value)}><option value="">Select</option><option value="Re-finance">Re-finance</option><option value="New Finance">New Finance</option><option value="Balance Transfer">Balance Transfer</option><option value="Purchase">Purchase</option><option value="Purchase+BT">Purchase+BT</option><option value="SVSH">SVSH</option><option value="SVOH">SVOH</option></select><label className={labelClass}>Scheme</label></div>
@@ -563,74 +574,7 @@ export default function CreateLoan() {
             </div>
           )}
 
-          {/* EMI & Financier */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">EMI & Financier Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="floating-input-wrapper"><input required type="number" step="0.01" className={inputClass} value={form.irr} onChange={e => update('irr', e.target.value)} placeholder=" " /><label className={labelClass}>IRR (%) *</label></div>
-                <div className="floating-input-wrapper"><select required className={inputClass} value={form.tenure} onChange={e => update('tenure', e.target.value)}>{[12, 18, 24, 36, 48, 60, 72, 84].map(t => <option key={t} value={t}>{t} MONTH</option>)}</select><label className={labelClass}>Tenure *</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.emiMode} onChange={e => update('emiMode', e.target.value)}><option value="Monthly">Monthly</option><option value="Quarterly">Quarterly</option><option value="Half Yearly">Half Yearly</option><option value="Yearly">Yearly</option></select><label className={labelClass}>EMI Mode</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.processingFee} onChange={e => update('processingFee', e.target.value)} placeholder=" " /><label className={labelClass}>Processing Fee (₹)</label></div>
-                {(form.irr && form.loanAmount) && (
-                  <>
-                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.emiStartDate} onChange={e => update('emiStartDate', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Start Date</label></div>
-                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.emiEndDate} onChange={e => update('emiEndDate', e.target.value)} placeholder=" " /><label className={labelClass}>EMI End Date</label></div>
-                  </>
-                )}
-              </div>
-              {emi > 0 && (
-                <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-accent/5 to-accent/10 border border-accent/20">
-                  <div className="flex items-center gap-2 mb-3"><Calculator size={16} className="text-accent" /><span className="text-accent font-semibold text-sm">EMI Calculator</span></div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="text-center p-3 rounded-lg bg-background/50"><p className="text-xs text-muted-foreground mb-1">Monthly EMI</p><p className="text-lg font-bold text-accent break-all">{formatCurrency(emi)}</p></div>
-                    <div className="text-center p-3 rounded-lg bg-background/50"><p className="text-xs text-muted-foreground mb-1">Total Interest</p><p className="text-lg font-bold text-foreground break-all">{formatCurrency(totalInterest > 0 ? totalInterest : 0)}</p></div>
-                    <div className="text-center p-3 rounded-lg bg-background/50"><p className="text-xs text-muted-foreground mb-1">Total Payable</p><p className="text-lg font-bold text-foreground break-all">{formatCurrency(totalPayable)}</p></div>
-                  </div>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-                <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Financier Details</h3></div>
-                <div className="floating-input-wrapper">
-                  <select className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)}>
-                    <option value="">Select Financier Name</option>
-                    {FINANCIERS.map((f) => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <label className={labelClass}>Financier Name</label>
-                </div>
-                {form.financierName === 'Others' && (
-                  <div className="floating-input-wrapper">
-                    <input className={inputClass} value={form.otherFinancierName} onChange={e => update('otherFinancierName', e.target.value)} placeholder=" " />
-                    <label className={labelClass}>Enter Financier Name</label>
-                  </div>
-                )}
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.financierExecutiveName} onChange={e => update('financierExecutiveName', e.target.value)} placeholder=" " /><label className={labelClass}>Financier Executive Name</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.financierTeamVertical} onChange={e => update('financierTeamVertical', e.target.value)}><option value="">Select Team Vertical</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV">PV</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Financier Team Vertical</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.disburseBranchName} onChange={e => update('disburseBranchName', e.target.value)} placeholder=" " /><label className={labelClass}>Disburse Branch Name</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.assignedBrokerId} onChange={e => update('assignedBrokerId', e.target.value)}><option value="">Select Broker (Optional)</option>{(brokers as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select><label className={labelClass}>Broker</label></div>
-                {form.financierName && (
-                  <>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.sanctionAmount} onChange={e => update('sanctionAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Amount (₹)</label></div>
-                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.sanctionDate} onChange={e => update('sanctionDate', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Date</label></div>
-                  </>
-                )}
-              </div>
-            </div>
 
-          {/* Insurance & RTO */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Insurance & RTO Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompanyName} onChange={e => update('insuranceCompanyName', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.premiumAmount} onChange={e => update('premiumAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Premium Amount (₹)</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceDate} onChange={e => update('insuranceDate', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Expiry Date</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.insurancePolicyNumber} onChange={e => update('insurancePolicyNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Policy Number</label></div>
-                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">RTO Details</h3></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.rcOwnerName} onChange={e => update('rcOwnerName', e.target.value)} placeholder=" " /><label className={labelClass}>RC Owner Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.hpnAtLogin} onChange={e => update('hpnAtLogin', e.target.value)} placeholder=" " /><label className={labelClass}>HPN / Financed Status</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.rtoAgentName} onChange={e => update('rtoAgentName', e.target.value)} placeholder=" " /><label className={labelClass}>RTO Agent Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.agentMobileNo} onChange={e => update('agentMobileNo', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Agent Mobile</label></div>
-              </div>
-            </div>
 
           {/* Deduction & Disbursement */}
           <div>
