@@ -58,6 +58,11 @@ export default function LeadsList() {
       return false;
     }
 
+    // Executives can only see their own leads
+    if (user?.role === 'executive' && l.created_by !== user?.id) {
+      return false;
+    }
+
     return !search ||
       l.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
       l.phone?.includes(search);
@@ -98,7 +103,6 @@ export default function LeadsList() {
           filtered.map((lead: any) => (
             <div
               key={lead.id}
-              onClick={() => navigate(`/leads/${lead.id}`)}
               className="stat-card cursor-pointer active:scale-[0.98] transition-transform"
             >
               {/* Header Row */}

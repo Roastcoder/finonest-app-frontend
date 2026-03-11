@@ -14,8 +14,8 @@ interface NavItem {
 const MOBILE_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['admin', 'manager', 'executive'] },
   { label: 'Leads', path: '/leads-list', icon: <UserPlus size={20} />, roles: ['admin', 'manager', 'executive'] },
-  { label: 'Loans', path: '/loans', icon: <FileText size={20} />, roles: ['admin', 'manager', 'executive'] },
-  { label: 'New', path: '/loans/new', icon: <Car size={20} />, roles: ['admin', 'manager', 'executive'] },
+  { label: 'Loans', path: '/loans', icon: <FileText size={20} />, roles: ['admin', 'manager'] },
+  { label: 'New', path: '/loans/new', icon: <Car size={20} />, roles: ['admin', 'manager'] },
 ];
 
 const MORE_ITEMS: NavItem[] = [
