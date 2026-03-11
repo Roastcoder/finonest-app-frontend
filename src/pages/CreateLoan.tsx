@@ -178,9 +178,9 @@ export default function CreateLoan() {
     // Customer Details
     customerId: '', customerName: '', mobile: '', coApplicantName: '', coApplicantMobile: '',
     guarantorName: '', guarantorMobile: '', ourBranch: '',
-    currentAddress: '', currentVillage: '', currentTehsil: '', currentDistrict: '', currentState: '', currentPincode: '',
+    currentAddress: '', currentLandmark: '', currentDistrict: '', currentState: '', currentPincode: '',
     sameAsCurrentAddress: false,
-    permanentAddress: '', permanentVillage: '', permanentTehsil: '', permanentDistrict: '', permanentState: '', permanentPincode: '',
+    permanentAddress: '', permanentLandmark: '', permanentDistrict: '', permanentState: '', permanentPincode: '',
     // Loan & Vehicle Details
     loanNumber: '', purposeLoanAmount: '', loanAmount: '', ltv: '', loanTypeVehicle: '',
     vehicleNumber: '', makerName: '', modelVariantName: '', mfgYear: '', vertical: '', scheme: '',
@@ -220,23 +220,39 @@ export default function CreateLoan() {
       ...f,
       customerId: lead.customer_id || '',
       customerName: lead.customer_name || '',
-      mobile: lead.phone || '',
+      mobile: lead.phone || lead.phone_no || '',
       currentAddress: lead.current_address || '',
-      currentDistrict: lead.city || '',
+      currentDistrict: lead.city || lead.district || '',
       currentState: lead.state || '',
       currentPincode: lead.pincode || '',
-      vehicleNumber: lead.vehicle_number || '',
+      vehicleNumber: lead.vehicle_number || lead.vehicle_no || '',
       loanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       purposeLoanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       loanTypeVehicle: lead.case_type === 'purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
       scheme: lead.case_type === 'purchase' ? 'Purchase' : lead.case_type === 'refinance' ? 'Re-finance' : 'Balance Transfer',
+      financierName: lead.financier_name || '',
     }));
     
     // Auto-fetch vehicle details if RC number exists
     if (lead.vehicle_number && lead.vehicle_number.length >= 8) {
       fetchVehicleDetails(lead.vehicle_number);
     }
+    
+    // Show success message
+    toast.success(`Lead data loaded for ${lead.customer_name}`);
   };
+
+  // Auto-fetch lead data when leadId is in URL
+  useEffect(() => {
+    const leadId = searchParams.get('leadId');
+    if (leadId && leads.length > 0) {
+      const lead = leads.find((l: any) => l.id === Number(leadId));
+      if (lead) {
+        handleLeadSelect(lead);
+        setLeadSearch(lead.customer_id);
+      }
+    }
+  }, [searchParams, leads]);
 
   const handleSameAddress = (checked: boolean) => {
     setForm(f => ({
@@ -244,8 +260,7 @@ export default function CreateLoan() {
       sameAsCurrentAddress: checked,
       ...(checked ? {
         permanentAddress: f.currentAddress,
-        permanentVillage: f.currentVillage,
-        permanentTehsil: f.currentTehsil,
+        permanentLandmark: f.currentLandmark,
         permanentDistrict: f.currentDistrict,
         permanentState: f.currentState,
         permanentPincode: f.currentPincode,
@@ -290,14 +305,14 @@ export default function CreateLoan() {
           guarantor_name: form.guarantorName || null,
           guarantor_mobile: form.guarantorMobile || null,
           current_address: form.currentAddress || null,
-          current_village: form.currentVillage || null,
-          current_tehsil: form.currentTehsil || null,
+          current_landmark: form.currentLandmark || null,
           current_district: form.currentDistrict || null,
+          current_state: form.currentState || null,
           current_pincode: form.currentPincode || null,
           permanent_address: form.permanentAddress || null,
-          permanent_village: form.permanentVillage || null,
-          permanent_tehsil: form.permanentTehsil || null,
+          permanent_landmark: form.permanentLandmark || null,
           permanent_district: form.permanentDistrict || null,
+          permanent_state: form.permanentState || null,
           permanent_pincode: form.permanentPincode || null,
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
@@ -486,8 +501,7 @@ export default function CreateLoan() {
                 
                 <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Current Address</h3></div>
                 <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.currentAddress} onChange={e => update('currentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentVillage} onChange={e => update('currentVillage', e.target.value)} placeholder=" " /><label className={labelClass}>Village</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentTehsil} onChange={e => update('currentTehsil', e.target.value)} placeholder=" " /><label className={labelClass}>Tehsil</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentLandmark} onChange={e => update('currentLandmark', e.target.value)} placeholder=" " /><label className={labelClass}>Landmark</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentDistrict} onChange={e => update('currentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentState} onChange={e => update('currentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
@@ -501,8 +515,7 @@ export default function CreateLoan() {
                   <>
                     <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Permanent Address</h3></div>
                     <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.permanentAddress} onChange={e => update('permanentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentVillage} onChange={e => update('permanentVillage', e.target.value)} placeholder=" " /><label className={labelClass}>Village</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentTehsil} onChange={e => update('permanentTehsil', e.target.value)} placeholder=" " /><label className={labelClass}>Tehsil</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentLandmark} onChange={e => update('permanentLandmark', e.target.value)} placeholder=" " /><label className={labelClass}>Landmark</label></div>
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentDistrict} onChange={e => update('permanentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentState} onChange={e => update('permanentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentPincode} onChange={e => update('permanentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
