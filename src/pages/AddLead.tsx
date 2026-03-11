@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import LeadDocumentUpload from '@/components/LeadDocumentUpload';
 
 export default function AddLead() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function AddLead() {
     source: '',
     notes: ''
   });
+  const [documents, setDocuments] = useState<{ [key: string]: File }>({});
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeManual, setPincodeManual] = useState(false);
 
@@ -87,8 +89,49 @@ export default function AddLead() {
       if (!response.ok) throw new Error('Failed to create lead');
       return response.json();
     },
-    onSuccess: () => {
-      toast.success('Lead created successfully!');
+    onSuccess: async (data) => {
+      const leadId = data.id;
+      
+      // Upload documents if any
+      if (Object.keys(documents).length > 0) {
+        let uploadSuccess = 0;
+        let uploadFailed = 0;
+        
+        for (const [docType, file] of Object.entries(documents)) {
+          const formData = new FormData();
+          formData.append('document', file);
+          formData.append('lead_id', leadId.toString());
+          formData.append('document_type', docType);
+
+          try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+              },
+              body: formData
+            });
+
+            if (response.ok) {
+              uploadSuccess++;
+            } else {
+              uploadFailed++;
+            }
+          } catch (error) {
+            uploadFailed++;
+          }
+        }
+        
+        if (uploadSuccess > 0) {
+          toast.success(`Lead created! ${uploadSuccess} document(s) uploaded successfully.`);
+        }
+        if (uploadFailed > 0) {
+          toast.warning(`${uploadFailed} document(s) failed to upload.`);
+        }
+      } else {
+        toast.success('Lead created successfully!');
+      }
+      
       navigate('/leads-list');
     },
     onError: (err: any) => {
@@ -214,6 +257,10 @@ export default function AddLead() {
             <label className={labelClass}>Notes</label>
             <textarea className={inputClass} rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes" />
           </div>
+        </div>
+
+        <div className="mt-6">
+          <LeadDocumentUpload onDocumentsChange={setDocuments} />
         </div>
 
         <div className="flex gap-3 mt-6">
