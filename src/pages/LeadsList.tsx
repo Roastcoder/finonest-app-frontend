@@ -60,7 +60,7 @@ export default function LeadsList() {
 
     return !search ||
       l.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      l.phone_no?.includes(search);
+      l.phone?.includes(search);
   });
 
   return (
@@ -105,7 +105,7 @@ export default function LeadsList() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground truncate">{lead.customer_name}</p>
-                  <p className="text-xs text-muted-foreground">{lead.phone_no} {lead.district ? `· ${lead.district}` : ''}</p>
+                  <p className="text-xs text-muted-foreground">{lead.phone} {lead.city ? `· ${lead.city}` : ''}</p>
                 </div>
                 <span className={`shrink-0 ml-2 text-xs px-2.5 py-1 rounded-full font-semibold ${lead.converted_to_loan ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                   {lead.converted_to_loan ? 'Converted' : 'Active'}
@@ -120,7 +120,7 @@ export default function LeadsList() {
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Vehicle No.</p>
-                  <p className="font-medium text-foreground">{lead.vehicle_no || '—'}</p>
+                  <p className="font-medium text-foreground">{lead.vehicle_number || '—'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Branch</p>
@@ -201,10 +201,10 @@ export default function LeadsList() {
                   </td>
                   <td className="py-3 px-3">
                     <p className="font-medium text-foreground">{lead.customer_name}</p>
-                    <p className="text-xs text-muted-foreground">{lead.district}</p>
+                    <p className="text-xs text-muted-foreground">{lead.city}</p>
                   </td>
-                  <td className="py-3 px-3 text-foreground">{lead.phone_no}</td>
-                  <td className="py-3 px-3 text-muted-foreground">{lead.vehicle_no || '—'}</td>
+                  <td className="py-3 px-3 text-foreground">{lead.phone}</td>
+                  <td className="py-3 px-3 text-muted-foreground">{lead.vehicle_number || '—'}</td>
                   <td className="py-3 px-3 text-right font-medium text-foreground">₹{Number(lead.loan_amount_required || 0).toLocaleString('en-IN')}</td>
                   <td className="py-3 px-3 text-muted-foreground">{lead.our_branch || '—'}</td>
                   <td className="py-3 px-3 text-center">
