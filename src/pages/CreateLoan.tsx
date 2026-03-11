@@ -198,7 +198,7 @@ export default function CreateLoan() {
     // Deductions & Disbursement Details
     processingFee: '', totalDeduction: '', netDisbursementAmount: '', paymentReceivedDate: '',
     // Others
-    loginDate: '', approvalDate: '', sourcingPersonName: '', remark: '', fileStatus: 'submitted',
+    loginDate: new Date().toISOString().split('T')[0], sourcingPersonName: '', remark: '', fileStatus: 'submitted',
     // Documents
     aadharFront: null, aadharBack: null, panCard: null, drivingLicence: null, lightBill: null,
     bankStatement: null, cheque: null, rcFront: null, rcBack: null, incomeProof: null,
@@ -226,6 +226,7 @@ export default function CreateLoan() {
       loanTypeVehicle: lead.case_type === 'purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
       scheme: lead.case_type === 'purchase' ? 'Purchase' : lead.case_type === 'refinance' ? 'Re-finance' : 'Balance Transfer',
       financierName: lead.financier_name || '',
+      sourcingPersonName: lead.created_by_name || lead.sourcing_person_name || '',
     }));
     
     // Auto-fetch vehicle details if RC number exists
@@ -344,7 +345,6 @@ export default function CreateLoan() {
           rto_agent_name: form.rtoAgentName || null,
           agent_mobile_no: form.agentMobileNo || null,
           login_date: form.loginDate || null,
-          approval_date: form.approvalDate || null,
           sourcing_person_name: form.sourcingPersonName || null,
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
@@ -453,6 +453,8 @@ export default function CreateLoan() {
                 </div>
                 <div className="floating-input-wrapper"><input required className={inputClass} value={form.customerName} onChange={e => update('customerName', e.target.value)} placeholder=" " /><label className={labelClass}>Customer Name *</label></div>
                 <div className="floating-input-wrapper"><input required className={inputClass} value={form.mobile} onChange={e => update('mobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Mobile No *</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.sourcingPersonName} onChange={e => update('sourcingPersonName', e.target.value)} placeholder=" " /><label className={labelClass}>Sourcing Person</label></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.loginDate} onChange={e => update('loginDate', e.target.value)} placeholder=" " /><label className={labelClass}>Login Date</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.ourBranch} onChange={e => update('ourBranch', e.target.value)} placeholder=" " /><label className={labelClass}>Our Branch</label></div>
                 
                 {/* Co-Applicant Section */}
@@ -637,10 +639,6 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalDeduction} onChange={e => update('totalDeduction', e.target.value)} placeholder=" " /><label className={labelClass}>Total Deduction (₹)</label></div>
                 <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netDisbursementAmount} onChange={e => update('netDisbursementAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Net Disbursement Amount (₹)</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.paymentReceivedDate} onChange={e => update('paymentReceivedDate', e.target.value)} placeholder=" " /><label className={labelClass}>Payment Received Date</label></div>
-                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Other Details</h3></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.loginDate} onChange={e => update('loginDate', e.target.value)} placeholder=" " /><label className={labelClass}>Login Date</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.approvalDate} onChange={e => update('approvalDate', e.target.value)} placeholder=" " /><label className={labelClass}>Approval Date</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.sourcingPersonName} onChange={e => update('sourcingPersonName', e.target.value)} placeholder=" " /><label className={labelClass}>Sourcing Person</label></div>
                 <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={3} value={form.remark} onChange={e => update('remark', e.target.value)} placeholder=" " /><label className={labelClass}>Remark</label></div>
               </div>
             </div>
