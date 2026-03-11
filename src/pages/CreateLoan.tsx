@@ -161,7 +161,6 @@ export default function CreateLoan() {
           chassisNumber: rc.vehicle_chasi_number || '',
           ownerName: rc.owner_name || '',
           makerName: rc.maker_description || '',
-          makerDescription: rc.maker_description || '',
           makerModel: rc.maker_model || '',
           fuelType: rc.fuel_type || '',
           manufacturingDate: convertDate(rc.manufacturing_date || ''),
@@ -193,10 +192,10 @@ export default function CreateLoan() {
     currentAddress: '', currentLandmark: '', currentDistrict: '', currentState: '', currentPincode: '',
     // Loan & Vehicle Details
     loanNumber: '', purposeLoanAmount: '', loanAmount: '', ltv: '', loanTypeVehicle: '',
-    vehicleNumber: '', engineNumber: '', chassisNumber: '', ownerName: '', makerName: '', makerDescription: '',
+    vehicleNumber: '', engineNumber: '', chassisNumber: '', ownerName: '', makerName: '',
     makerModel: '', modelVariantName: '', fuelType: '', manufacturingDate: '',
     ownershipType: '', financer: '', financeStatus: '', insuranceCompany: '', insuranceValidUpto: '',
-    puccValidUpto: '', vertical: '', scheme: '',
+    puccValidUpto: '', caseType: '', vertical: '', scheme: '',
     // Income Details
     incomeSource: '', monthlyIncome: '',
     // Financier Selection (for executive/team_leader)
@@ -239,6 +238,7 @@ export default function CreateLoan() {
       currentState: lead.state || '',
       currentPincode: lead.pincode || '',
       vehicleNumber: lead.vehicle_number || lead.vehicle_no || '',
+      caseType: lead.case_type || '',
       loanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       purposeLoanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       loanTypeVehicle: lead.case_type === 'purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
@@ -330,7 +330,6 @@ export default function CreateLoan() {
           chassis_number: form.chassisNumber || null,
           owner_name: form.ownerName || null,
           maker_name: form.makerName || null,
-          maker_description: form.makerDescription || null,
           maker_model: form.makerModel || null,
           model_variant_name: form.modelVariantName || null,
           fuel_type: form.fuelType || null,
@@ -561,7 +560,6 @@ export default function CreateLoan() {
                 </div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Company Name</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.makerModel} onChange={e => update('makerModel', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Model</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerDescription} onChange={e => update('makerDescription', e.target.value)} placeholder=" " /><label className={labelClass}>Maker Description</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.engineNumber} onChange={e => update('engineNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Engine Number</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.chassisNumber} onChange={e => update('chassisNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Chassis Number</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.ownerName} onChange={e => update('ownerName', e.target.value)} placeholder=" " /><label className={labelClass}>Owner Name</label></div>
@@ -573,7 +571,7 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompany} onChange={e => update('insuranceCompany', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceValidUpto} onChange={e => update('insuranceValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Valid Upto</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.puccValidUpto} onChange={e => update('puccValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>PUCC Valid Upto</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.vertical} onChange={e => update('vertical', e.target.value)}><option value="">Select</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV (Car)">PV (Car)</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Vertical</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.caseType} onChange={e => update('caseType', e.target.value)} placeholder=" " /><label className={labelClass}>Case Type</label></div>
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.scheme} onChange={e => update('scheme', e.target.value)}><option value="">Select</option><option value="Re-finance">Re-finance</option><option value="New Finance">New Finance</option><option value="Balance Transfer">Balance Transfer</option><option value="Purchase">Purchase</option><option value="Purchase+BT">Purchase+BT</option><option value="SVSH">SVSH</option><option value="SVOH">SVOH</option></select><label className={labelClass}>Scheme</label></div>
                 <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Loan Details</h3></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.purposeLoanAmount} onChange={e => update('purposeLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Purpose Loan Amount</label></div>
