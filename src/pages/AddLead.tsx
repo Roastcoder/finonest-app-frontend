@@ -20,7 +20,7 @@ export default function AddLead() {
     pan_number: '',
     vehicle_number: '',
     loan_amount_required: '',
-    case_type: 'purchase',
+    case_type: 'new_car_purchase',
     lead_type: 'branch_visit',
     financier_id: '',
     source: '',
@@ -176,9 +176,11 @@ export default function AddLead() {
           <div>
             <label className={labelClass}>Case Type *</label>
             <select required className={inputClass} value={form.case_type} onChange={e => setForm({ ...form, case_type: e.target.value })}>
-              <option value="purchase">Purchase</option>
-              <option value="refinance">Refinance</option>
-              <option value="bt">Balance Transfer</option>
+              <option value="new_car_purchase">New Car - Purchase</option>
+              <option value="used_car_purchase">Used Car - Purchase</option>
+              <option value="used_car_refinance">Used Car - Refinance</option>
+              <option value="used_car_topup">Used Car - Top-up</option>
+              <option value="used_car_bt">Used Car - BT</option>
             </select>
           </div>
 
