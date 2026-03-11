@@ -26,6 +26,8 @@ export default function AddLead() {
     source: '',
     notes: ''
   });
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeManual, setPincodeManual] = useState(false);
 
   const { data: banks = [] } = useQuery({
     queryKey: ['banks'],
@@ -47,6 +49,8 @@ export default function AddLead() {
 
   useEffect(() => {
     if (form.pincode.length === 6) {
+      setPincodeLoading(true);
+      setPincodeManual(false);
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/integrations/pincode/${form.pincode}`)
         .then(res => res.json())
         .then(data => {
@@ -56,9 +60,17 @@ export default function AddLead() {
               city: data.city,
               state: data.state
             }));
+          } else {
+            setPincodeManual(true);
           }
         })
-        .catch(() => { });
+        .catch(() => {
+          setPincodeManual(true);
+        })
+        .finally(() => setPincodeLoading(false));
+    } else {
+      setForm(prev => ({ ...prev, city: '', state: '' }));
+      setPincodeManual(false);
     }
   }, [form.pincode]);
 
@@ -137,13 +149,13 @@ export default function AddLead() {
           </div>
 
           <div>
-            <label className={labelClass}>City</label>
-            <input className={inputClass} value={form.city} readOnly placeholder="Auto-filled from pincode" />
+            <label className={labelClass}>City *</label>
+            <input required className={inputClass} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? 'Fetching...' : pincodeManual ? 'Enter manually' : 'Enter pincode first'} />
           </div>
 
           <div>
-            <label className={labelClass}>State</label>
-            <input className={inputClass} value={form.state} readOnly placeholder="Auto-filled from pincode" />
+            <label className={labelClass}>State *</label>
+            <input required className={inputClass} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? 'Fetching...' : pincodeManual ? 'Enter manually' : 'Enter pincode first'} />
           </div>
 
           <div>
