@@ -149,19 +149,19 @@ export default function CreateLoan() {
         
         setForm(f => ({
           ...f,
-          engineNumber: rc.engine_number || '',
-          chassisNumber: rc.chassis_number || '',
+          engineNumber: rc.vehicle_engine_number || '',
+          chassisNumber: rc.vehicle_chasi_number || '',
           ownerName: rc.owner_name || '',
           makerDescription: rc.maker_description || '',
           makerModel: rc.maker_model || '',
           fuelType: rc.fuel_type || '',
           manufacturingDate: convertDate(rc.manufacturing_date || ''),
           insuranceCompany: rc.insurance_company || '',
-          insuranceValidUpto: convertDate(rc.insurance_validity || rc.insurance_upto || ''),
-          puccValidUpto: convertDate(rc.pucc_upto || rc.pollution_validity || ''),
+          insuranceValidUpto: convertDate(rc.insurance_upto || ''),
+          puccValidUpto: convertDate(rc.pucc_upto || ''),
           financer: rc.financer || '',
-          financeStatus: rc.financed === 'YES' || rc.financer ? 'Financed' : 'Not Financed',
-          ownershipType: rc.owner_serial_number === '1' ? 'First Owner' : rc.owner_serial_number === '2' ? 'Second Owner' : rc.owner_serial_number === '3' ? 'Third Owner' : rc.owner_serial_number === '4' ? 'Fourth Owner' : '',
+          financeStatus: rc.financed ? 'Financed' : 'Not Financed',
+          ownershipType: rc.owner_number === '1' ? 'First Owner' : rc.owner_number === '2' ? 'Second Owner' : rc.owner_number === '3' ? 'Third Owner' : rc.owner_number === '4' ? 'Fourth Owner' : '',
         }));
         
         toast.success('Vehicle details fetched successfully!');
@@ -555,11 +555,11 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.engineNumber} onChange={e => update('engineNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Engine Number</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.chassisNumber} onChange={e => update('chassisNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Chassis Number</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.ownerName} onChange={e => update('ownerName', e.target.value)} placeholder=" " /><label className={labelClass}>Owner Name</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.fuelType} onChange={e => update('fuelType', e.target.value)}><option value="">Select</option><option value="Petrol">Petrol</option><option value="Diesel">Diesel</option><option value="CNG">CNG</option><option value="Electric">Electric</option><option value="Hybrid">Hybrid</option></select><label className={labelClass}>Fuel Type</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.fuelType} onChange={e => update('fuelType', e.target.value)} placeholder=" " /><label className={labelClass}>Fuel Type</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.manufacturingDate} onChange={e => update('manufacturingDate', e.target.value)} placeholder=" " /><label className={labelClass}>Manufacturing Date</label></div>
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.ownershipType} onChange={e => update('ownershipType', e.target.value)}><option value="">Select</option><option value="First Owner">First Owner</option><option value="Second Owner">Second Owner</option><option value="Third Owner">Third Owner</option><option value="Fourth Owner">Fourth Owner</option></select><label className={labelClass}>Ownership Type</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.financer} onChange={e => update('financer', e.target.value)} placeholder=" " /><label className={labelClass}>Financer</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.financeStatus} onChange={e => update('financeStatus', e.target.value)}><option value="">Select</option><option value="Financed">Financed</option><option value="Not Financed">Not Financed</option></select><label className={labelClass}>Finance Status</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.financeStatus} onChange={e => update('financeStatus', e.target.value)} placeholder=" " /><label className={labelClass}>Finance Status</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompany} onChange={e => update('insuranceCompany', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceValidUpto} onChange={e => update('insuranceValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Valid Upto</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.puccValidUpto} onChange={e => update('puccValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>PUCC Valid Upto</label></div>
