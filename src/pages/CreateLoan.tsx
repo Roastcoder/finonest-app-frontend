@@ -94,31 +94,36 @@ export default function CreateLoan() {
   const [fetchingVehicleData, setFetchingVehicleData] = useState(false);
 
   const fetchVehicleDetails = async (rcNumber: string) => {
-    if (!rcNumber || rcNumber.length < 8) return;
+    if (!rcNumber || rcNumber.length < 8) {
+      toast.error('Please enter a valid vehicle number (minimum 8 characters)');
+      return;
+    }
     
     setFetchingVehicleData(true);
     try {
-      console.log('Fetching from API');
-      toast.info('Fetching from API...');
+      console.log('Fetching vehicle details for:', rcNumber);
+      toast.info('Fetching vehicle details...');
+      
       const response = await fetch('https://kyc-api.surepass.app/api/v1/rc/rc-v2', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg'
         },
-        body: JSON.stringify({ id_number: rcNumber, enrich: true }),
+        body: JSON.stringify({ id_number: rcNumber }),
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
       
       const rcData = await response.json();
       console.log('RC API Response:', rcData);
-      console.log('RC Data fields:', Object.keys(rcData.data || {}));
+      
+      if (!response.ok) {
+        console.error('API Error Response:', rcData);
+        throw new Error(rcData.message || `HTTP error! status: ${response.status}`);
+      }
       
       if (rcData.success && rcData.data) {
         const rc = rcData.data;
+        console.log('RC Data fields:', Object.keys(rc));
         
         // Helper function to convert date from DD/MM/YYYY to YYYY-MM-DD
         const convertDate = (dateStr: string) => {
@@ -136,7 +141,6 @@ export default function CreateLoan() {
         
         setForm(f => ({
           ...f,
-          // Vehicle Details - Only these fields
           engineNumber: rc.engine_number || '',
           chassisNumber: rc.chassis_number || '',
           ownerName: rc.owner_name || '',
@@ -154,11 +158,11 @@ export default function CreateLoan() {
         
         toast.success('Vehicle details fetched successfully!');
       } else {
-        toast.error('Could not fetch vehicle details');
+        toast.error(rcData.message || 'Could not fetch vehicle details');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching vehicle details:', error);
-      toast.error('Failed to fetch vehicle details');
+      toast.error(error.message || 'Failed to fetch vehicle details');
     } finally {
       setFetchingVehicleData(false);
     }
