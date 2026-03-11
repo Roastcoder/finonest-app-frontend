@@ -7,85 +7,17 @@ interface DocumentUploadProps {
   onUploadComplete?: () => void;
 }
 
-const DOCUMENT_CATEGORIES = {
-  identity: {
-    label: 'Identity Documents',
-    icon: CreditCard,
-    color: 'bg-blue-50 border-blue-200 text-blue-700',
-    iconColor: 'text-blue-600',
-    documents: [
-      { 
-        value: 'aadhar_card', 
-        label: 'Aadhar Card',
-        subDocuments: [
-          { value: 'aadhar_front', label: 'Aadhar Card Front' },
-          { value: 'aadhar_back', label: 'Aadhar Card Back' }
-        ]
-      },
-      { value: 'pan_card', label: 'PAN Card' },
-      { value: 'driving_licence', label: 'Driving Licence' },
-    ]
-  },
-  vehicle: {
-    label: 'Vehicle Documents',
-    icon: Car,
-    color: 'bg-green-50 border-green-200 text-green-700',
-    iconColor: 'text-green-600',
-    documents: [
-      { 
-        value: 'rc_document', 
-        label: 'RC Document',
-        subDocuments: [
-          { value: 'rc_front', label: 'RC Front' },
-          { value: 'rc_back', label: 'RC Back' }
-        ]
-      },
-    ]
-  },
-  financial: {
-    label: 'Financial Documents',
-    icon: Building,
-    color: 'bg-purple-50 border-purple-200 text-purple-700',
-    iconColor: 'text-purple-600',
-    documents: [
-      { value: 'bank_statement', label: 'Bank Statement (6 months)' },
-      { value: 'cheque', label: 'Cheque' },
-      { value: 'income_proof', label: 'Income Proof' },
-    ]
-  },
-  address: {
-    label: 'Address Proof',
-    icon: Building,
-    color: 'bg-orange-50 border-orange-200 text-orange-700',
-    iconColor: 'text-orange-600',
-    documents: [
-      { value: 'light_bill', label: 'Light Bill' },
-      { value: 'rent_agreement', label: 'Rent Agreement' },
-    ]
-  },
-  loan: {
-    label: 'Loan Documents',
-    icon: Shield,
-    color: 'bg-indigo-50 border-indigo-200 text-indigo-700',
-    iconColor: 'text-indigo-600',
-    documents: [
-      { value: 'disbursement_memo', label: 'Disbursement Memo' },
-      { value: 'insurance', label: 'Insurance Document' },
-      { value: 'customer_ledger', label: 'Customer Ledger' },
-    ]
-  },
-  other: {
-    label: 'Other Documents',
-    icon: User,
-    color: 'bg-gray-50 border-gray-200 text-gray-700',
-    iconColor: 'text-gray-600',
-    documents: [
-      { value: 'customer_photo', label: 'Customer Photo' },
-      { value: 'rto_document', label: 'RTO Document' },
-      { value: 'noc', label: 'NOC' },
-    ]
-  }
-};
+const FLAT_DOCUMENTS = [
+  { value: 'aadhar_card', label: 'Aadhar Card', subDocuments: [{ value: 'aadhar_front', label: 'Aadhar Card Front' }, { value: 'aadhar_back', label: 'Aadhar Card Back' }] },
+  { value: 'pan_card', label: 'Pan Card' },
+  { value: 'bank_statement', label: 'Bank Statement' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'rc_document', label: 'RC', subDocuments: [{ value: 'rc_front', label: 'RC Front' }, { value: 'rc_back', label: 'RC Back' }] },
+  { value: 'income_proof', label: 'Income Proof' },
+  { value: 'customer_photo', label: 'Customer Photo' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'customer_ledger', label: 'Customer Ledger' },
+];
 
 export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUploadProps) {
   const [files, setFiles] = useState<{ [key: string]: File }>({});
@@ -97,21 +29,16 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
       setSelectedDocTypes(prev => [...prev, docType]);
     } else {
       setSelectedDocTypes(prev => prev.filter(type => type !== docType));
-      // Remove files if document type is unchecked
       setFiles(prev => {
         const newFiles = { ...prev };
-        // Find if this document has sub-documents
-        Object.values(DOCUMENT_CATEGORIES).forEach(category => {
-          const doc = category.documents.find(d => d.value === docType);
-          if (doc?.subDocuments) {
-            // Remove all sub-document files
-            doc.subDocuments.forEach(subDoc => {
-              delete newFiles[subDoc.value];
-            });
-          } else {
-            delete newFiles[docType];
-          }
-        });
+        const doc = FLAT_DOCUMENTS.find(d => d.value === docType);
+        if (doc?.subDocuments) {
+          doc.subDocuments.forEach(subDoc => {
+            delete newFiles[subDoc.value];
+          });
+        } else {
+          delete newFiles[docType];
+        }
         return newFiles;
       });
     }
@@ -121,20 +48,16 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
     const fields: Array<{docType: string, label: string}> = [];
     
     selectedDocTypes.forEach(docType => {
-      Object.values(DOCUMENT_CATEGORIES).forEach(category => {
-        const doc = category.documents.find(d => d.value === docType);
-        if (doc) {
-          if (doc.subDocuments) {
-            // Add sub-documents
-            doc.subDocuments.forEach(subDoc => {
-              fields.push({ docType: subDoc.value, label: subDoc.label });
-            });
-          } else {
-            // Add main document
-            fields.push({ docType: doc.value, label: doc.label });
-          }
+      const doc = FLAT_DOCUMENTS.find(d => d.value === docType);
+      if (doc) {
+        if (doc.subDocuments) {
+          doc.subDocuments.forEach(subDoc => {
+            fields.push({ docType: subDoc.value, label: subDoc.label });
+          });
+        } else {
+          fields.push({ docType: doc.value, label: doc.label });
         }
-      });
+      }
     });
     
     return fields;
@@ -212,158 +135,107 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
   };
 
   return (
-    <div className="space-y-6">
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-accent/10 rounded-lg">
-            <Upload className="w-5 h-5 text-accent" />
+      <div className="bg-white rounded-lg shadow-sm border border-border p-6 mb-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-4 tracking-tight">Customer Documents</h2>
+        
+        <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-5 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-4 gap-x-6">
+            {FLAT_DOCUMENTS.map(doc => (
+              <label key={doc.value} className="flex items-center gap-2.5 cursor-pointer group">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedDocTypes.includes(doc.value)}
+                    onChange={(e) => handleDocTypeChange(doc.value, e.target.checked)}
+                    className="peer w-4.5 h-4.5 appearance-none border-2 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer"
+                  />
+                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
+                  {doc.label}
+                </span>
+              </label>
+            ))}
           </div>
-          <h3 className="text-xl font-semibold text-foreground">Upload Documents</h3>
         </div>
-
-        <div className="space-y-6">
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">Select Document Types</h4>
-            <div className="space-y-4">
-              {Object.entries(DOCUMENT_CATEGORIES).map(([categoryKey, category]) => {
-                const IconComponent = category.icon;
-                return (
-                  <div key={categoryKey}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <IconComponent className={`w-4 h-4 ${category.iconColor}`} />
-                      <h5 className="text-sm font-semibold text-foreground">{category.label}</h5>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {category.documents.map(doc => (
-                        <label key={doc.value} className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 cursor-pointer transition-all duration-200 hover:shadow-sm ${
-                          selectedDocTypes.includes(doc.value) 
-                            ? `${category.color} border-current` 
-                            : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                        }`}>
-                          <input
-                            type="checkbox"
-                            checked={selectedDocTypes.includes(doc.value)}
-                            onChange={(e) => handleDocTypeChange(doc.value, e.target.checked)}
-                            className="w-4 h-4 text-accent bg-white border-2 border-gray-300 rounded focus:ring-accent focus:ring-2 transition-colors"
-                          />
-                          <span className="text-sm font-medium">
-                            {doc.label}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
           {selectedDocTypes.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <File className="w-4 h-4 text-muted-foreground" />
-                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                    Upload Files
-                  </h4>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleUpload}
-                    disabled={Object.keys(files).length === 0 || uploading}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200 disabled:cursor-not-allowed text-sm"
-                  >
-                    {uploading ? (
-                      <>
-                        <div className="w-3 h-3 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-3 h-3" />
-                        Upload {Object.keys(files).length}
-                      </>
-                    )}
-                  </button>
-                  {Object.keys(files).length > 0 && (
-                    <button
-                      onClick={() => {
-                        setFiles({});
-                        setSelectedDocTypes([]);
-                      }}
-                      className="px-3 py-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors text-sm"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 {getUploadFields().map(({ docType, label }) => (
-                  <div key={docType} className="border border-border rounded-lg p-3">
-                    <h5 className="text-xs font-medium mb-2 text-foreground truncate">{label}</h5>
-                    
-                    {!files[docType] ? (
-                      <div className="border border-dashed border-accent/30 rounded-lg p-3 text-center hover:border-accent/50 transition-colors group">
-                        <input
-                          type="file"
-                          accept=".jpg,.jpeg,.png,.pdf"
-                          onChange={(e) => handleFileChange(docType, e)}
-                          className="hidden"
-                          id={`file-upload-${docType}`}
-                        />
-                        <label htmlFor={`file-upload-${docType}`} className="cursor-pointer block">
-                          <Upload className="w-4 h-4 text-accent mx-auto mb-1" />
-                          <p className="text-xs text-muted-foreground">
-                            Click to upload
-                          </p>
-                        </label>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between p-2 bg-success/10 border border-success/20 rounded-lg">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="p-1 bg-success/20 rounded flex-shrink-0">
-                            {files[docType].type.includes('image') ? 
-                              <Image size={12} className="text-success" /> : 
-                              <FileText size={12} className="text-success" />
-                            }
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">
-                              {files[docType].name.length > 15 ? files[docType].name.substring(0, 15) + '...' : files[docType].name}
-                            </p>
-                          </div>
+                  <div key={docType} className="flex flex-col">
+                    <label className="text-[12px] font-medium text-slate-500 mb-1.5 ml-1">{label}</label>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileChange(docType, e)}
+                        className="hidden"
+                        id={`file-upload-${docType}`}
+                      />
+                      <label 
+                        htmlFor={`file-upload-${docType}`} 
+                        className={`flex items-center w-full h-11 px-3 border border-slate-300 rounded-lg cursor-pointer bg-white hover:bg-slate-50 transition-colors focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-hidden ${files[docType] ? 'border-emerald-300 bg-emerald-50/30' : ''}`}
+                      >
+                        <div className="flex items-center py-1 px-3 bg-slate-100 border border-slate-300 rounded text-xs font-semibold text-slate-700 mr-3 shrink-0 uppercase shadow-sm">
+                          Choose file
                         </div>
-                        <button 
-                          onClick={() => removeFile(docType)} 
-                          className="p-1 hover:bg-destructive/10 rounded transition-colors flex-shrink-0"
-                        >
-                          <X size={12} className="text-muted-foreground hover:text-destructive" />
-                        </button>
-                      </div>
-                    )}
+                        <span className="text-sm text-slate-500 truncate min-w-0 flex-1">
+                          {files[docType] ? (
+                            <span className="text-slate-800 font-medium">{files[docType].name}</span>
+                          ) : (
+                            'No file chosen'
+                          )}
+                        </span>
+                        {files[docType] && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeFile(docType);
+                            }}
+                            className="ml-2 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
+                          >
+                            <X size={15} />
+                          </button>
+                        )}
+                      </label>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
 
-          {selectedDocTypes.length === 0 && (
-            <div className="text-center py-6">
-              <div className="p-3 bg-muted/30 rounded-full w-fit mx-auto mb-2">
-                <FileText className="w-6 h-6 text-muted-foreground" />
+              <div className="flex justify-end pt-4 gap-3 mt-4 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setFiles({});
+                    setSelectedDocTypes([]);
+                  }}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-lg text-sm hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpload}
+                  disabled={Object.keys(files).length === 0 || uploading}
+                  className="px-5 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    'Upload Selected'
+                  )}
+                </button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Select document types above to start uploading
-              </p>
             </div>
           )}
-        </div>
       </div>
-
-      {/* Uploaded Documents Section - Moved Down */}
-      <DocumentList leadId={leadId} />
-    </div>
   );
 }
 
@@ -420,14 +292,19 @@ export function DocumentList({ leadId }: DocumentListProps) {
   }
 
   return (
-    <div className="glass-card p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-success/10 rounded-lg">
-          <CheckCircle className="w-5 h-5 text-success" />
+    <div className="glass-card p-6 md:p-8 rounded-2xl border border-border/60 shadow-md h-full flex flex-col">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/40">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl shadow-inner text-success">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-foreground">Uploaded Documents</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage files attached to this lead.</p>
+          </div>
         </div>
-        <h3 className="text-xl font-semibold text-foreground">Uploaded Documents</h3>
         {documents.length > 0 && (
-          <span className="ml-auto px-3 py-1 bg-accent/10 text-accent text-sm font-medium rounded-full">
+          <span className="flex items-center justify-center w-8 h-8 bg-success/10 text-success text-sm font-bold rounded-full border border-success/20 shadow-sm">
             {documents.length}
           </span>
         )}
@@ -442,16 +319,16 @@ export function DocumentList({ leadId }: DocumentListProps) {
           <p className="text-xs text-muted-foreground">Upload documents using the form above</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {documents.map((doc) => {
             const getStatusConfig = (status: string) => {
               switch (status) {
                 case 'verified':
-                  return { icon: CheckCircle, color: 'text-success', bg: 'bg-success/10 border-success/20' };
+                  return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50/50 border-emerald-200/60 shadow-emerald-900/5', iconBg: 'bg-emerald-100' };
                 case 'rejected':
-                  return { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/20' };
+                  return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50/50 border-red-200/60 shadow-red-900/5', iconBg: 'bg-red-100' };
                 default:
-                  return { icon: FileText, color: 'text-warning', bg: 'bg-warning/10 border-warning/20' };
+                  return { icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50/50 border-amber-200/60 shadow-amber-900/5', iconBg: 'bg-amber-100' };
               }
             };
             
@@ -459,20 +336,23 @@ export function DocumentList({ leadId }: DocumentListProps) {
             const StatusIcon = statusConfig.icon;
             
             return (
-              <div key={doc.id} className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${statusConfig.bg}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="p-1 bg-white/50 rounded">
-                    <FileText className="w-3 h-3 text-muted-foreground" />
+              <div key={doc.id} className={`p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${statusConfig.bg}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`p-2 rounded-lg shadow-sm ${statusConfig.iconBg} ${statusConfig.color}`}>
+                    <FileText className="w-4 h-4" />
                   </div>
-                  <StatusIcon className={`w-3 h-3 ${statusConfig.color}`} />
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/60 shadow-sm border ${statusConfig.color} border-current/10`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {doc.status || 'Pending'}
+                  </div>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-foreground mb-1 truncate">
+                  <p className="text-sm font-bold text-foreground mb-1 truncate" title={doc.document_type.replace(/_/g, ' ')}>
                     {doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">{doc.file_name}</p>
+                  <p className="text-xs text-muted-foreground truncate" title={doc.file_name}>{doc.file_name}</p>
                   {doc.uploaded_at && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-[11px] font-medium text-muted-foreground/60 mt-2 bg-background/50 inline-block px-2 py-0.5 rounded-md border border-border/30">
                       {new Date(doc.uploaded_at).toLocaleDateString()}
                     </p>
                   )}

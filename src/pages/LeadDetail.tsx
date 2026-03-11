@@ -57,17 +57,22 @@ export default function LeadDetail() {
 
   if (!lead) {
     return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">Lead not found</p>
-        <button onClick={() => navigate('/leads-list')} className="mt-4 text-accent hover:underline text-sm">← Back to leads</button>
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-background border border-dashed border-border rounded-xl mt-6">
+        <p className="text-muted-foreground font-medium mb-4">Lead not found</p>
+        <button 
+          onClick={() => navigate('/leads-list')} 
+          className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-lg hover:bg-accent hover:text-white transition-all duration-200"
+        >
+          <ArrowLeft size={16} /> Back to leads
+        </button>
       </div>
     );
   }
 
   const Field = ({ label, value }: { label: string; value: string }) => (
-    <div className="min-w-0">
-      <p className="text-[11px] text-muted-foreground mb-0.5">{label}</p>
-      <p className="text-sm font-medium text-foreground break-words">{value || '—'}</p>
+    <div className="min-w-0 bg-muted/20 p-3 rounded-lg border border-border/40 hover:border-accent/20 transition-colors">
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground/80 font-semibold mb-1">{label}</p>
+      <p className="text-sm font-semibold text-foreground break-words">{value || '—'}</p>
     </div>
   );
 
@@ -77,46 +82,54 @@ export default function LeadDetail() {
         <ArrowLeft size={16} /> Back to Leads
       </button>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-card p-5 rounded-xl border border-border shadow-sm">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{lead.customer_id}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">{lead.customer_id}</h1>
             {lead.converted_to_loan ? (
-              <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Converted</span>
+              <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Converted
+              </span>
             ) : (
-              <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">Active</span>
+              <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> Active
+              </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">{lead.customer_name}</p>
+          <p className="text-base font-medium text-muted-foreground mt-2 flex items-center gap-2">
+            <User size={16} className="text-accent" /> {lead.customer_name}
+          </p>
         </div>
         {!lead.converted_to_loan && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => cloneMutation.mutate()}
               disabled={cloneMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-border bg-background text-sm font-semibold text-foreground hover:border-accent/50 hover:bg-accent/5 transition-all duration-200 disabled:opacity-50"
             >
-              <Copy size={16} />
+              <Copy size={16} className={cloneMutation.isPending ? "animate-pulse" : ""} />
               {cloneMutation.isPending ? 'Working...' : 'Reapply / Clone'}
             </button>
             <button
               onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-accent to-accent/90 text-white text-sm font-semibold hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
             >
-              <ArrowRight size={16} />
               Convert to Loan
+              <ArrowRight size={16} />
             </button>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-accent"><User size={18} /></span>
-            <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="glass-card p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-border/40">
+            <div className="p-2 bg-accent/10 rounded-lg text-accent">
+              <User size={20} />
+            </div>
+            <h3 className="text-base font-bold text-foreground">Customer Details</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Customer ID" value={lead.customer_id} />
             <Field label="Customer Name" value={lead.customer_name} />
             <Field label="Phone Number" value={lead.phone || lead.phone_no} />
@@ -129,24 +142,28 @@ export default function LeadDetail() {
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-accent"><Car size={18} /></span>
-            <h3 className="text-sm font-semibold text-foreground">Vehicle Details</h3>
+        <div className="glass-card p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-border/40">
+            <div className="p-2 bg-orange-500/10 rounded-lg text-orange-500">
+              <Car size={20} />
+            </div>
+            <h3 className="text-base font-bold text-foreground">Vehicle Details</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Vehicle Number" value={lead.vehicle_number || lead.vehicle_no} />
             <Field label="Case Type" value={lead.case_type} />
-            <Field label="Lead Type" value={lead.lead_type} />
+            <div className="col-span-2"><Field label="Lead Type" value={lead.lead_type} /></div>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-accent"><IndianRupee size={18} /></span>
-            <h3 className="text-sm font-semibold text-foreground">Loan Details</h3>
+        <div className="glass-card p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-border/40">
+            <div className="p-2 bg-green-500/10 rounded-lg text-green-600">
+              <IndianRupee size={20} />
+            </div>
+            <h3 className="text-base font-bold text-foreground">Loan Details</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Loan Amount Required" value={lead.loan_amount_required ? formatCurrency(Number(lead.loan_amount_required)) : '—'} />
             <Field label="Financier" value={lead.financier_name} />
             <Field label="Stage" value={lead.stage} />
@@ -154,12 +171,14 @@ export default function LeadDetail() {
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-accent"><User size={18} /></span>
-            <h3 className="text-sm font-semibold text-foreground">Other Details</h3>
+        <div className="glass-card p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-border/40">
+            <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
+              <FileText size={20} />
+            </div>
+            <h3 className="text-base font-bold text-foreground">Other Details</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Our Branch" value={lead.our_branch} />
             <Field label="Source" value={lead.source} />
             <Field label="Assigned To" value={lead.assigned_to_name} />
@@ -171,17 +190,18 @@ export default function LeadDetail() {
         </div>
       </div>
 
-      {/* Dynamic PRD Loan Application Info (Customer Profiling) */}
-      <div className="mt-4 mb-4 pt-2">
+      <div className="mt-6 mb-6">
         <CustomerProfileForm leadId={Number(id)} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
         {/* Document Upload Component */}
-        <DocumentUpload leadId={Number(id)} />
+        <div className="w-full">
+          <DocumentUpload leadId={Number(id)} />
+        </div>
 
         {/* Document List Component */}
-        <div className="min-h-[250px]">
+        <div className="w-full min-h-[300px]">
           <DocumentList leadId={Number(id)} />
         </div>
       </div>
