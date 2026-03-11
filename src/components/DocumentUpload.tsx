@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, X, FileText, CheckCircle, XCircle, File, Image, CreditCard, Car, Building, User, Shield } from 'lucide-react';
+import { Upload, X, FileText, CheckCircle, XCircle, File, Image, CreditCard, Car, Building, User, Shield, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DocumentUploadProps {
@@ -7,22 +7,25 @@ interface DocumentUploadProps {
   onUploadComplete?: () => void;
 }
 
-const FLAT_DOCUMENTS = [
-  { value: 'aadhar_card', label: 'Aadhar Card', subDocuments: [{ value: 'aadhar_front', label: 'Aadhar Card Front' }, { value: 'aadhar_back', label: 'Aadhar Card Back' }] },
-  { value: 'pan_card', label: 'Pan Card' },
-  { value: 'bank_statement', label: 'Bank Statement' },
-  { value: 'cheque', label: 'Cheque' },
-  { value: 'rc_document', label: 'RC', subDocuments: [{ value: 'rc_front', label: 'RC Front' }, { value: 'rc_back', label: 'RC Back' }] },
-  { value: 'income_proof', label: 'Income Proof' },
-  { value: 'customer_photo', label: 'Customer Photo' },
-  { value: 'insurance', label: 'Insurance' },
-  { value: 'customer_ledger', label: 'Customer Ledger' },
+const REQUIRED_DOCUMENTS = [
+  { value: 'rc_front', label: 'RC Front', required: true },
+  { value: 'rc_back', label: 'RC Back', required: true },
+  { value: 'aadhar_front', label: 'Aadhar Front', required: true },
+  { value: 'aadhar_back', label: 'Aadhar Back', required: true },
+  { value: 'pan_card', label: 'PAN Card', required: true },
+];
+
+const OPTIONAL_DOCUMENTS = [
+  { value: 'bank_statement', label: 'Bank Statement', required: false },
+  { value: 'loan_statement', label: 'Loan Statement', required: false },
 ];
 
 export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUploadProps) {
   const [files, setFiles] = useState<{ [key: string]: File }>({});
   const [selectedDocTypes, setSelectedDocTypes] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [source, setSource] = useState('');
+  const [notes, setNotes] = useState('');
 
   const handleDocTypeChange = (docType: string, checked: boolean) => {
     if (checked) {
@@ -31,36 +34,10 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
       setSelectedDocTypes(prev => prev.filter(type => type !== docType));
       setFiles(prev => {
         const newFiles = { ...prev };
-        const doc = FLAT_DOCUMENTS.find(d => d.value === docType);
-        if (doc?.subDocuments) {
-          doc.subDocuments.forEach(subDoc => {
-            delete newFiles[subDoc.value];
-          });
-        } else {
-          delete newFiles[docType];
-        }
+        delete newFiles[docType];
         return newFiles;
       });
     }
-  };
-
-  const getUploadFields = () => {
-    const fields: Array<{docType: string, label: string}> = [];
-    
-    selectedDocTypes.forEach(docType => {
-      const doc = FLAT_DOCUMENTS.find(d => d.value === docType);
-      if (doc) {
-        if (doc.subDocuments) {
-          doc.subDocuments.forEach(subDoc => {
-            fields.push({ docType: subDoc.value, label: subDoc.label });
-          });
-        } else {
-          fields.push({ docType: doc.value, label: doc.label });
-        }
-      }
-    });
-    
-    return fields;
   };
 
   const handleFileChange = (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,6 +70,15 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
       return;
     }
 
+    const missingRequired = REQUIRED_DOCUMENTS.filter(doc => 
+      selectedDocTypes.includes(doc.value) && !files[doc.value]
+    );
+    
+    if (missingRequired.length > 0) {
+      toast.error(`Please upload all required documents: ${missingRequired.map(d => d.label).join(', ')}`);
+      return;
+    }
+
     setUploading(true);
     let successCount = 0;
     let errorCount = 0;
@@ -102,6 +88,8 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
       formData.append('document', file);
       formData.append('lead_id', leadId.toString());
       formData.append('document_type', docType);
+      if (source) formData.append('source', source);
+      if (notes) formData.append('notes', notes);
 
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
@@ -124,6 +112,8 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
       toast.success(`${successCount} document(s) uploaded successfully`);
       setFiles({});
       setSelectedDocTypes([]);
+      setSource('');
+      setNotes('');
       onUploadComplete?.();
     }
     
@@ -138,9 +128,57 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
       <div className="bg-white rounded-lg shadow-sm border border-border p-6 mb-6">
         <h2 className="text-lg font-bold text-slate-800 mb-4 tracking-tight">Customer Documents</h2>
         
-        <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-5 mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-4 gap-x-6">
-            {FLAT_DOCUMENTS.map(doc => (
+        <div className="mb-6 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Source</label>
+            <input
+              type="text"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="Enter document source"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any notes about the documents"
+              rows={3}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-5 mb-6">
+          <h3 className="text-sm font-bold text-slate-800 mb-3">Required Documents <span className="text-red-500">*</span></h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
+            {REQUIRED_DOCUMENTS.map(doc => (
+              <label key={doc.value} className="flex items-center gap-2.5 cursor-pointer group">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedDocTypes.includes(doc.value)}
+                    onChange={(e) => handleDocTypeChange(doc.value, e.target.checked)}
+                    className="peer w-4.5 h-4.5 appearance-none border-2 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer"
+                  />
+                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
+                  {doc.label} <span className="text-red-500">*</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-blue-50/50 rounded-xl border border-blue-100 p-5 mb-6">
+          <h3 className="text-sm font-bold text-slate-800 mb-3">Optional Documents</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+            {OPTIONAL_DOCUMENTS.map(doc => (
               <label key={doc.value} className="flex items-center gap-2.5 cursor-pointer group">
                 <div className="relative flex items-center justify-center">
                   <input
@@ -164,9 +202,13 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
           {selectedDocTypes.length > 0 && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                {getUploadFields().map(({ docType, label }) => (
+                {[...REQUIRED_DOCUMENTS, ...OPTIONAL_DOCUMENTS]
+                  .filter(doc => selectedDocTypes.includes(doc.value))
+                  .map(({ value: docType, label, required }) => (
                   <div key={docType} className="flex flex-col">
-                    <label className="text-[12px] font-medium text-slate-500 mb-1.5 ml-1">{label}</label>
+                    <label className="text-[12px] font-medium text-slate-500 mb-1.5 ml-1">
+                      {label} {required && <span className="text-red-500">*</span>}
+                    </label>
                     <div className="relative">
                       <input
                         type="file"
@@ -213,6 +255,8 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
                   onClick={() => {
                     setFiles({});
                     setSelectedDocTypes([]);
+                    setSource('');
+                    setNotes('');
                   }}
                   className="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-lg text-sm hover:bg-slate-50 transition-colors"
                 >
@@ -356,6 +400,13 @@ export function DocumentList({ leadId }: DocumentListProps) {
                       {new Date(doc.uploaded_at).toLocaleDateString()}
                     </p>
                   )}
+                  <button
+                    onClick={() => window.open(doc.file_url, '_blank')}
+                    className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    View
+                  </button>
                 </div>
               </div>
             );
