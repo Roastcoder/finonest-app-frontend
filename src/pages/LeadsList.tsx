@@ -134,19 +134,23 @@ export default function LeadsList() {
 
               {/* Action Row */}
               <div className="flex items-center gap-2 pt-3 border-t border-border" onClick={e => e.stopPropagation()}>
-                <button
-                  onClick={() => navigate(`/leads/${lead.id}`)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors"
-                >
-                  <Eye size={14} /> View
-                </button>
-                {!lead.converted_to_loan && (
-                  <button
-                    onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
-                  >
-                    <ArrowRight size={14} /> Convert
-                  </button>
+                {user?.role !== 'executive' && (
+                  <>
+                    <button
+                      onClick={() => navigate(`/leads/${lead.id}`)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors"
+                    >
+                      <Eye size={14} /> View
+                    </button>
+                    {!lead.converted_to_loan && (
+                      <button
+                        onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
+                      >
+                        <ArrowRight size={14} /> Convert
+                      </button>
+                    )}
+                  </>
                 )}
                 {user?.role === 'admin' && (
                   <button
@@ -216,8 +220,12 @@ export default function LeadsList() {
                   </td>
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => navigate(`/leads/${lead.id}`)} className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"><Eye size={16} /></button>
-                      <button onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"><ArrowRight size={16} /></button>
+                      {user?.role !== 'executive' && (
+                        <>
+                          <button onClick={() => navigate(`/leads/${lead.id}`)} className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"><Eye size={16} /></button>
+                          <button onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"><ArrowRight size={16} /></button>
+                        </>
+                      )}
                       {user?.role === 'admin' && (
                         <button onClick={() => setDeleteConfirm(lead.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"><Trash2 size={16} /></button>
                       )}
