@@ -65,9 +65,9 @@ export default function LeadDetail() {
   }
 
   const Field = ({ label, value }: { label: string; value: string }) => (
-    <div>
+    <div className="min-w-0">
       <p className="text-[11px] text-muted-foreground mb-0.5">{label}</p>
-      <p className="text-sm font-medium text-foreground">{value || '—'}</p>
+      <p className="text-sm font-medium text-foreground break-words">{value || '—'}</p>
     </div>
   );
 
@@ -120,11 +120,11 @@ export default function LeadDetail() {
             <Field label="Customer ID" value={lead.customer_id} />
             <Field label="Customer Name" value={lead.customer_name} />
             <Field label="Phone Number" value={lead.phone || lead.phone_no} />
-            <Field label="Email" value={lead.email} />
+            <Field label="PAN Number" value={lead.pan_number} />
             <Field label="City" value={lead.city || lead.district} />
             <Field label="State" value={lead.state} />
             <Field label="Pin Code" value={lead.pincode} />
-            <Field label="PAN Number" value={lead.pan_number} />
+            <div className="col-span-2"><Field label="Email" value={lead.email} /></div>
             <div className="col-span-2"><Field label="Address" value={lead.current_address} /></div>
           </div>
         </div>
