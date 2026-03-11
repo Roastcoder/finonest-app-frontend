@@ -89,7 +89,6 @@ export default function CreateLoan() {
   const [showOptionalFields, setShowOptionalFields] = useState({
     coApplicant: false,
     guarantor: false,
-    permanentAddress: false,
   });
 
   const [fetchingVehicleData, setFetchingVehicleData] = useState(false);
@@ -152,9 +151,7 @@ export default function CreateLoan() {
           
           // Address from RC (only if empty)
           currentAddress: f.currentAddress || rc.present_address || rc.permanent_address || '',
-          permanentAddress: f.permanentAddress || rc.permanent_address || '',
           currentPincode: f.currentPincode || rc.present_address?.match(/\d{6}/)?.[0] || rc.permanent_address?.match(/\d{6}/)?.[0] || '',
-          permanentPincode: f.permanentPincode || rc.permanent_address?.match(/\d{6}/)?.[0] || '',
           
           // Insurance Details
           insuranceCompanyName: rc.insurance_company || '',
@@ -179,8 +176,6 @@ export default function CreateLoan() {
     customerId: '', customerName: '', mobile: '', coApplicantName: '', coApplicantMobile: '',
     guarantorName: '', guarantorMobile: '', ourBranch: '',
     currentAddress: '', currentLandmark: '', currentDistrict: '', currentState: '', currentPincode: '',
-    sameAsCurrentAddress: false,
-    permanentAddress: '', permanentLandmark: '', permanentDistrict: '', permanentState: '', permanentPincode: '',
     // Loan & Vehicle Details
     loanNumber: '', purposeLoanAmount: '', loanAmount: '', ltv: '', loanTypeVehicle: '',
     vehicleNumber: '', makerName: '', modelVariantName: '', mfgYear: '', vertical: '', scheme: '',
@@ -309,11 +304,6 @@ export default function CreateLoan() {
           current_district: form.currentDistrict || null,
           current_state: form.currentState || null,
           current_pincode: form.currentPincode || null,
-          permanent_address: form.permanentAddress || null,
-          permanent_landmark: form.permanentLandmark || null,
-          permanent_district: form.permanentDistrict || null,
-          permanent_state: form.permanentState || null,
-          permanent_pincode: form.permanentPincode || null,
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
           monthly_income: Number(form.monthlyIncome) || null,
@@ -505,22 +495,6 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentDistrict} onChange={e => update('currentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentState} onChange={e => update('currentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
-                <div className="md:col-span-3 mt-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={form.sameAsCurrentAddress} onChange={e => handleSameAddress(e.target.checked)} className="w-4 h-4 rounded border-border" />
-                    <span className="text-sm font-medium text-foreground">Same As Current Address</span>
-                  </label>
-                </div>
-                {!form.sameAsCurrentAddress && (
-                  <>
-                    <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Permanent Address</h3></div>
-                    <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.permanentAddress} onChange={e => update('permanentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentLandmark} onChange={e => update('permanentLandmark', e.target.value)} placeholder=" " /><label className={labelClass}>Landmark</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentDistrict} onChange={e => update('permanentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentState} onChange={e => update('permanentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.permanentPincode} onChange={e => update('permanentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
-                  </>
-                )}
               </div>
             </div>
 
