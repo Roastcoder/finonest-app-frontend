@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 45 30% 96%; /* Soft cream */
+    --foreground: 220 14% 16%; /* Charcoal */
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 16%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 14% 16%;
+
+    --primary: 220 14% 16%; /* Charcoal as primary action */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 47 95% 60%; /* Warm yellow */
+    --secondary-foreground: 220 14% 16%;
+
+    --muted: 45 20% 90%;
+    --muted-foreground: 220 5% 45%;
+
+    --accent: 47 95% 60%; /* Warm yellow */
+    --accent-foreground: 220 14% 16%;
+
+    --destructive: 0 84% 60%; 
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 210 92% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 45 20% 86%;
+    --input: 45 20% 86%;
+    --ring: 220 14% 16%;
+
+    --radius: 1.25rem;
+
+    --sidebar-background: 0 0% 100%; /* Or glassy */
+    --sidebar-foreground: 220 14% 16%;
+    --sidebar-primary: 220 14% 16%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 45 20% 92%;
+    --sidebar-accent-foreground: 220 14% 16%;
+    --sidebar-border: 45 20% 86%;
+    --sidebar-ring: 220 14% 16%;
+    --sidebar-muted: 220 5% 45%;
+
+    --chart-1: 220 14% 16%;
+    --chart-2: 47 95% 60%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 60% 55%;
+    --chart-5: 0 72% 51%;
+  }
+
+  .dark {
+    --background: 220 14% 10%;
+    --foreground: 45 20% 96%;
+    --card: 220 14% 12%;
+    --card-foreground: 45 20% 96%;
+    --popover: 220 14% 12%;
+    --popover-foreground: 45 20% 96%;
+    --primary: 47 95% 60%; /* Yellow primary in dark mode */
+    --primary-foreground: 220 14% 16%;
+    --secondary: 220 14% 16%;
+    --secondary-foreground: 45 20% 96%;
+    --muted: 220 14% 18%;
+    --muted-foreground: 220 5% 65%;
+    --accent: 47 95% 60%;
+    --accent-foreground: 220 14% 16%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 45 20% 96%;
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 47 95% 60%;
+    --sidebar-background: 220 14% 12%;
+    --sidebar-foreground: 45 20% 96%;
+    --sidebar-primary: 47 95% 60%;
+    --sidebar-primary-foreground: 220 14% 16%;
+    --sidebar-accent: 220 14% 18%;
+    --sidebar-accent-foreground: 45 20% 96%;
+    --sidebar-border: 220 14% 18%;
+    --sidebar-ring: 47 95% 60%;
+    --sidebar-muted: 220 5% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #f6f5ef;
+    background-image:
+      radial-gradient(at 0% 0%, #fefcf5 0px, transparent 60%),
+      radial-gradient(at 100% 0%, #faecc5 0px, transparent 60%),
+      radial-gradient(at 100% 100%, #fcf7e6 0px, transparent 60%),
+      radial-gradient(at 0% 100%, #edf0f5 0px, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-color: #0f1115;
+    background-image:
+      radial-gradient(at 0% 0%, #15181e 0px, transparent 60%),
+      radial-gradient(at 100% 0%, #1e1d18 0px, transparent 60%),
+      radial-gradient(at 100% 100%, #13120f 0px, transparent 60%),
+      radial-gradient(at 0% 100%, #0d0f12 0px, transparent 60%);
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+    border-radius: 20px;
+  }
+
+  .dark .glass-card {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(30, 32, 36, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
+  }
+
+  .glass-panel {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .glass-panel {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgba(20, 22, 26, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.5);
+  }
+
+  .stat-card {
+    @apply glass-card p-6 flex flex-col shadow-sm transition-all duration-200 hover:shadow-md;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 text-text-muted-light dark:text-text-muted-dark hover:bg-white/40 dark:hover:bg-white/5;
+  }
+
+  .sidebar-link-active {
+    @apply bg-blue-50/50 dark:bg-blue-900/20 text-primary relative;
+  }
+
+  .sidebar-link-inactive {
+    @apply text-text-muted-light dark:text-text-muted-dark hover:bg-white/40 dark:hover:bg-white/5;
+  }
+
+  .status-draft {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .status-submitted {
+    @apply bg-blue-100 text-blue-700;
+  }
+
+  .status-review {
+    @apply bg-amber-100 text-amber-700;
+  }
+
+  .status-approved {
+    @apply bg-emerald-100 text-emerald-700;
+  }
+
+  .status-rejected {
+    @apply bg-red-100 text-red-700;
+  }
+
+  .status-disbursed {
+    @apply bg-teal-100 text-teal-700;
+  }
+
+  .status-cancelled {
+    @apply bg-gray-200 text-gray-600;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
