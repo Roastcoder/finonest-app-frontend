@@ -23,9 +23,7 @@ export default function AddLead() {
     loan_amount_required: '',
     case_type: 'new_car_purchase',
     lead_type: 'branch_visit',
-    financier_id: '',
-    source: '',
-    notes: ''
+    financier_id: ''
   });
   const [documents, setDocuments] = useState<{ [key: string]: File }>({});
   const [pincodeLoading, setPincodeLoading] = useState(false);
@@ -247,16 +245,6 @@ export default function AddLead() {
               {banks.length === 0 && <p className="text-xs text-red-500 mt-1">No financiers loaded</p>}
             </div>
           )}
-
-          <div>
-            <label className={labelClass}>Source</label>
-            <input className={inputClass} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} placeholder="Lead source" />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className={labelClass}>Notes</label>
-            <textarea className={inputClass} rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes" />
-          </div>
         </div>
 
         <div className="mt-6">
