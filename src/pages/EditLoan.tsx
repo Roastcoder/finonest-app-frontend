@@ -62,9 +62,9 @@ export default function EditLoan() {
     // Customer Details
     customerId: '', customerName: '', mobile: '', coApplicantName: '', coApplicantMobile: '',
     guarantorName: '', guarantorMobile: '', ourBranch: '',
-    currentAddress: '', currentVillage: '', currentTehsil: '', currentDistrict: '', currentState: '', currentPincode: '',
+    currentAddress: '', currentLandmark: '', currentDistrict: '', currentState: '', currentPincode: '',
     sameAsCurrentAddress: false,
-    permanentAddress: '', permanentVillage: '', permanentTehsil: '', permanentDistrict: '', permanentState: '', permanentPincode: '',
+    permanentAddress: '', permanentLandmark: '', permanentDistrict: '', permanentState: '', permanentPincode: '',
     // Loan & Vehicle Details
     loanNumber: '', purposeLoanAmount: '', loanAmount: '', ltv: '', loanTypeVehicle: '',
     vehicleNumber: '', makerName: '', modelVariantName: '', mfgYear: '', vertical: '', scheme: '',
@@ -119,14 +119,12 @@ export default function EditLoan() {
         guarantorMobile: loanData.guarantor_mobile || '',
         ourBranch: loanData.our_branch || '',
         currentAddress: loanData.current_address || '',
-        currentVillage: loanData.current_village || '',
-        currentTehsil: loanData.current_tehsil || '',
+        currentLandmark: loanData.current_landmark || '',
         currentDistrict: loanData.current_district || '',
         currentState: loanData.current_state || '',
         currentPincode: loanData.current_pincode || '',
         permanentAddress: loanData.permanent_address || '',
-        permanentVillage: loanData.permanent_village || '',
-        permanentTehsil: loanData.permanent_tehsil || '',
+        permanentLandmark: loanData.permanent_landmark || '',
         permanentDistrict: loanData.permanent_district || '',
         permanentState: loanData.permanent_state || '',
         permanentPincode: loanData.permanent_pincode || '',
@@ -223,14 +221,14 @@ export default function EditLoan() {
           guarantor_name: form.guarantorName || null,
           guarantor_mobile: form.guarantorMobile || null,
           current_address: form.currentAddress || null,
-          current_village: form.currentVillage || null,
-          current_tehsil: form.currentTehsil || null,
+          current_landmark: form.currentLandmark || null,
           current_district: form.currentDistrict || null,
+          current_state: form.currentState || null,
           current_pincode: form.currentPincode || null,
           permanent_address: form.permanentAddress || null,
-          permanent_village: form.permanentVillage || null,
-          permanent_tehsil: form.permanentTehsil || null,
+          permanent_landmark: form.permanentLandmark || null,
           permanent_district: form.permanentDistrict || null,
+          permanent_state: form.permanentState || null,
           permanent_pincode: form.permanentPincode || null,
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
@@ -379,8 +377,7 @@ export default function EditLoan() {
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantMobile} onChange={e => update('coApplicantMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Co-Applicant Mobile</label></div>
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.ourBranch} onChange={e => update('ourBranch', e.target.value)} placeholder=" " /><label className={labelClass}>Our Branch</label></div>
                     <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.currentAddress} onChange={e => update('currentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Current Address</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.currentVillage} onChange={e => update('currentVillage', e.target.value)} placeholder=" " /><label className={labelClass}>Village</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.currentTehsil} onChange={e => update('currentTehsil', e.target.value)} placeholder=" " /><label className={labelClass}>Tehsil</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.currentLandmark} onChange={e => update('currentLandmark', e.target.value)} placeholder=" " /><label className={labelClass}>Landmark</label></div>
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.currentDistrict} onChange={e => update('currentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
                     <div className="floating-input-wrapper"><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
                   </div>
