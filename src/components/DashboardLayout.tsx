@@ -27,7 +27,7 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { label: 'Leads', path: '/leads-list', icon: <UserPlus size={16} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader', 'executive'] },
       { label: 'Loan Apps', path: '/loans', icon: <FileText size={16} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader', 'executive'] },
-      { label: 'Create Loan', path: '/loans/new', icon: <Car size={16} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader', 'executive'] },
+      { label: 'Create Loan', path: '/loans/new', icon: <Car size={16} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader'] },
     ]
   },
   { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['team_leader'] },
