@@ -19,11 +19,25 @@ const DOCUMENT_TYPES = [
 ];
 
 export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUploadProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState('');
+  const [files, setFiles] = useState<{ [key: string]: File }>({});
+  const [selectedDocTypes, setSelectedDocTypes] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocTypeChange = (docType: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDocTypes(prev => [...prev, docType]);
+    } else {
+      setSelectedDocTypes(prev => prev.filter(type => type !== docType));
+      // Remove file if document type is unchecked
+      setFiles(prev => {
+        const newFiles = { ...prev };
+        delete newFiles[docType];
+        return newFiles;
+      });
+    }
+  };
+
+  const handleFileChange = (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (selectedFile.size > 10 * 1024 * 1024) {
@@ -34,42 +48,64 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
         toast.error('Only JPG, PNG, and PDF files are allowed');
         return;
       }
-      setFile(selectedFile);
+      setFiles(prev => ({ ...prev, [docType]: selectedFile }));
     }
   };
 
+  const removeFile = (docType: string) => {
+    setFiles(prev => {
+      const newFiles = { ...prev };
+      delete newFiles[docType];
+      return newFiles;
+    });
+  };
+
   const handleUpload = async () => {
-    if (!file || !documentType) {
-      toast.error('Please select document type and file');
+    const filesToUpload = Object.entries(files);
+    if (filesToUpload.length === 0) {
+      toast.error('Please select at least one document to upload');
       return;
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('lead_id', leadId.toString());
-    formData.append('document_type', documentType);
+    let successCount = 0;
+    let errorCount = 0;
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        body: formData
-      });
+    for (const [docType, file] of filesToUpload) {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('lead_id', leadId.toString());
+      formData.append('document_type', docType);
 
-      if (!response.ok) throw new Error('Upload failed');
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          },
+          body: formData
+        });
 
-      toast.success('Document uploaded successfully');
-      setFile(null);
-      setDocumentType('');
-      onUploadComplete?.();
-    } catch (error) {
-      toast.error('Failed to upload document');
-    } finally {
-      setUploading(false);
+        if (!response.ok) throw new Error('Upload failed');
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        console.error(`Failed to upload ${docType}:`, error);
+      }
     }
+
+    if (successCount > 0) {
+      toast.success(`${successCount} document(s) uploaded successfully`);
+      setFiles({});
+      setSelectedDocTypes([]);
+      onUploadComplete?.();
+    }
+    
+    if (errorCount > 0) {
+      toast.error(`${errorCount} document(s) failed to upload`);
+    }
+
+    setUploading(false);
   };
 
   return (
@@ -78,60 +114,91 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Document Type</label>
-          <select
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-border bg-background"
-          >
-            <option value="">Select document type</option>
+          <label className="block text-sm font-medium mb-3">Select Document Types</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {DOCUMENT_TYPES.map(type => (
-              <option key={type.value} value={type.value}>{type.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Select File</label>
-          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={handleFileChange}
-              className="hidden"
-              id="file-upload"
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="mx-auto mb-2 text-muted-foreground" size={32} />
-              <p className="text-sm text-muted-foreground">
-                Click to upload or drag and drop
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG or PDF (max 10MB)
-              </p>
-            </label>
-          </div>
-
-          {file && (
-            <div className="mt-3 flex items-center justify-between p-3 bg-muted rounded-lg">
-              <div className="flex items-center gap-2">
-                <FileText size={20} />
-                <span className="text-sm">{file.name}</span>
+              <div key={type.value} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={type.value}
+                  checked={selectedDocTypes.includes(type.value)}
+                  onChange={(e) => handleDocTypeChange(type.value, e.target.checked)}
+                  className="w-4 h-4 text-accent bg-background border-border rounded focus:ring-accent focus:ring-2"
+                />
+                <label htmlFor={type.value} className="text-sm font-medium text-foreground cursor-pointer">
+                  {type.label}
+                </label>
               </div>
-              <button onClick={() => setFile(null)} className="text-muted-foreground hover:text-foreground">
-                <X size={20} />
-              </button>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
 
-        <button
-          onClick={handleUpload}
-          disabled={!file || !documentType || uploading}
-          className="w-full px-4 py-2 rounded-lg bg-accent text-accent-foreground font-semibold hover:opacity-90 disabled:opacity-50"
-        >
-          {uploading ? 'Uploading...' : 'Upload Document'}
-        </button>
+        {selectedDocTypes.length > 0 && (
+          <div className="space-y-4">
+            <label className="block text-sm font-medium">Upload Files for Selected Documents</label>
+            {selectedDocTypes.map(docType => {
+              const docLabel = DOCUMENT_TYPES.find(t => t.value === docType)?.label || docType;
+              return (
+                <div key={docType} className="border border-border rounded-lg p-4">
+                  <h4 className="text-sm font-medium mb-2">{docLabel}</h4>
+                  
+                  {!files[docType] ? (
+                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileChange(docType, e)}
+                        className="hidden"
+                        id={`file-upload-${docType}`}
+                      />
+                      <label htmlFor={`file-upload-${docType}`} className="cursor-pointer">
+                        <Upload className="mx-auto mb-2 text-muted-foreground" size={24} />
+                        <p className="text-xs text-muted-foreground">
+                          Click to upload {docLabel}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          JPG, PNG or PDF (max 10MB)
+                        </p>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} />
+                        <span className="text-sm">{files[docType].name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({(files[docType].size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => removeFile(docType)} 
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {selectedDocTypes.length > 0 && (
+          <button
+            onClick={handleUpload}
+            disabled={Object.keys(files).length === 0 || uploading}
+            className="w-full px-4 py-2 rounded-lg bg-accent text-accent-foreground font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {uploading ? 'Uploading...' : `Upload ${Object.keys(files).length} Document(s)`}
+          </button>
+        )}
+
+        {selectedDocTypes.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Select document types above to start uploading
+          </p>
+        )}
       </div>
     </div>
   );

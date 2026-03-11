@@ -119,11 +119,13 @@ export default function LeadDetail() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Customer ID" value={lead.customer_id} />
             <Field label="Customer Name" value={lead.customer_name} />
-            <Field label="Phone Number" value={lead.phone_no} />
-            <Field label="District" value={lead.district} />
-            <Field label="Tehsil" value={lead.tehsil} />
-            <Field label="Pin Code" value={lead.pin_code} />
-            <div className="col-span-2"><Field label="Address" value={lead.address} /></div>
+            <Field label="Phone Number" value={lead.phone || lead.phone_no} />
+            <Field label="Email" value={lead.email} />
+            <Field label="City" value={lead.city || lead.district} />
+            <Field label="State" value={lead.state} />
+            <Field label="Pin Code" value={lead.pincode} />
+            <Field label="PAN Number" value={lead.pan_number} />
+            <div className="col-span-2"><Field label="Address" value={lead.current_address} /></div>
           </div>
         </div>
 
@@ -133,7 +135,9 @@ export default function LeadDetail() {
             <h3 className="text-sm font-semibold text-foreground">Vehicle Details</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Vehicle Number" value={lead.vehicle_no} />
+            <Field label="Vehicle Number" value={lead.vehicle_number || lead.vehicle_no} />
+            <Field label="Case Type" value={lead.case_type} />
+            <Field label="Lead Type" value={lead.lead_type} />
           </div>
         </div>
 
@@ -144,7 +148,9 @@ export default function LeadDetail() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Loan Amount Required" value={lead.loan_amount_required ? formatCurrency(Number(lead.loan_amount_required)) : '—'} />
-            <Field label="IRR Requested" value={lead.irr_requested ? `${lead.irr_requested}%` : '—'} />
+            <Field label="Financier" value={lead.financier_name} />
+            <Field label="Stage" value={lead.stage} />
+            <Field label="Status" value={lead.status} />
           </div>
         </div>
 
@@ -155,9 +161,12 @@ export default function LeadDetail() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Our Branch" value={lead.our_branch} />
-            <Field label="Sourcing Person" value={lead.sourcing_person_name} />
+            <Field label="Source" value={lead.source} />
+            <Field label="Assigned To" value={lead.assigned_to_name} />
+            <Field label="Follow Up Date" value={lead.follow_up_date ? new Date(lead.follow_up_date).toLocaleDateString('en-IN') : '—'} />
             <Field label="Created" value={new Date(lead.created_at).toLocaleDateString('en-IN')} />
             <Field label="Last Updated" value={new Date(lead.updated_at).toLocaleDateString('en-IN')} />
+            <div className="col-span-2"><Field label="Notes" value={lead.notes} /></div>
           </div>
         </div>
       </div>
