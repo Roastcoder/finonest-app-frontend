@@ -115,15 +115,23 @@ export default function CreateLoan() {
       
       const rcData = await response.json();
       console.log('RC API Response:', rcData);
+      console.log('Success status:', rcData.success);
+      console.log('Full API Response:', JSON.stringify(rcData, null, 2));
       
-      if (!response.ok) {
+      if (!rcData.success) {
         console.error('API Error Response:', rcData);
-        throw new Error(rcData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(rcData.message || 'Failed to fetch vehicle details');
       }
       
-      if (rcData.success && rcData.data) {
+      if (rcData.data) {
         const rc = rcData.data;
         console.log('RC Data fields:', Object.keys(rc));
+        console.log('Engine Number:', rc.engine_number);
+        console.log('Chassis Number:', rc.chassis_number);
+        console.log('Owner Name:', rc.owner_name);
+        console.log('Maker Description:', rc.maker_description);
+        console.log('Maker Model:', rc.maker_model);
+        console.log('Fuel Type:', rc.fuel_type);
         
         // Helper function to convert date from DD/MM/YYYY to YYYY-MM-DD
         const convertDate = (dateStr: string) => {
