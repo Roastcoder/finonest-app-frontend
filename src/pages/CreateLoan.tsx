@@ -133,17 +133,25 @@ export default function CreateLoan() {
         console.log('Maker Model:', rc.maker_model);
         console.log('Fuel Type:', rc.fuel_type);
         
-        // Helper function to convert date from DD/MM/YYYY to YYYY-MM-DD
+        // Helper function to convert date from DD/MM/YYYY or MM/YYYY to YYYY-MM-DD
         const convertDate = (dateStr: string) => {
           if (!dateStr) return '';
-          if (dateStr.includes('/')) {
+          // Handle MM/YYYY format (e.g., "11/2016")
+          if (dateStr.includes('/') && dateStr.split('/').length === 2) {
+            const [month, year] = dateStr.split('/');
+            return `${year}-${month.padStart(2, '0')}-01`;
+          }
+          // Handle DD/MM/YYYY format
+          if (dateStr.includes('/') && dateStr.split('/').length === 3) {
             const [day, month, year] = dateStr.split('/');
             return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
+          // Handle DD-MM-YYYY format
           if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
             const [day, month, year] = dateStr.split('-');
             return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
+          // Already in YYYY-MM-DD format
           return dateStr;
         };
         
@@ -152,18 +160,20 @@ export default function CreateLoan() {
           engineNumber: rc.vehicle_engine_number || '',
           chassisNumber: rc.vehicle_chasi_number || '',
           ownerName: rc.owner_name || '',
+          makerName: rc.maker_description || '',
           makerDescription: rc.maker_description || '',
           makerModel: rc.maker_model || '',
           fuelType: rc.fuel_type || '',
           manufacturingDate: convertDate(rc.manufacturing_date || ''),
           insuranceCompany: rc.insurance_company || '',
-          insuranceValidUpto: convertDate(rc.insurance_upto || ''),
-          puccValidUpto: convertDate(rc.pucc_upto || ''),
+          insuranceValidUpto: rc.insurance_upto || '',
+          puccValidUpto: rc.pucc_upto || '',
           financer: rc.financer || '',
           financeStatus: rc.financed ? 'Financed' : 'Not Financed',
           ownershipType: rc.owner_number === '1' ? 'First Owner' : rc.owner_number === '2' ? 'Second Owner' : rc.owner_number === '3' ? 'Third Owner' : rc.owner_number === '4' ? 'Fourth Owner' : '',
         }));
         
+        console.log('Form updated with values');
         toast.success('Vehicle details fetched successfully!');
       } else {
         toast.error(rcData.message || 'Could not fetch vehicle details');
