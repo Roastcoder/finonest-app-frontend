@@ -8,7 +8,7 @@ import { exportToCSV, parseCSV } from '@/lib/export-utils';
 import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
-import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Eye, Edit } from 'lucide-react';
+import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2 } from 'lucide-react';
 
 type LeadStatusFilter = 'new' | 'contacted' | 'documents_collected' | 'in_process' | 'approved' | 'rejected' | 'disbursed' | 'all';
 
@@ -252,18 +252,6 @@ export default function Loans() {
                 {/* Action buttons row */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigate(`/loans/${loan.id}`)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition-colors"
-                  >
-                    <Eye size={13} /> View
-                  </button>
-                  <button
-                    onClick={() => navigate(`/loans/${loan.id}/edit`)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors"
-                  >
-                    <Edit size={13} /> Edit
-                  </button>
-                  <button
                     onClick={() => exportLoanPDF(loan)}
                     className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
                   >
@@ -330,7 +318,6 @@ export default function Loans() {
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">Amount</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">EMI</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-center py-3 px-3 font-medium text-muted-foreground">Actions</th>
                   {showUpdateColumn && (
                     <th className="text-left py-3 px-3 font-medium text-muted-foreground">Update</th>
                   )}
@@ -354,33 +341,6 @@ export default function Loans() {
                     <td className="py-3.5 px-3 text-right font-medium text-foreground">{formatCurrency(Number(loan.loan_amount))}</td>
                     <td className="py-3.5 px-3 text-right text-muted-foreground">{formatCurrency(Number(loan.emi))}/mo</td>
                     <td className="py-3.5 px-3"><LoanStatusBadge status={loan.status} /></td>
-                    <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => navigate(`/loans/${loan.id}`)}
-                          className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/loans/${loan.id}/edit`)}
-                          className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"
-                          title="Edit Loan"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(loan)}
-                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
-                            title="Delete Loan"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
                     {showUpdateColumn && (
                       <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
                         <select
