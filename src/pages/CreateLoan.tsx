@@ -5,7 +5,7 @@ import { supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { CAR_MAKES, calculateEMI, formatCurrency } from '@/lib/mock-data';
 import { FINANCIERS } from '@/lib/financiers';
-import { ArrowLeft, Calculator, Search, X } from 'lucide-react';
+import { ArrowLeft, Calculator, Search, X, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
 import '@/styles/floating-labels.css';
@@ -181,7 +181,7 @@ export default function CreateLoan() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [assignmentForm, setAssignmentForm] = useState({
     ledgerSelection: '',
-    salesManager: '',
+    salesManager: user?.name || '',
     remarks: ''
   });
 
@@ -598,12 +598,11 @@ export default function CreateLoan() {
               </div>
               
               <div>
-                <label className={labelClass}>Sales Manager</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sales Manager</label>
                 <input 
-                  className={inputClass}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none transition-all cursor-not-allowed"
                   value={assignmentForm.salesManager}
-                  onChange={e => setAssignmentForm(f => ({ ...f, salesManager: e.target.value }))}
-                  placeholder="Enter sales manager name"
+                  disabled
                 />
               </div>
               
@@ -623,25 +622,46 @@ export default function CreateLoan() {
               <button 
                 type="button" 
                 onClick={() => setShowAssignmentModal(false)}
-                className="px-4 py-2 rounded-lg border border-border font-medium hover:bg-muted transition-all"
+                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-primary hover:bg-white/40 dark:hover:bg-white/5 border border-transparent transition-all duration-300"
               >
                 Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  const message = `*Loan Application Details*\n\n` +
+                    `Customer: ${form.customerName}\n` +
+                    `Mobile: ${form.mobile}\n` +
+                    `Loan Amount: ₹${form.loanAmount}\n` +
+                    `Vehicle: ${form.makerName} ${form.makerModel}\n` +
+                    `Vehicle No: ${form.vehicleNumber}\n` +
+                    `Ledger: ${assignmentForm.ledgerSelection}\n` +
+                    `Sales Manager: ${assignmentForm.salesManager}\n` +
+                    `Login Date: ${form.loginDate}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                }}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white bg-gradient-to-r from-green-600 to-green-500 hover:shadow-md hover:scale-105 transition-all duration-300 border border-green-700/30 shadow-sm"
+              >
+                <MessageCircle size={16} />
+                <span>WhatsApp</span>
               </button>
               <button 
                 type="button" 
                 onClick={handleCreateApplication}
                 disabled={!assignmentForm.ledgerSelection || createLoan.isPending}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
+                className="flex items-center justify-center gap-2 px-8 py-2.5 rounded-full text-sm font-bold text-secondary bg-primary hover:shadow-md hover:scale-105 transition-all duration-300 border border-primary/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {createLoan.isPending ? (
-                  <span className="flex items-center gap-2">
+                  <>
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Creating...
-                  </span>
-                ) : 'Create Application'}
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <span>Create Application</span>
+                )}
               </button>
             </div>
           </div>
