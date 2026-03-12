@@ -529,6 +529,7 @@ export default function CreateLoan() {
           sourcing_person_name: form.sourcingPersonName || null,
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
+          bank_name: assignmentForm.ledgerSelection || null,
           created_by: user?.id,
         }),
       });
