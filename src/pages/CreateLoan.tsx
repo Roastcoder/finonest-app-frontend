@@ -94,78 +94,92 @@ export default function CreateLoan() {
   const [fetchingVehicleData, setFetchingVehicleData] = useState(false);
 
   const fetchVehicleDetails = async (rcNumber: string) => {
-    if (!rcNumber || rcNumber.length < 8) return;
+    if (!rcNumber || rcNumber.length < 8) {
+      toast.error('Please enter a valid vehicle number (minimum 8 characters)');
+      return;
+    }
     
     setFetchingVehicleData(true);
     try {
-      console.log('Fetching from API');
-      toast.info('Fetching from API...');
+      console.log('Fetching vehicle details for:', rcNumber);
+      toast.info('Fetching vehicle details...');
+      
       const response = await fetch('https://kyc-api.surepass.app/api/v1/rc/rc-v2', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg'
         },
-        body: JSON.stringify({ id_number: rcNumber, enrich: true }),
+        body: JSON.stringify({ id_number: rcNumber }),
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
       
       const rcData = await response.json();
       console.log('RC API Response:', rcData);
-      console.log('RC Data fields:', Object.keys(rcData.data || {}));
+      console.log('Success status:', rcData.success);
+      console.log('Full API Response:', JSON.stringify(rcData, null, 2));
       
-      if (rcData.success && rcData.data) {
+      if (!rcData.success) {
+        console.error('API Error Response:', rcData);
+        throw new Error(rcData.message || 'Failed to fetch vehicle details');
+      }
+      
+      if (rcData.data) {
         const rc = rcData.data;
+        console.log('RC Data fields:', Object.keys(rc));
+        console.log('Engine Number:', rc.engine_number);
+        console.log('Chassis Number:', rc.chassis_number);
+        console.log('Owner Name:', rc.owner_name);
+        console.log('Maker Description:', rc.maker_description);
+        console.log('Maker Model:', rc.maker_model);
+        console.log('Fuel Type:', rc.fuel_type);
+        
+        // Helper function to convert date from DD/MM/YYYY or MM/YYYY to YYYY-MM-DD
+        const convertDate = (dateStr: string) => {
+          if (!dateStr) return '';
+          // Handle MM/YYYY format (e.g., "11/2016")
+          if (dateStr.includes('/') && dateStr.split('/').length === 2) {
+            const [month, year] = dateStr.split('/');
+            return `${year}-${month.padStart(2, '0')}-01`;
+          }
+          // Handle DD/MM/YYYY format
+          if (dateStr.includes('/') && dateStr.split('/').length === 3) {
+            const [day, month, year] = dateStr.split('/');
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          }
+          // Handle DD-MM-YYYY format
+          if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
+            const [day, month, year] = dateStr.split('-');
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          }
+          // Already in YYYY-MM-DD format
+          return dateStr;
+        };
         
         setForm(f => ({
           ...f,
-          // Vehicle Details
-          makerName: rc.maker_model || rc.vehicle_manufacturer_name || rc.manufacturer || rc.make || '',
-          modelVariantName: rc.model || rc.vehicle_model || rc.variant || rc.model_name || rc.vehicle_class || '',
-          mfgYear: rc.manufacturing_date?.split('-')[0] || rc.registration_date?.split('-')[0] || rc.mfg_year || rc.year || rc.manufacturing_year || rc.model_year || '',
-          
-          // RC/RTO Details  
-          rcOwnerName: rc.owner_name || '',
-          rcMfgDate: rc.manufacturing_date || rc.registration_date || '',
-          rcExpiryDate: rc.fitness_upto ? (rc.fitness_upto.includes('/') ? 
-            (() => {
-              const [month, year] = rc.fitness_upto.split('/');
-              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-              return date.toISOString().split('T')[0];
-            })() : rc.fitness_upto) : rc.tax_upto ? (rc.tax_upto.includes('/') ? 
-            (() => {
-              const [month, year] = rc.tax_upto.split('/');
-              const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-              return date.toISOString().split('T')[0];
-            })() : rc.tax_upto) : '',
-          hpnAtLogin: rc.financer ? (rc.financer || 'Financed') : 'Not Financed',
-          isFinanced: rc.financer ? 'Yes' : 'No',
-          fc: rc.fitness_upto ? 'Yes' : 'No',
-          
-          // Customer Details (only if empty)
-          customerName: f.customerName || rc.owner_name || '',
-          mobile: f.mobile || rc.mobile_number || '',
-          
-          // Address from RC (only if empty)
-          currentAddress: f.currentAddress || rc.present_address || rc.permanent_address || '',
-          currentPincode: f.currentPincode || rc.present_address?.match(/\d{6}/)?.[0] || rc.permanent_address?.match(/\d{6}/)?.[0] || '',
-          
-          // Insurance Details
-          insuranceCompanyName: rc.insurance_company || '',
-          insurancePolicyNumber: rc.insurance_policy_number || '',
-          insuranceDate: rc.insurance_upto || '',
+          engineNumber: rc.vehicle_engine_number || '',
+          chassisNumber: rc.vehicle_chasi_number || '',
+          ownerName: rc.owner_name || '',
+          makerName: rc.maker_description || '',
+          makerModel: rc.maker_model || '',
+          fuelType: rc.fuel_type || '',
+          manufacturingDate: convertDate(rc.manufacturing_date || ''),
+          insuranceCompany: rc.insurance_company || '',
+          insuranceValidUpto: rc.insurance_upto || '',
+          puccValidUpto: rc.pucc_upto || '',
+          financer: rc.financer || '',
+          financeStatus: rc.financed ? 'Financed' : 'Not Financed',
+          ownershipType: rc.owner_number === '1' ? 'First Owner' : rc.owner_number === '2' ? 'Second Owner' : rc.owner_number === '3' ? 'Third Owner' : rc.owner_number === '4' ? 'Fourth Owner' : '',
         }));
         
+        console.log('Form updated with values');
         toast.success('Vehicle details fetched successfully!');
       } else {
-        toast.error('Could not fetch vehicle details');
+        toast.error(rcData.message || 'Could not fetch vehicle details');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching vehicle details:', error);
-      toast.error('Failed to fetch vehicle details');
+      toast.error(error.message || 'Failed to fetch vehicle details');
     } finally {
       setFetchingVehicleData(false);
     }
@@ -178,7 +192,10 @@ export default function CreateLoan() {
     currentAddress: '', currentLandmark: '', currentDistrict: '', currentState: '', currentPincode: '',
     // Loan & Vehicle Details
     loanNumber: '', purposeLoanAmount: '', loanAmount: '', ltv: '', loanTypeVehicle: '',
-    vehicleNumber: '', makerName: '', modelVariantName: '', mfgYear: '', vertical: '', scheme: '',
+    vehicleNumber: '', engineNumber: '', chassisNumber: '', ownerName: '', makerName: '',
+    makerModel: '', modelVariantName: '', fuelType: '', manufacturingDate: '',
+    ownershipType: '', financer: '', financeStatus: '', insuranceCompany: '', insuranceValidUpto: '',
+    puccValidUpto: '', caseType: '',
     // Income Details
     incomeSource: '', monthlyIncome: '',
     // Financier Selection (for executive/team_leader)
@@ -221,6 +238,7 @@ export default function CreateLoan() {
       currentState: lead.state || '',
       currentPincode: lead.pincode || '',
       vehicleNumber: lead.vehicle_number || lead.vehicle_no || '',
+      caseType: lead.case_type || '',
       loanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       purposeLoanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       loanTypeVehicle: lead.case_type === 'purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
@@ -229,12 +247,6 @@ export default function CreateLoan() {
       sourcingPersonName: lead.created_by_name || lead.sourcing_person_name || '',
     }));
     
-    // Auto-fetch vehicle details if RC number exists
-    if (lead.vehicle_number && lead.vehicle_number.length >= 8) {
-      fetchVehicleDetails(lead.vehicle_number);
-    }
-    
-    // Show success message
     toast.success(`Lead data loaded for ${lead.customer_name}`);
   };
 
@@ -314,11 +326,21 @@ export default function CreateLoan() {
           ltv: Number(form.ltv) || null,
           loan_type_vehicle: form.loanTypeVehicle || null,
           vehicle_number: form.vehicleNumber || null,
+          engine_number: form.engineNumber || null,
+          chassis_number: form.chassisNumber || null,
+          owner_name: form.ownerName || null,
           maker_name: form.makerName || null,
+          maker_model: form.makerModel || null,
           model_variant_name: form.modelVariantName || null,
-          mfg_year: form.mfgYear || null,
-          vertical: form.vertical || null,
-          scheme: form.scheme || null,
+          fuel_type: form.fuelType || null,
+          manufacturing_date: form.manufacturingDate || null,
+          ownership_type: form.ownershipType || null,
+          financer: form.financer || null,
+          finance_status: form.financeStatus || null,
+          insurance_company: form.insuranceCompany || null,
+          insurance_valid_upto: form.insuranceValidUpto || null,
+          pucc_valid_upto: form.puccValidUpto || null,
+          
           emi_amount: emi || null,
           total_emi: Number(form.tenure) || null,
           total_interest: (totalInterest > 0 ? totalInterest : null),
@@ -384,7 +406,7 @@ export default function CreateLoan() {
   const labelClass = "block text-[10px] font-medium text-foreground/70 mb-1";
 
   return (
-    <div className="w-full mx-auto px-4">
+    <div className="w-full">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
         <ArrowLeft size={16} /> Back
       </button>
@@ -393,12 +415,12 @@ export default function CreateLoan() {
         <h1 className="text-2xl font-bold text-foreground mb-2">New Loan Application</h1>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="bg-card rounded-lg border border-border p-4 shadow-sm mb-4 space-y-6">
+      <form onSubmit={handleSubmit} className="w-full">
+        <div className="bg-card rounded-lg border border-border p-4 shadow-sm mb-4 space-y-6 w-full">
           {/* Customer Details */}
           <div>
             <h2 className="text-base font-bold text-foreground mb-3">Customer Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="relative" ref={dropdownRef}>
                   
                   <div className="relative">
@@ -503,32 +525,45 @@ export default function CreateLoan() {
           {/* Vehicle & Loan */}
           <div>
             <h2 className="text-base font-bold text-foreground mb-3">Vehicle & Loan Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="relative floating-input-wrapper">
                   <input 
-                    className={inputClass} 
+                    className="w-full px-3 py-2 pr-10 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" 
                     value={form.vehicleNumber} 
                     onChange={e => {
                       const value = e.target.value.toUpperCase();
                       update('vehicleNumber', value);
-                      if (value.length >= 8) {
-                        fetchVehicleDetails(value);
-                      }
                     }}
                     placeholder=" "
                   />
                   <label className={labelClass}>Vehicle Reg. No</label>
-                  {fetchingVehicleData && (
-                    <div className="absolute right-3 top-8">
+                  <button
+                    type="button"
+                    onClick={() => fetchVehicleDetails(form.vehicleNumber)}
+                    disabled={!form.vehicleNumber || form.vehicleNumber.length < 8 || fetchingVehicleData}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {fetchingVehicleData ? (
                       <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
+                    ) : (
+                      <Search size={16} />
+                    )}
+                  </button>
                 </div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " /><label className={labelClass}>Maker's Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.modelVariantName} onChange={e => update('modelVariantName', e.target.value)} placeholder=" " /><label className={labelClass}>Model / Variant</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.mfgYear} onChange={e => update('mfgYear', e.target.value)} min="2000" max="2030" placeholder=" " /><label className={labelClass}>Mfg Year</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.vertical} onChange={e => update('vertical', e.target.value)}><option value="">Select</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV (Car)">PV (Car)</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Vertical</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.scheme} onChange={e => update('scheme', e.target.value)}><option value="">Select</option><option value="Re-finance">Re-finance</option><option value="New Finance">New Finance</option><option value="Balance Transfer">Balance Transfer</option><option value="Purchase">Purchase</option><option value="Purchase+BT">Purchase+BT</option><option value="SVSH">SVSH</option><option value="SVOH">SVOH</option></select><label className={labelClass}>Scheme</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Company Name</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerModel} onChange={e => update('makerModel', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Model</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.engineNumber} onChange={e => update('engineNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Engine Number</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.chassisNumber} onChange={e => update('chassisNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Chassis Number</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.ownerName} onChange={e => update('ownerName', e.target.value)} placeholder=" " /><label className={labelClass}>Owner Name</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.fuelType} onChange={e => update('fuelType', e.target.value)} placeholder=" " /><label className={labelClass}>Fuel Type</label></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.manufacturingDate} onChange={e => update('manufacturingDate', e.target.value)} placeholder=" " /><label className={labelClass}>Manufacturing Date</label></div>
+                <div className="floating-input-wrapper"><select className={inputClass} value={form.ownershipType} onChange={e => update('ownershipType', e.target.value)}><option value="">Select</option><option value="First Owner">First Owner</option><option value="Second Owner">Second Owner</option><option value="Third Owner">Third Owner</option><option value="Fourth Owner">Fourth Owner</option></select><label className={labelClass}>Ownership Type</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.financer} onChange={e => update('financer', e.target.value)} placeholder=" " /><label className={labelClass}>Financer</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.financeStatus} onChange={e => update('financeStatus', e.target.value)} placeholder=" " /><label className={labelClass}>Finance Status</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompany} onChange={e => update('insuranceCompany', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceValidUpto} onChange={e => update('insuranceValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Valid Upto</label></div>
+                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.puccValidUpto} onChange={e => update('puccValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>PUCC Valid Upto</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.caseType} onChange={e => update('caseType', e.target.value)} placeholder=" " /><label className={labelClass}>Case Type</label></div>
                 <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Loan Details</h3></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.purposeLoanAmount} onChange={e => update('purposeLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Purpose Loan Amount</label></div>
                 <div className="floating-input-wrapper"><input required type="number" className={inputClass} value={form.loanAmount} onChange={e => update('loanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount (₹) *</label></div>
@@ -541,7 +576,7 @@ export default function CreateLoan() {
           {(isExecutive || isTeamLeader) && (
             <div>
               <h2 className="text-base font-bold text-foreground mb-3">Income & Financier Selection</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="floating-input-wrapper"><select className={inputClass} value={form.incomeSource} onChange={e => update('incomeSource', e.target.value)}><option value="">Select Income Source</option><option value="Salaried">Salaried</option><option value="Self Employed">Self Employed</option><option value="Business">Business</option></select><label className={labelClass}>Income Source</label></div>
                 <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " /><label className={labelClass}>Monthly Income (₹)</label></div>
                 <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Financier Selection</h3></div>
@@ -563,85 +598,7 @@ export default function CreateLoan() {
             </div>
           )}
 
-          {/* EMI & Financier */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">EMI & Financier Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="floating-input-wrapper"><input required type="number" step="0.01" className={inputClass} value={form.irr} onChange={e => update('irr', e.target.value)} placeholder=" " /><label className={labelClass}>IRR (%) *</label></div>
-                <div className="floating-input-wrapper"><select required className={inputClass} value={form.tenure} onChange={e => update('tenure', e.target.value)}>{[12, 18, 24, 36, 48, 60, 72, 84].map(t => <option key={t} value={t}>{t} MONTH</option>)}</select><label className={labelClass}>Tenure *</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.emiMode} onChange={e => update('emiMode', e.target.value)}><option value="Monthly">Monthly</option><option value="Quarterly">Quarterly</option><option value="Half Yearly">Half Yearly</option><option value="Yearly">Yearly</option></select><label className={labelClass}>EMI Mode</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.processingFee} onChange={e => update('processingFee', e.target.value)} placeholder=" " /><label className={labelClass}>Processing Fee (₹)</label></div>
-                {(form.irr && form.loanAmount) && (
-                  <>
-                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.emiStartDate} onChange={e => update('emiStartDate', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Start Date</label></div>
-                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.emiEndDate} onChange={e => update('emiEndDate', e.target.value)} placeholder=" " /><label className={labelClass}>EMI End Date</label></div>
-                  </>
-                )}
-              </div>
-              {emi > 0 && (
-                <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-accent/5 to-accent/10 border border-accent/20">
-                  <div className="flex items-center gap-2 mb-3"><Calculator size={16} className="text-accent" /><span className="text-accent font-semibold text-sm">EMI Calculator</span></div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="text-center p-3 rounded-lg bg-background/50"><p className="text-xs text-muted-foreground mb-1">Monthly EMI</p><p className="text-lg font-bold text-accent break-all">{formatCurrency(emi)}</p></div>
-                    <div className="text-center p-3 rounded-lg bg-background/50"><p className="text-xs text-muted-foreground mb-1">Total Interest</p><p className="text-lg font-bold text-foreground break-all">{formatCurrency(totalInterest > 0 ? totalInterest : 0)}</p></div>
-                    <div className="text-center p-3 rounded-lg bg-background/50"><p className="text-xs text-muted-foreground mb-1">Total Payable</p><p className="text-lg font-bold text-foreground break-all">{formatCurrency(totalPayable)}</p></div>
-                  </div>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-                <div className="md:col-span-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Financier Details</h3></div>
-                <div className="floating-input-wrapper">
-                  <select className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)}>
-                    <option value="">Select Financier Name</option>
-                    {FINANCIERS.map((f) => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <label className={labelClass}>Financier Name</label>
-                </div>
-                {form.financierName === 'Others' && (
-                  <div className="floating-input-wrapper">
-                    <input className={inputClass} value={form.otherFinancierName} onChange={e => update('otherFinancierName', e.target.value)} placeholder=" " />
-                    <label className={labelClass}>Enter Financier Name</label>
-                  </div>
-                )}
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.financierExecutiveName} onChange={e => update('financierExecutiveName', e.target.value)} placeholder=" " /><label className={labelClass}>Financier Executive Name</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.financierTeamVertical} onChange={e => update('financierTeamVertical', e.target.value)}><option value="">Select Team Vertical</option><option value="LCV">LCV</option><option value="HCV">HCV</option><option value="PV">PV</option><option value="CV">CV</option><option value="Tractor">Tractor</option></select><label className={labelClass}>Financier Team Vertical</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.disburseBranchName} onChange={e => update('disburseBranchName', e.target.value)} placeholder=" " /><label className={labelClass}>Disburse Branch Name</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.assignedBrokerId} onChange={e => update('assignedBrokerId', e.target.value)}><option value="">Select Broker (Optional)</option>{(brokers as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select><label className={labelClass}>Broker</label></div>
-                {form.financierName && (
-                  <>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.sanctionAmount} onChange={e => update('sanctionAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Amount (₹)</label></div>
-                    <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.sanctionDate} onChange={e => update('sanctionDate', e.target.value)} placeholder=" " /><label className={labelClass}>Sanction Date</label></div>
-                  </>
-                )}
-              </div>
-            </div>
 
-          {/* Insurance & RTO */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Insurance & RTO Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompanyName} onChange={e => update('insuranceCompanyName', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.premiumAmount} onChange={e => update('premiumAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Premium Amount (₹)</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceDate} onChange={e => update('insuranceDate', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Expiry Date</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.insurancePolicyNumber} onChange={e => update('insurancePolicyNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Policy Number</label></div>
-                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">RTO Details</h3></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.rcOwnerName} onChange={e => update('rcOwnerName', e.target.value)} placeholder=" " /><label className={labelClass}>RC Owner Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.hpnAtLogin} onChange={e => update('hpnAtLogin', e.target.value)} placeholder=" " /><label className={labelClass}>HPN / Financed Status</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.rtoAgentName} onChange={e => update('rtoAgentName', e.target.value)} placeholder=" " /><label className={labelClass}>RTO Agent Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.agentMobileNo} onChange={e => update('agentMobileNo', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Agent Mobile</label></div>
-              </div>
-            </div>
-
-          {/* Deduction & Disbursement */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Deduction & Disbursement</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalDeduction} onChange={e => update('totalDeduction', e.target.value)} placeholder=" " /><label className={labelClass}>Total Deduction (₹)</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netDisbursementAmount} onChange={e => update('netDisbursementAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Net Disbursement Amount (₹)</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.paymentReceivedDate} onChange={e => update('paymentReceivedDate', e.target.value)} placeholder=" " /><label className={labelClass}>Payment Received Date</label></div>
-                <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={3} value={form.remark} onChange={e => update('remark', e.target.value)} placeholder=" " /><label className={labelClass}>Remark</label></div>
-              </div>
-            </div>
 
           {/* Documents */}
           <div>
