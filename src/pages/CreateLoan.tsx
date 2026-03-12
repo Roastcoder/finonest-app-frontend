@@ -92,6 +92,57 @@ export default function CreateLoan() {
   });
 
   const [fetchingVehicleData, setFetchingVehicleData] = useState(false);
+  const [fetchingDocuments, setFetchingDocuments] = useState(false);
+
+  // Fetch lead documents
+  const fetchLeadDocuments = async (leadId: number) => {
+    setFetchingDocuments(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/lead/${leadId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      
+      if (response.ok) {
+        const documents = await response.json();
+        console.log('Fetched documents:', documents);
+        
+        // Map document types to form fields
+        const docTypeMap: { [key: string]: string } = {
+          'aadhar_front': 'aadharFront',
+          'aadhar_back': 'aadharBack',
+          'pan_card': 'panCard',
+          'rc_front': 'rcFront',
+          'rc_back': 'rcBack',
+          'bank_statement': 'bankStatement',
+          'loan_statement': 'loanStatement',
+        };
+        
+        // Fetch and convert each document to File object
+        for (const doc of documents) {
+          const formField = docTypeMap[doc.document_type];
+          if (formField && doc.file_url) {
+            try {
+              const fileResponse = await fetch(doc.file_url);
+              const blob = await fileResponse.blob();
+              const fileName = doc.file_url.split('/').pop() || `${doc.document_type}.pdf`;
+              const file = new File([blob], fileName, { type: blob.type });
+              setForm(f => ({ ...f, [formField]: file }));
+            } catch (err) {
+              console.error(`Error fetching document ${doc.document_type}:`, err);
+            }
+          }
+        }
+        
+        if (documents.length > 0) {
+          toast.success(`${documents.length} document(s) loaded from lead`);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching lead documents:', error);
+    } finally {
+      setFetchingDocuments(false);
+    }
+  };
 
   const fetchVehicleDetails = async (rcNumber: string) => {
     if (!rcNumber || rcNumber.length < 8) {
@@ -198,8 +249,17 @@ export default function CreateLoan() {
     puccValidUpto: '', caseType: '',
     // Income Details
     incomeSource: '', monthlyIncome: '',
-    // Financier Selection (for executive/team_leader)
-    selectedFinancier: '', otherSelectedFinancier: '', financierLocation: '',
+    // Salaried Income Details
+    companyName: '', designation: '', workExperience: '', currentJobYears: '', totalWorkExp: '',
+    netMonthlySalary: '', salaryCreditMode: '', salarySlipAvailable: '',
+    // Self Employed Details
+    profile: '', itrAvailable: '', annualIncomeItr: '', businessName: '', businessType: '', businessVintage: '', professionalSubtype: '', practiceExperience: '',
+    // Freelancer/Agent Details
+    freelancerSubtype: '',
+    // Other Income Details
+    otherIncomeType: '',
+    // Financier Name
+    financierName: '', otherFinancierName: '', financierLocation: '',
     // RTO Details
     rcOwnerName: '', rcMfgDate: '', rcExpiryDate: '', hpnAtLogin: '', isFinanced: '', newFinancier: '', rtoDocsHandoverDate: '',
     rtoAgentName: '', agentMobileNo: '', dtoLocation: '', rtoWorkDescription: '', challan: 'No', fc: 'No', rtoPapers: '',
@@ -209,7 +269,7 @@ export default function CreateLoan() {
     // EMI Details
     irr: '', tenure: '60', emiMode: 'Monthly', emiStartDate: '', emiEndDate: '',
     // Financier Details
-    assignedBankId: '', assignedBrokerId: '', financierExecutiveName: '', financierTeamVertical: '', disburseBranchName: '', sanctionAmount: '', sanctionDate: '', financierName: '', otherFinancierName: '',
+    assignedBankId: '', assignedBrokerId: '', financierExecutiveName: '', financierTeamVertical: '', disburseBranchName: '', sanctionAmount: '', sanctionDate: '',
     // Insurance Details
     insuranceCompanyName: '', premiumAmount: '', insuranceDate: '', insurancePolicyNumber: '',
     // Deductions & Disbursement Details
@@ -246,6 +306,11 @@ export default function CreateLoan() {
       financierName: lead.financier_name || '',
       sourcingPersonName: lead.created_by_name || lead.sourcing_person_name || '',
     }));
+    
+    // Fetch documents for this lead
+    if (lead.id) {
+      fetchLeadDocuments(lead.id);
+    }
     
     toast.success(`Lead data loaded for ${lead.customer_name}`);
   };
@@ -293,7 +358,99 @@ export default function CreateLoan() {
     return `CL-${year}-${num}`;
   };
 
-
+  const createLoan = useMutation({
+    mutationFn: async () => {
+      const loanId = form.loanNumber || generateLoanId();
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify({
+          id: loanId,
+          loan_number: loanId,
+          customer_id: form.customerId || null,
+          applicant_name: form.customerName,
+          mobile: form.mobile,
+          co_applicant_name: form.coApplicantName || null,
+          co_applicant_mobile: form.coApplicantMobile || null,
+          guarantor_name: form.guarantorName || null,
+          guarantor_mobile: form.guarantorMobile || null,
+          current_address: form.currentAddress || null,
+          current_landmark: form.currentLandmark || null,
+          current_district: form.currentDistrict || null,
+          current_state: form.currentState || null,
+          current_pincode: form.currentPincode || null,
+          our_branch: form.ourBranch || null,
+          income_source: form.incomeSource || null,
+          monthly_income: Number(form.monthlyIncome) || null,
+          selected_financier: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
+          financier_location: form.financierLocation || null,
+          loan_amount: Number(form.loanAmount) || 0,
+          ltv: Number(form.ltv) || null,
+          loan_type_vehicle: form.loanTypeVehicle || null,
+          vehicle_number: form.vehicleNumber || null,
+          engine_number: form.engineNumber || null,
+          chassis_number: form.chassisNumber || null,
+          owner_name: form.ownerName || null,
+          maker_name: form.makerName || null,
+          maker_model: form.makerModel || null,
+          model_variant_name: form.modelVariantName || null,
+          fuel_type: form.fuelType || null,
+          manufacturing_date: form.manufacturingDate || null,
+          ownership_type: form.ownershipType || null,
+          financer: form.financer || null,
+          finance_status: form.financeStatus || null,
+          insurance_company: form.insuranceCompany || null,
+          insurance_valid_upto: form.insuranceValidUpto || null,
+          pucc_valid_upto: form.puccValidUpto || null,
+          
+          emi_amount: emi || null,
+          total_emi: Number(form.tenure) || null,
+          total_interest: (totalInterest > 0 ? totalInterest : null),
+          irr: Number(form.irr) || null,
+          tenure: Number(form.tenure) || 60,
+          emi_start_date: form.emiStartDate || null,
+          emi_end_date: form.emiEndDate || null,
+          processing_fee: Number(form.processingFee) || null,
+          emi: emi || null,
+          interest_rate: Number(form.irr) || null,
+          assigned_bank_id: form.assignedBankId || null,
+          assigned_broker_id: form.assignedBrokerId || null,
+          financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
+          sanction_amount: Number(form.sanctionAmount) || null,
+          sanction_date: form.sanctionDate || null,
+          insurance_company_name: form.insuranceCompanyName || null,
+          premium_amount: Number(form.premiumAmount) || null,
+          insurance_date: form.insuranceDate || null,
+          insurance_policy_number: form.insurancePolicyNumber || null,
+          total_deduction: Number(form.totalDeduction) || null,
+          net_disbursement_amount: Number(form.netDisbursementAmount) || null,
+          payment_received_date: form.paymentReceivedDate || null,
+          rc_owner_name: form.rcOwnerName || null,
+          rto_agent_name: form.rtoAgentName || null,
+          agent_mobile_no: form.agentMobileNo || null,
+          login_date: form.loginDate || null,
+          sourcing_person_name: form.sourcingPersonName || null,
+          remark: form.remark || null,
+          status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
+          created_by: user?.id,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create loan');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
+      toast.success('Loan application created successfully!');
+      navigate('/loans');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to create loan');
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,75 +458,7 @@ export default function CreateLoan() {
       toast.error('Customer Name, Mobile, and Loan Amount are required');
       return;
     }
-    
-    // Prepare loan data to pass to next page
-    const loanData = {
-      loan_number: form.loanNumber || null,
-      customer_id: form.customerId || null,
-      applicant_name: form.customerName,
-      mobile: form.mobile,
-      co_applicant_name: form.coApplicantName || null,
-      co_applicant_mobile: form.coApplicantMobile || null,
-      guarantor_name: form.guarantorName || null,
-      guarantor_mobile: form.guarantorMobile || null,
-      current_address: form.currentAddress || null,
-      current_landmark: form.currentLandmark || null,
-      current_district: form.currentDistrict || null,
-      current_state: form.currentState || null,
-      current_pincode: form.currentPincode || null,
-      our_branch: form.ourBranch || null,
-      income_source: form.incomeSource || null,
-      monthly_income: Number(form.monthlyIncome) || null,
-      loan_amount: Number(form.loanAmount) || 0,
-      ltv: Number(form.ltv) || null,
-      loan_type_vehicle: form.loanTypeVehicle || null,
-      vehicle_number: form.vehicleNumber || null,
-      engine_number: form.engineNumber || null,
-      chassis_number: form.chassisNumber || null,
-      owner_name: form.ownerName || null,
-      maker_name: form.makerName || null,
-      maker_model: form.makerModel || null,
-      model_variant_name: form.modelVariantName || null,
-      fuel_type: form.fuelType || null,
-      manufacturing_date: form.manufacturingDate || null,
-      ownership_type: form.ownershipType || null,
-      financer: form.financer || null,
-      finance_status: form.financeStatus || null,
-      insurance_company: form.insuranceCompany || null,
-      insurance_valid_upto: form.insuranceValidUpto || null,
-      pucc_valid_upto: form.puccValidUpto || null,
-      emi_amount: emi || null,
-      total_emi: Number(form.tenure) || null,
-      total_interest: (totalInterest > 0 ? totalInterest : null),
-      irr: Number(form.irr) || null,
-      tenure: Number(form.tenure) || 60,
-      emi_start_date: form.emiStartDate || null,
-      emi_end_date: form.emiEndDate || null,
-      processing_fee: Number(form.processingFee) || null,
-      emi: emi || null,
-      interest_rate: Number(form.irr) || null,
-      assigned_bank_id: form.assignedBankId || null,
-      assigned_broker_id: form.assignedBrokerId || null,
-      financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
-      sanction_amount: Number(form.sanctionAmount) || null,
-      sanction_date: form.sanctionDate || null,
-      insurance_company_name: form.insuranceCompanyName || null,
-      premium_amount: Number(form.premiumAmount) || null,
-      insurance_date: form.insuranceDate || null,
-      insurance_policy_number: form.insurancePolicyNumber || null,
-      total_deduction: Number(form.totalDeduction) || null,
-      net_disbursement_amount: Number(form.netDisbursementAmount) || null,
-      payment_received_date: form.paymentReceivedDate || null,
-      rc_owner_name: form.rcOwnerName || null,
-      rto_agent_name: form.rtoAgentName || null,
-      agent_mobile_no: form.agentMobileNo || null,
-      login_date: form.loginDate || null,
-      sourcing_person_name: form.sourcingPersonName || null,
-      status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
-    };
-    
-    // Navigate to login details page with loan data
-    navigate('/loans/login-details', { state: { loanData } });
+    createLoan.mutate();
   };
 
   // Check if mandatory documents are uploaded (for executive and team_leader roles)
@@ -540,37 +629,182 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceValidUpto} onChange={e => update('insuranceValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Valid Upto</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.puccValidUpto} onChange={e => update('puccValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>PUCC Valid Upto</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.caseType} onChange={e => update('caseType', e.target.value)} placeholder=" " /><label className={labelClass}>Case Type</label></div>
-                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Loan Details</h3></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.purposeLoanAmount} onChange={e => update('purposeLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Purpose Loan Amount</label></div>
-                <div className="floating-input-wrapper"><input required type="number" className={inputClass} value={form.loanAmount} onChange={e => update('loanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount (₹) *</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.ltv} onChange={e => update('ltv', e.target.value)} placeholder=" " /><label className={labelClass}>LTV (%)</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.loanTypeVehicle} onChange={e => update('loanTypeVehicle', e.target.value)}><option value="">Select</option><option value="New Vehicle Loan">New Vehicle Loan</option><option value="Used Vehicle Loan">Used Vehicle Loan</option></select><label className={labelClass}>Loan Type</label></div>
               </div>
             </div>
 
-          {/* Income & Financier Selection (for Executive/Team Leader) */}
+          {/* Income Details (for Executive/Team Leader) */}
           {(isExecutive || isTeamLeader) && (
             <div>
-              <h2 className="text-base font-bold text-foreground mb-3">Income & Financier Selection</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.incomeSource} onChange={e => update('incomeSource', e.target.value)}><option value="">Select Income Source</option><option value="Salaried">Salaried</option><option value="Self Employed">Self Employed</option><option value="Business">Business</option></select><label className={labelClass}>Income Source</label></div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " /><label className={labelClass}>Monthly Income (₹)</label></div>
-                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Financier Selection</h3></div>
+              <h2 className="text-base font-bold text-foreground mb-3">Income Details</h2>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="floating-input-wrapper">
-                  <select className={inputClass} value={form.selectedFinancier} onChange={e => update('selectedFinancier', e.target.value)}>
+                  <select className={inputClass} value={form.incomeSource} onChange={e => update('incomeSource', e.target.value)}>
+                    <option value="">Select Income Source</option>
+                    <option value="Salaried">Salaried</option>
+                    <option value="Self Employed">Self Employed</option>
+                    <option value="Farmer">Farmer</option>
+                    <option value="Freelancer/Agent">Freelancer/Agent</option>
+                    <option value="Other Income">Other Income</option>
+                  </select>
+                  <label className={labelClass}>Income Source</label>
+                </div>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " /><label className={labelClass}>Monthly Income (₹)</label></div>
+                <div className="floating-input-wrapper">
+                  <select className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)}>
                     <option value="">Select Financier</option>
-                    {FINANCIERS.map((f) => <option key={f} value={f}>{f}</option>)}
+                    {FINANCIERS.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                   <label className={labelClass}>Financier Name</label>
                 </div>
-                {form.selectedFinancier === 'Others' && (
+                {form.financierName === 'Others' && (
                   <div className="floating-input-wrapper">
-                    <input className={inputClass} value={form.otherSelectedFinancier} onChange={e => update('otherSelectedFinancier', e.target.value)} placeholder=" " />
+                    <input className={inputClass} value={form.otherFinancierName} onChange={e => update('otherFinancierName', e.target.value)} placeholder=" " />
                     <label className={labelClass}>Enter Financier Name</label>
                   </div>
                 )}
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.financierLocation} onChange={e => update('financierLocation', e.target.value)} placeholder=" " /><label className={labelClass}>Location</label></div>
               </div>
+
+              {/* Salaried Income Fields */}
+              {form.incomeSource === 'Salaried' && (
+                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Salaried Details</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.companyName} onChange={e => update('companyName', e.target.value)} placeholder=" " /><label className={labelClass}>Company Name</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.designation} onChange={e => update('designation', e.target.value)} placeholder=" " /><label className={labelClass}>Designation</label></div>
+                    <div className="floating-input-wrapper"><input className={inputClass} value={form.workExperience} onChange={e => update('workExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Work Experience</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.currentJobYears} onChange={e => update('currentJobYears', e.target.value)} placeholder=" " /><label className={labelClass}>Current Job (In Yrs)</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalWorkExp} onChange={e => update('totalWorkExp', e.target.value)} placeholder=" " /><label className={labelClass}>Total Work Exp. (In Yrs)</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netMonthlySalary} onChange={e => update('netMonthlySalary', e.target.value)} placeholder=" " /><label className={labelClass}>Net Monthly Salary</label></div>
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.salaryCreditMode} onChange={e => update('salaryCreditMode', e.target.value)}>
+                        <option value="">Select Mode</option>
+                        <option value="Account Transfer">Account Transfer</option>
+                        <option value="Cash">Cash</option>
+                      </select>
+                      <label className={labelClass}>Salary Credit Mode</label>
+                    </div>
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.salarySlipAvailable} onChange={e => update('salarySlipAvailable', e.target.value)}>
+                        <option value="">Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      <label className={labelClass}>Salary Slip Available</label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Self Employed Fields */}
+              {form.incomeSource === 'Self Employed' && (
+                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Self Employed Details</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.profile} onChange={e => update('profile', e.target.value)}>
+                        <option value="">Select Profile</option>
+                        <option value="Business">Business</option>
+                        <option value="Professional">Professional</option>
+                        <option value="Freelancer/Agent">Freelancer/Agent</option>
+                        <option value="Farmer">Farmer</option>
+                        <option value="Other Income">Other Income</option>
+                      </select>
+                      <label className={labelClass}>Profile</label>
+                    </div>
+
+                    {form.profile && (
+                      <div className="floating-input-wrapper">
+                        <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
+                          <option value="">Select</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        <label className={labelClass}>ITR Available</label>
+                      </div>
+                    )}
+
+                    {form.itrAvailable === 'Yes' && (
+                      <div className="floating-input-wrapper">
+                        <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
+                        <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
+                      </div>
+                    )}
+
+                    {form.profile === 'Business' && (
+                      <>
+                        <div className="floating-input-wrapper"><input className={inputClass} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder=" " /><label className={labelClass}>Business Name</label></div>
+                        <div className="floating-input-wrapper"><input className={inputClass} value={form.businessType} onChange={e => update('businessType', e.target.value)} placeholder=" " /><label className={labelClass}>Business Type</label></div>
+                        <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.businessVintage} onChange={e => update('businessVintage', e.target.value)} placeholder=" " /><label className={labelClass}>Business Vintage (Years)</label></div>
+                      </>
+                    )}
+
+                    {form.profile === 'Professional' && (
+                      <>
+                        <div className="floating-input-wrapper">
+                          <select className={inputClass} value={form.professionalSubtype} onChange={e => update('professionalSubtype', e.target.value)}>
+                            <option value="">Select Subtype</option>
+                            <option value="CA">CA</option>
+                            <option value="Doctor">Doctor</option>
+                            <option value="MBBD">MBBD</option>
+                            <option value="MD/MS">MD/MS</option>
+                            <option value="BDS/MDS (Dentist)">BDS/MDS (Dentist)</option>
+                            <option value="Engineer">Engineer</option>
+                            <option value="Architect">Architect</option>
+                          </select>
+                          <label className={labelClass}>Professional Subtype</label>
+                        </div>
+                        <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.practiceExperience} onChange={e => update('practiceExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Practice Experience (In Yrs)</label></div>
+                      </>
+                    )}
+
+                    {form.profile === 'Freelancer/Agent' && (
+                      <div className="floating-input-wrapper">
+                        <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
+                          <option value="">Select Subtype</option>
+                          <option value="IT Freelancer">IT Freelancer</option>
+                          <option value="LIC Agent">LIC Agent</option>
+                          <option value="Property Broker">Property Broker</option>
+                          <option value="Gig Worker">Gig Worker</option>
+                          <option value="Other Commission Agent">Other Commission Agent</option>
+                        </select>
+                        <label className={labelClass}>Subtype</label>
+                      </div>
+                    )}
+
+                    {form.profile === 'Other Income' && (
+                      <div className="floating-input-wrapper">
+                        <select className={inputClass} value={form.otherIncomeType} onChange={e => update('otherIncomeType', e.target.value)}>
+                          <option value="">Select Type</option>
+                          <option value="Dairy">Dairy</option>
+                          <option value="Rental">Rental</option>
+                        </select>
+                        <label className={labelClass}>Other Income Type</label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Freelancer/Agent Fields */}
+              {form.incomeSource === 'Freelancer/Agent' && (
+                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Freelancer/Agent Details</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
+                        <option value="">Select Subtype</option>
+                        <option value="IT Freelancer">IT Freelancer</option>
+                        <option value="LIC Agent">LIC Agent</option>
+                        <option value="Property Broker">Property Broker</option>
+                        <option value="Gig Worker">Gig Worker</option>
+                        <option value="Other Commission Agent">Other Commission Agent</option>
+                      </select>
+                      <label className={labelClass}>Subtype</label>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -650,9 +884,18 @@ export default function CreateLoan() {
           </button>
           <button 
             type="submit" 
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+            disabled={createLoan.isPending} 
+            className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
           >
-            Next →
+            {createLoan.isPending ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Creating...
+              </span>
+            ) : '✓ Create Application'}
           </button>
         </div>
           </div>
