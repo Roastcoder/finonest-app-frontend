@@ -8,12 +8,16 @@ import { formatCurrency } from '@/lib/mock-data';
 import { FINANCIERS } from '@/lib/financiers';
 import DocumentUpload, { DocumentList } from '@/components/DocumentUpload';
 import CustomerProfileForm from '@/components/CustomerProfileForm';
+import ApplicationStageDisplay from '@/components/ApplicationStageDisplay';
+import ApplicationStageModal from '@/components/ApplicationStageModal';
+import { ApplicationStage, ApplicationStageData } from '@/types/applicationStages';
 
 export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showReapplyModal, setShowReapplyModal] = useState(false);
   const [selectedFinancier, setSelectedFinancier] = useState('');
+  const [showStageModal, setShowStageModal] = useState(false);
 
   const { data: banks = [] } = useQuery({
     queryKey: ['banks-list'],
@@ -29,6 +33,20 @@ export default function LeadDetail() {
       }
     },
   });
+
+  const handleStageUpdate = (stageData: ApplicationStageData) => {
+    // Update the lead in the cache
+    queryClient.setQueryData(['lead', id], (oldData: any) => {
+      if (!oldData) return oldData;
+      return { 
+        ...oldData, 
+        application_stage: stageData.stage, 
+        stage_data: stageData,
+        stage_history: [...(oldData.stage_history || []), stageData]
+      };
+    });
+    setShowStageModal(false);
+  };
 
   const queryClient = useQueryClient();
 
@@ -294,9 +312,22 @@ export default function LeadDetail() {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Loan Amount Required" value={lead.loan_amount_required ? formatCurrency(Number(lead.loan_amount_required)) : '—'} />
             <Field label="Financier" value={lead.financier_name} />
-            <Field label="Stage" value={lead.stage} />
-            <Field label="Status" value={lead.status} />
           </div>
+        </div>
+
+        <div className="glass-card p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-border/40">
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
+              <FileText size={20} />
+            </div>
+            <h3 className="text-base font-bold text-foreground">Application Stage</h3>
+          </div>
+          <ApplicationStageDisplay
+            currentStage={(lead.application_stage as ApplicationStage) || 'SUBMITTED'}
+            stageHistory={lead.stage_history || []}
+            onEditStage={() => setShowStageModal(true)}
+            canEdit={true}
+          />
         </div>
 
         <div className="glass-card p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow">
@@ -317,6 +348,17 @@ export default function LeadDetail() {
           </div>
         </div>
       </div>
+
+      {/* Stage Update Modal */}
+      {showStageModal && (
+        <ApplicationStageModal
+          isOpen={true}
+          onClose={() => setShowStageModal(false)}
+          currentStage={(lead.application_stage as ApplicationStage) || 'SUBMITTED'}
+          leadId={Number(id)}
+          onStageUpdate={handleStageUpdate}
+        />
+      )}
 
       <div className="mt-6 mb-6">
         <CustomerProfileForm leadId={Number(id)} />

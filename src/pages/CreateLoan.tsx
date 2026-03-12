@@ -830,165 +830,117 @@ export default function CreateLoan() {
               </div>
             </div>
 
-          {/* Income Details (for Executive/Team Leader) */}
-          {(isExecutive || isTeamLeader) && (
-            <div>
-              <h2 className="text-base font-bold text-foreground mb-3">Income Details</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="floating-input-wrapper">
-                  <select className={inputClass} value={form.incomeSource} onChange={e => update('incomeSource', e.target.value)}>
-                    <option value="">Select Income Source</option>
-                    <option value="Salaried">Salaried</option>
-                    <option value="Self Employed">Self Employed</option>
-                    <option value="Farmer">Farmer</option>
-                    <option value="Freelancer/Agent">Freelancer/Agent</option>
-                    <option value="Other Income">Other Income</option>
-                  </select>
-                  <label className={labelClass}>Income Source</label>
-                </div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " /><label className={labelClass}>Monthly Income (₹)</label></div>
-                <div className="floating-input-wrapper">
-                  <select className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)}>
-                    <option value="">Select Financier</option>
-                    {FINANCIERS.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <label className={labelClass}>Financier Name</label>
-                </div>
-                {form.financierName === 'Others' && (
-                  <div className="floating-input-wrapper">
-                    <input className={inputClass} value={form.otherFinancierName} onChange={e => update('otherFinancierName', e.target.value)} placeholder=" " />
-                    <label className={labelClass}>Enter Financier Name</label>
-                  </div>
-                )}
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.financierLocation} onChange={e => update('financierLocation', e.target.value)} placeholder=" " /><label className={labelClass}>Location</label></div>
+          {/* Income Details */}
+          <div>
+            <h2 className="text-base font-bold text-foreground mb-3">Income Details</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="floating-input-wrapper">
+                <select className={inputClass} value={form.incomeSource} onChange={e => update('incomeSource', e.target.value)}>
+                  <option value="">Select Income Source</option>
+                  <option value="Salaried">Salaried</option>
+                  <option value="Self Employed">Self Employed</option>
+                  <option value="Farmer">Farmer</option>
+                  <option value="Freelancer/Agent">Freelancer/Agent</option>
+                  <option value="Other Income">Other Income</option>
+                </select>
+                <label className={labelClass}>Income Source</label>
               </div>
+            </div>
 
-              {/* Salaried Income Fields */}
-              {form.incomeSource === 'Salaried' && (
-                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Salaried Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.companyName} onChange={e => update('companyName', e.target.value)} placeholder=" " /><label className={labelClass}>Company Name</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.designation} onChange={e => update('designation', e.target.value)} placeholder=" " /><label className={labelClass}>Designation</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.workExperience} onChange={e => update('workExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Work Experience</label></div>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.currentJobYears} onChange={e => update('currentJobYears', e.target.value)} placeholder=" " /><label className={labelClass}>Current Job (In Yrs)</label></div>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalWorkExp} onChange={e => update('totalWorkExp', e.target.value)} placeholder=" " /><label className={labelClass}>Total Work Exp. (In Yrs)</label></div>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netMonthlySalary} onChange={e => update('netMonthlySalary', e.target.value)} placeholder=" " /><label className={labelClass}>Net Monthly Salary</label></div>
+            {/* Salaried Income Fields */}
+            {form.incomeSource === 'Salaried' && (
+              <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Salaried Details</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="floating-input-wrapper"><input className={inputClass} value={form.companyName} onChange={e => update('companyName', e.target.value)} placeholder=" " /><label className={labelClass}>Company Name</label></div>
+                  <div className="floating-input-wrapper"><input className={inputClass} value={form.designation} onChange={e => update('designation', e.target.value)} placeholder=" " /><label className={labelClass}>Designation</label></div>
+                  <div className="floating-input-wrapper"><input className={inputClass} value={form.workExperience} onChange={e => update('workExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Work Experience</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.currentJobYears} onChange={e => update('currentJobYears', e.target.value)} placeholder=" " /><label className={labelClass}>Current Job (In Yrs)</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalWorkExp} onChange={e => update('totalWorkExp', e.target.value)} placeholder=" " /><label className={labelClass}>Total Work Exp. (In Yrs)</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netMonthlySalary} onChange={e => update('netMonthlySalary', e.target.value)} placeholder=" " /><label className={labelClass}>Net Monthly Salary</label></div>
+                  <div className="floating-input-wrapper">
+                    <select className={inputClass} value={form.salaryCreditMode} onChange={e => update('salaryCreditMode', e.target.value)}>
+                      <option value="">Select Mode</option>
+                      <option value="Account Transfer">Account Transfer</option>
+                      <option value="Cash">Cash</option>
+                    </select>
+                    <label className={labelClass}>Salary Credit Mode</label>
+                  </div>
+                  <div className="floating-input-wrapper">
+                    <select className={inputClass} value={form.salarySlipAvailable} onChange={e => update('salarySlipAvailable', e.target.value)}>
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    <label className={labelClass}>Salary Slip Available</label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Self Employed Fields */}
+            {form.incomeSource === 'Self Employed' && (
+              <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Self Employed Details</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="floating-input-wrapper">
+                    <select className={inputClass} value={form.profile} onChange={e => update('profile', e.target.value)}>
+                      <option value="">Select Profile</option>
+                      <option value="Business">Business</option>
+                      <option value="Professional">Professional</option>
+                      <option value="Freelancer/Agent">Freelancer/Agent</option>
+                      <option value="Farmer">Farmer</option>
+                      <option value="Other Income">Other Income</option>
+                    </select>
+                    <label className={labelClass}>Profile</label>
+                  </div>
+
+                  {form.profile && (
                     <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.salaryCreditMode} onChange={e => update('salaryCreditMode', e.target.value)}>
-                        <option value="">Select Mode</option>
-                        <option value="Account Transfer">Account Transfer</option>
-                        <option value="Cash">Cash</option>
-                      </select>
-                      <label className={labelClass}>Salary Credit Mode</label>
-                    </div>
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.salarySlipAvailable} onChange={e => update('salarySlipAvailable', e.target.value)}>
+                      <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
                         <option value="">Select</option>
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
                       </select>
-                      <label className={labelClass}>Salary Slip Available</label>
+                      <label className={labelClass}>ITR Available</label>
                     </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {/* Self Employed Fields */}
-              {form.incomeSource === 'Self Employed' && (
-                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Self Employed Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
+                  {form.itrAvailable === 'Yes' && (
                     <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.profile} onChange={e => update('profile', e.target.value)}>
-                        <option value="">Select Profile</option>
-                        <option value="Business">Business</option>
-                        <option value="Professional">Professional</option>
-                        <option value="Freelancer/Agent">Freelancer/Agent</option>
-                        <option value="Farmer">Farmer</option>
-                        <option value="Other Income">Other Income</option>
-                      </select>
-                      <label className={labelClass}>Profile</label>
+                      <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
+                      <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
                     </div>
+                  )}
 
-                    {form.profile && (
+                  {form.profile === 'Business' && (
+                    <>
+                      <div className="floating-input-wrapper"><input className={inputClass} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder=" " /><label className={labelClass}>Business Name</label></div>
+                      <div className="floating-input-wrapper"><input className={inputClass} value={form.businessType} onChange={e => update('businessType', e.target.value)} placeholder=" " /><label className={labelClass}>Business Type</label></div>
+                      <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.businessVintage} onChange={e => update('businessVintage', e.target.value)} placeholder=" " /><label className={labelClass}>Business Vintage (Years)</label></div>
+                    </>
+                  )}
+
+                  {form.profile === 'Professional' && (
+                    <>
                       <div className="floating-input-wrapper">
-                        <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
-                          <option value="">Select</option>
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </select>
-                        <label className={labelClass}>ITR Available</label>
-                      </div>
-                    )}
-
-                    {form.itrAvailable === 'Yes' && (
-                      <div className="floating-input-wrapper">
-                        <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
-                        <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
-                      </div>
-                    )}
-
-                    {form.profile === 'Business' && (
-                      <>
-                        <div className="floating-input-wrapper"><input className={inputClass} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder=" " /><label className={labelClass}>Business Name</label></div>
-                        <div className="floating-input-wrapper"><input className={inputClass} value={form.businessType} onChange={e => update('businessType', e.target.value)} placeholder=" " /><label className={labelClass}>Business Type</label></div>
-                        <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.businessVintage} onChange={e => update('businessVintage', e.target.value)} placeholder=" " /><label className={labelClass}>Business Vintage (Years)</label></div>
-                      </>
-                    )}
-
-                    {form.profile === 'Professional' && (
-                      <>
-                        <div className="floating-input-wrapper">
-                          <select className={inputClass} value={form.professionalSubtype} onChange={e => update('professionalSubtype', e.target.value)}>
-                            <option value="">Select Subtype</option>
-                            <option value="CA">CA</option>
-                            <option value="Doctor">Doctor</option>
-                            <option value="MBBD">MBBD</option>
-                            <option value="MD/MS">MD/MS</option>
-                            <option value="BDS/MDS (Dentist)">BDS/MDS (Dentist)</option>
-                            <option value="Engineer">Engineer</option>
-                            <option value="Architect">Architect</option>
-                          </select>
-                          <label className={labelClass}>Professional Subtype</label>
-                        </div>
-                        <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.practiceExperience} onChange={e => update('practiceExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Practice Experience (In Yrs)</label></div>
-                      </>
-                    )}
-
-                    {form.profile === 'Freelancer/Agent' && (
-                      <div className="floating-input-wrapper">
-                        <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
+                        <select className={inputClass} value={form.professionalSubtype} onChange={e => update('professionalSubtype', e.target.value)}>
                           <option value="">Select Subtype</option>
-                          <option value="IT Freelancer">IT Freelancer</option>
-                          <option value="LIC Agent">LIC Agent</option>
-                          <option value="Property Broker">Property Broker</option>
-                          <option value="Gig Worker">Gig Worker</option>
-                          <option value="Other Commission Agent">Other Commission Agent</option>
+                          <option value="CA">CA</option>
+                          <option value="Doctor">Doctor</option>
+                          <option value="MBBD">MBBD</option>
+                          <option value="MD/MS">MD/MS</option>
+                          <option value="BDS/MDS (Dentist)">BDS/MDS (Dentist)</option>
+                          <option value="Engineer">Engineer</option>
+                          <option value="Architect">Architect</option>
                         </select>
-                        <label className={labelClass}>Subtype</label>
+                        <label className={labelClass}>Professional Subtype</label>
                       </div>
-                    )}
+                      <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.practiceExperience} onChange={e => update('practiceExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Practice Experience (In Yrs)</label></div>
+                    </>
+                  )}
 
-                    {form.profile === 'Other Income' && (
-                      <div className="floating-input-wrapper">
-                        <select className={inputClass} value={form.otherIncomeType} onChange={e => update('otherIncomeType', e.target.value)}>
-                          <option value="">Select Type</option>
-                          <option value="Dairy">Dairy</option>
-                          <option value="Rental">Rental</option>
-                        </select>
-                        <label className={labelClass}>Other Income Type</label>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Freelancer/Agent Fields */}
-              {form.incomeSource === 'Freelancer/Agent' && (
-                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Freelancer/Agent Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
+                  {form.profile === 'Freelancer/Agent' && (
                     <div className="floating-input-wrapper">
                       <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
                         <option value="">Select Subtype</option>
@@ -1000,11 +952,42 @@ export default function CreateLoan() {
                       </select>
                       <label className={labelClass}>Subtype</label>
                     </div>
+                  )}
+
+                  {form.profile === 'Other Income' && (
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.otherIncomeType} onChange={e => update('otherIncomeType', e.target.value)}>
+                        <option value="">Select Type</option>
+                        <option value="Dairy">Dairy</option>
+                        <option value="Rental">Rental</option>
+                      </select>
+                      <label className={labelClass}>Other Income Type</label>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Freelancer/Agent Fields */}
+            {form.incomeSource === 'Freelancer/Agent' && (
+              <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Freelancer/Agent Details</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="floating-input-wrapper">
+                    <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
+                      <option value="">Select Subtype</option>
+                      <option value="IT Freelancer">IT Freelancer</option>
+                      <option value="LIC Agent">LIC Agent</option>
+                      <option value="Property Broker">Property Broker</option>
+                      <option value="Gig Worker">Gig Worker</option>
+                      <option value="Other Commission Agent">Other Commission Agent</option>
+                    </select>
+                    <label className={labelClass}>Subtype</label>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
 
 

@@ -23,6 +23,11 @@ export default function LoanDetail() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Role-based permissions
+  const canEditStatus = user?.role === 'admin' || user?.role === 'manager';
+  const isTeamLeader = user?.role === 'team_leader';
+  const canDelete = user?.role === 'admin';
+
 
   const { data: loan, isLoading, error } = useQuery({
     queryKey: ['loan', id],
@@ -209,7 +214,7 @@ export default function LoanDetail() {
             <Mail size={14} className="text-blue-500" />
             Email
           </button>
-          {(user?.role === 'admin' || user?.role === 'manager') && (
+          {canEditStatus && (
             <>
               <select
                 value={loan.status}
@@ -219,18 +224,25 @@ export default function LoanDetail() {
               >
                 {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
-              <button
-                onClick={() => {
-                  if (confirm('Are you sure you want to delete this loan application? This action cannot be undone.')) {
-                    deleteLoan.mutate();
-                  }
-                }}
-                disabled={deleteLoan.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500 bg-card text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-              >
-                Delete
-              </button>
+              {canDelete && (
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete this loan application? This action cannot be undone.')) {
+                      deleteLoan.mutate();
+                    }
+                  }}
+                  disabled={deleteLoan.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500 bg-card text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              )}
             </>
+          )}
+          {isTeamLeader && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted text-xs font-medium text-muted-foreground">
+              Contact manager to update status
+            </div>
           )}
         </div>
       </div>

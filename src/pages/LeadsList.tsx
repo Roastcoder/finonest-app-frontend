@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X } from 'lucide-react';
+import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit } from 'lucide-react';
 import { toast } from 'sonner';
+import ApplicationStageModal from '@/components/ApplicationStageModal';
+import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
 
 export default function LeadsList() {
   const navigate = useNavigate();
@@ -12,8 +14,22 @@ export default function LeadsList() {
   const [search, setSearch] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [stageModal, setStageModal] = useState<{ leadId: number; currentStage: ApplicationStage } | null>(null);
 
   const queryClient = useQueryClient();
+
+  const handleStageUpdate = (leadId: number, stageData: ApplicationStageData) => {
+    // Update the lead in the cache
+    queryClient.setQueryData(['leads'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.map((lead: any) => 
+        lead.id === leadId 
+          ? { ...lead, application_stage: stageData.stage, stage_data: stageData }
+          : lead
+      );
+    });
+    setStageModal(null);
+  };
 
   const deleteLead = useMutation({
     mutationFn: async (id: number) => {
@@ -111,8 +127,12 @@ export default function LeadsList() {
                   <p className="font-bold text-foreground truncate">{lead.customer_name}</p>
                   <p className="text-xs text-muted-foreground">{lead.phone} {lead.city ? `· ${lead.city}` : ''}</p>
                 </div>
-                <span className={`shrink-0 ml-2 text-xs px-2.5 py-1 rounded-full font-semibold ${lead.converted_to_loan ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                  {lead.converted_to_loan ? 'Converted' : 'Active'}
+                <span className={`shrink-0 ml-2 text-xs px-2.5 py-1 rounded-full font-semibold ${
+                  lead.application_stage 
+                    ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
                 </span>
               </div>
 
@@ -146,10 +166,16 @@ export default function LeadsList() {
                     >
                       <Eye size={14} /> View
                     </button>
+                    <button
+                      onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
+                    >
+                      <Edit size={14} /> Update Stage
+                    </button>
                     {!lead.converted_to_loan && (
                       <button
                         onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-green-50 text-green-600 text-xs font-semibold hover:bg-green-100 transition-colors"
                       >
                         <ArrowRight size={14} /> Convert
                       </button>
@@ -184,7 +210,7 @@ export default function LeadsList() {
                 <th className="text-left py-3 px-3 font-medium text-muted-foreground">Vehicle</th>
                 <th className="text-right py-3 px-3 font-medium text-muted-foreground">Loan Amount</th>
                 <th className="text-left py-3 px-3 font-medium text-muted-foreground">Branch</th>
-                <th className="text-center py-3 px-3 font-medium text-muted-foreground">Status</th>
+                <th className="text-center py-3 px-3 font-medium text-muted-foreground">Stage</th>
                 <th className="py-3 px-3"></th>
               </tr>
             </thead>
@@ -216,18 +242,26 @@ export default function LeadsList() {
                   <td className="py-3 px-3 text-right font-medium text-foreground">₹{Number(lead.loan_amount_required || 0).toLocaleString('en-IN')}</td>
                   <td className="py-3 px-3 text-muted-foreground">{lead.our_branch || '—'}</td>
                   <td className="py-3 px-3 text-center">
-                    {lead.converted_to_loan ? (
-                      <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">Converted</span>
-                    ) : (
-                      <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">Active</span>
-                    )}
+                    <span className={`text-xs px-2 py-1 rounded font-medium ${
+                      lead.application_stage 
+                        ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+                    </span>
                   </td>
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2">
                       {user?.role !== 'executive' && (
                         <>
                           <button onClick={() => navigate(`/leads/${lead.id}`)} className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"><Eye size={16} /></button>
-                          <button onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"><ArrowRight size={16} /></button>
+                          <button 
+                            onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })} 
+                            className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-green-500 transition-colors"><ArrowRight size={16} /></button>
                         </>
                       )}
                       {user?.role === 'admin' && (
@@ -244,6 +278,17 @@ export default function LeadsList() {
           <div className="py-12 text-center text-muted-foreground">No leads found</div>
         )}
       </div>
+
+      {/* Stage Update Modal */}
+      {stageModal && (
+        <ApplicationStageModal
+          isOpen={true}
+          onClose={() => setStageModal(null)}
+          currentStage={stageModal.currentStage}
+          leadId={stageModal.leadId}
+          onStageUpdate={(stageData) => handleStageUpdate(stageModal.leadId, stageData)}
+        />
+      )}
 
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

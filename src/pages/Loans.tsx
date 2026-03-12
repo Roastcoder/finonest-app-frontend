@@ -83,6 +83,9 @@ export default function Loans() {
   const canEditStatus = user?.role === 'admin' || user?.role === 'manager';
   const isTeamLeader = user?.role === 'team_leader';
   const canDelete = user?.role === 'admin';
+  
+  // Team leaders should not see update functionality
+  const showUpdateColumn = !isTeamLeader && canEditStatus;
 
   const handleExport = () => {
     if (filtered.length === 0) { toast.error('No data to export'); return; }
@@ -276,7 +279,7 @@ export default function Loans() {
                   )}
                 </div>
                 {/* Status update row */}
-                {canEditStatus && (
+                {showUpdateColumn && (
                   <select
                     value={loan.status}
                     onChange={(e) => updateStatus.mutate({ id: loan.id, status: e.target.value })}
@@ -285,6 +288,11 @@ export default function Loans() {
                   >
                     {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
+                )}
+                {isTeamLeader && (
+                  <div className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-xs font-medium text-muted-foreground text-center">
+                    Contact manager to update status
+                  </div>
                 )}
               </div>
             </div>
@@ -310,7 +318,9 @@ export default function Loans() {
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">Amount</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">EMI</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Update</th>
+                  {showUpdateColumn && (
+                    <th className="text-left py-3 px-3 font-medium text-muted-foreground">Update</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -331,16 +341,18 @@ export default function Loans() {
                     <td className="py-3.5 px-3 text-right font-medium text-foreground">{formatCurrency(Number(loan.loan_amount))}</td>
                     <td className="py-3.5 px-3 text-right text-muted-foreground">{formatCurrency(Number(loan.emi))}/mo</td>
                     <td className="py-3.5 px-3"><LoanStatusBadge status={loan.status} /></td>
-                    <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={loan.status}
-                        onChange={(e) => updateStatus.mutate({ id: loan.id, status: e.target.value })}
-                        disabled={updateStatus.isPending}
-                        className="px-2 py-1 rounded-md border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent"
-                      >
-                        {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </select>
-                    </td>
+                    {showUpdateColumn && (
+                      <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={loan.status}
+                          onChange={(e) => updateStatus.mutate({ id: loan.id, status: e.target.value })}
+                          disabled={updateStatus.isPending}
+                          className="px-2 py-1 rounded-md border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent"
+                        >
+                          {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
