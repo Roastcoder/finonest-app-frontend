@@ -316,22 +316,29 @@ export function DocumentList({ leadId }: DocumentListProps) {
 
   const handlePreview = async (doc: any) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
+      console.log('Attempting to preview document:', doc);
+      const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`;
+      console.log('Download URL:', downloadUrl);
+      
+      const response = await fetch(downloadUrl, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         }
-      );
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (response.ok) {
         const blob = await response.blob();
+        console.log('Blob created:', blob.type, blob.size);
         const url = URL.createObjectURL(blob);
         setPreviewUrl(url);
         setPreviewDoc(doc);
       } else {
-        toast.error('Failed to load document preview');
+        const errorText = await response.text();
+        console.error('Preview failed:', response.status, errorText);
+        toast.error(`Failed to load document preview: ${response.status} ${errorText}`);
       }
     } catch (error) {
       console.error('Failed to preview document:', error);
@@ -443,13 +450,25 @@ export function DocumentList({ leadId }: DocumentListProps) {
                       {new Date(doc.uploaded_at).toLocaleDateString()}
                     </p>
                   )}
-                  <button
-                    onClick={() => handlePreview(doc)}
-                    className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    View
-                  </button>
+                  <div className="flex gap-1 mt-3">
+                    <button
+                      onClick={() => handlePreview(doc)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => {
+                        const testUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download-test`;
+                        window.open(testUrl, '_blank');
+                      }}
+                      className="px-2 py-2 bg-gray-500 text-white text-xs font-semibold rounded-lg hover:bg-gray-600 transition-colors"
+                      title="Test Download"
+                    >
+                      T
+                    </button>
+                  </div>
                 </div>
               </div>
             );
