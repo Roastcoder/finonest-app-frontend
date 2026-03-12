@@ -134,22 +134,13 @@ export default function Loans() {
   };
 
   const filtered = loans.filter((l: any) => {
-    let roleFilter = true;
-    
-    if (user?.role === 'team_leader') {
-      roleFilter = (l.created_by === user.id && l.created_by_role === 'team_leader') || (l.created_by_role === 'executive' && l.team_leader_id === user.id);
-    } else if (user?.role === 'manager') {
-      roleFilter = (l.created_by_role === 'team_leader' && l.manager_id === user.id) || (l.created_by_role === 'executive' && l.manager_id === user.id);
-    } else if (user?.role === 'executive') {
-      roleFilter = l.created_by === user.id && l.created_by_role === 'executive';
-    }
-
     const matchSearch = !search ||
       l.applicant_name?.toLowerCase().includes(search.toLowerCase()) ||
       l.id?.toLowerCase().includes(search.toLowerCase()) ||
+      l.loan_number?.toLowerCase().includes(search.toLowerCase()) ||
       l.car_model?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || l.status === statusFilter;
-    return matchSearch && matchStatus && roleFilter;
+    return matchSearch && matchStatus;
   });
 
   return (
