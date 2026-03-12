@@ -5,7 +5,7 @@ import { supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { CAR_MAKES, calculateEMI, formatCurrency } from '@/lib/mock-data';
 import { FINANCIERS } from '@/lib/financiers';
-import { ArrowLeft, Calculator, Search, X } from 'lucide-react';
+import { ArrowLeft, Calculator, Search, X, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
 import '@/styles/floating-labels.css';
@@ -31,6 +31,93 @@ export default function CreateLoan() {
       }
     },
   });
+
+  const LEDGER_OPTIONS = [
+    'APM Finvest',
+    'AU Small Finance Bank',
+    'Axis Bank',
+    'Bajaj Finance',
+    'Bajaj Finserv Ltd',
+    'Bandhan Bank',
+    'Bank of Baroda',
+    'Bank of India',
+    'Bank of Maharashtra',
+    'CARS 24',
+    'Canara Bank',
+    'Capital First',
+    'Central Bank of India',
+    'Cholamandalam Finance',
+    'Cholamandalam Investment & Finance',
+    'City Union Bank',
+    'Dhanlaxmi Bank',
+    'ESAF Small Finance Bank',
+    'Equitas Small Finance Bank',
+    'Federal Bank',
+    'Ford Credit India',
+    'Fortune Finance',
+    'Fullerton India',
+    'HDB Financial Services',
+    'HDFC Bank',
+    'Hero FinCorp',
+    'Hinduja Leyland Finance',
+    'ICICI Bank',
+    'IDBI Bank',
+    'IDFC First Bank',
+    'IIFL Finance',
+    'IKF Finance',
+    'Indian Bank',
+    'Indostar',
+    'Indostar Capital Finance',
+    'IndusInd Bank',
+    'Jammu & Kashmir Bank',
+    'Karnataka Bank',
+    'Karur Vysya Bank',
+    'Kogta Financial India Limited',
+    'Kotak Mahindra Bank',
+    'Kotak Mahindra Prime',
+    'L&T Finance',
+    'Lakshmi Vilas Bank',
+    'Magma Fincorp',
+    'Mahindra Finance',
+    'Manappuram Finance',
+    'Maruti Suzuki Finance',
+    'Muthoot Capital Services',
+    'Muthoot Finance',
+    'Oriental Bank of Commerce',
+    'Piramal',
+    'Poonawalla Fincorp Limited',
+    'Punjab National Bank',
+    'RBL Bank',
+    'Reliance Commercial Finance',
+    'Renault Finance',
+    'Shriram Finance Limited',
+    'Shriram Transport Finance',
+    'Sk Finance',
+    'Skoda Finance',
+    'South Indian Bank',
+    'State Bank of Bikaner & Jaipur',
+    'State Bank of Hyderabad',
+    'State Bank of India',
+    'State Bank of Mysore',
+    'State Bank of Patiala',
+    'State Bank of Travancore',
+    'Sundaram Finance',
+    'Syndicate Bank',
+    'TVS Credit Services',
+    'Tamilnad Mercantile Bank',
+    'Tata Capital',
+    'Toyota Financial Services',
+    'Toyota Financial Services India Limited',
+    'UCO Bank',
+    'Union Bank of India',
+    'United Bank of India',
+    'Vastu Finserve',
+    'Vijaya Bank',
+    'Volkswagen Finance',
+    'Yes Bank',
+    'dugar finance',
+    'Others'
+  ];
 
   const { data: brokers = [] } = useQuery({
     queryKey: ['brokers-list'],
@@ -89,6 +176,13 @@ export default function CreateLoan() {
   const [showOptionalFields, setShowOptionalFields] = useState({
     coApplicant: false,
     guarantor: false,
+  });
+
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [assignmentForm, setAssignmentForm] = useState({
+    ledgerSelection: '',
+    salesManager: user?.name || '',
+    remarks: ''
   });
 
   const [fetchingVehicleData, setFetchingVehicleData] = useState(false);
@@ -435,6 +529,7 @@ export default function CreateLoan() {
           sourcing_person_name: form.sourcingPersonName || null,
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
+          bank_name: assignmentForm.ledgerSelection || null,
           created_by: user?.id,
         }),
       });
@@ -452,14 +547,21 @@ export default function CreateLoan() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.customerName.trim() || !form.mobile.trim() || !form.loanAmount) {
       toast.error('Customer Name, Mobile, and Loan Amount are required');
       return;
     }
-    createLoan.mutate();
+    setShowAssignmentModal(true);
   };
+
+  const handleCreateApplication = () => {
+    createLoan.mutate();
+    setShowAssignmentModal(false);
+  };
+
+
 
   // Check if mandatory documents are uploaded (for executive and team_leader roles)
   const isExecutive = user?.role === 'executive';
@@ -471,6 +573,102 @@ export default function CreateLoan() {
   const labelClass = "block text-[10px] font-medium text-foreground/70 mb-1";
 
   return (
+    <>
+      {/* Assignment Modal */}
+      {showAssignmentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Assignment Details</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>Select Ledger *</label>
+                <select 
+                  className={inputClass}
+                  value={assignmentForm.ledgerSelection}
+                  onChange={e => setAssignmentForm(f => ({ ...f, ledgerSelection: e.target.value }))}
+                  required
+                >
+                  <option value="">Choose Ledger</option>
+                  {LEDGER_OPTIONS.map((ledger) => (
+                    <option key={ledger} value={ledger}>
+                      {ledger}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sales Manager</label>
+                <input 
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none transition-all cursor-not-allowed"
+                  value={assignmentForm.salesManager}
+                  disabled
+                />
+              </div>
+              
+              <div>
+                <label className={labelClass}>Remarks (Optional)</label>
+                <textarea 
+                  className={inputClass}
+                  rows={3}
+                  value={assignmentForm.remarks}
+                  onChange={e => setAssignmentForm(f => ({ ...f, remarks: e.target.value }))}
+                  placeholder="Add any additional remarks..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <button 
+                type="button" 
+                onClick={() => setShowAssignmentModal(false)}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-primary hover:bg-white/40 dark:hover:bg-white/5 border border-transparent transition-all duration-300"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  const message = `*Loan Application Details*\n\n` +
+                    `Customer: ${form.customerName}\n` +
+                    `Mobile: ${form.mobile}\n` +
+                    `Loan Amount: ₹${form.loanAmount}\n` +
+                    `Vehicle: ${form.makerName} ${form.makerModel}\n` +
+                    `Vehicle No: ${form.vehicleNumber}\n` +
+                    `Ledger: ${assignmentForm.ledgerSelection}\n` +
+                    `Sales Manager: ${assignmentForm.salesManager}\n` +
+                    `Login Date: ${form.loginDate}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                }}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white bg-gradient-to-r from-green-600 to-green-500 hover:shadow-md hover:scale-105 transition-all duration-300 border border-green-700/30 shadow-sm"
+              >
+                <MessageCircle size={16} />
+                <span>WhatsApp</span>
+              </button>
+              <button 
+                type="button" 
+                onClick={handleCreateApplication}
+                disabled={!assignmentForm.ledgerSelection || createLoan.isPending}
+                className="flex items-center justify-center gap-2 px-8 py-2.5 rounded-full text-sm font-bold text-secondary bg-primary hover:shadow-md hover:scale-105 transition-all duration-300 border border-primary/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {createLoan.isPending ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <span>Create Application</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     <div className="w-full">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
         <ArrowLeft size={16} /> Back
@@ -480,7 +678,7 @@ export default function CreateLoan() {
         <h1 className="text-2xl font-bold text-foreground mb-2">New Loan Application</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="w-full">
+      <form onSubmit={handleNext} className="w-full">
         <div className="bg-card rounded-lg border border-border p-4 shadow-sm mb-4 space-y-6 w-full">
           {/* Customer Details */}
           <div>
@@ -884,22 +1082,14 @@ export default function CreateLoan() {
           </button>
           <button 
             type="submit" 
-            disabled={createLoan.isPending} 
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
+            className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
           >
-            {createLoan.isPending ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Creating...
-              </span>
-            ) : '✓ Create Application'}
+            Next →
           </button>
         </div>
           </div>
       </form>
     </div>
+    </>
   );
 }
