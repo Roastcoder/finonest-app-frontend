@@ -160,18 +160,6 @@ export default function LeadsList() {
               <div className="flex items-center gap-2 pt-3 border-t border-border" onClick={e => e.stopPropagation()}>
                 {user?.role !== 'executive' && (
                   <>
-                    <button
-                      onClick={() => navigate(`/leads/${lead.id}`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors"
-                    >
-                      <Eye size={14} /> View
-                    </button>
-                    <button
-                      onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
-                    >
-                      <Edit size={14} /> Update Stage
-                    </button>
                     {!lead.converted_to_loan && (
                       <button
                         onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
@@ -254,13 +242,6 @@ export default function LeadsList() {
                     <div className="flex items-center gap-2">
                       {user?.role !== 'executive' && (
                         <>
-                          <button onClick={() => navigate(`/leads/${lead.id}`)} className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"><Eye size={16} /></button>
-                          <button 
-                            onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })} 
-                            className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"
-                          >
-                            <Edit size={16} />
-                          </button>
                           <button onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-green-500 transition-colors"><ArrowRight size={16} /></button>
                         </>
                       )}
