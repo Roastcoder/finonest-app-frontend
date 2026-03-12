@@ -293,99 +293,7 @@ export default function CreateLoan() {
     return `CL-${year}-${num}`;
   };
 
-  const createLoan = useMutation({
-    mutationFn: async () => {
-      const loanId = form.loanNumber || generateLoanId();
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({
-          id: loanId,
-          loan_number: loanId,
-          customer_id: form.customerId || null,
-          applicant_name: form.customerName,
-          mobile: form.mobile,
-          co_applicant_name: form.coApplicantName || null,
-          co_applicant_mobile: form.coApplicantMobile || null,
-          guarantor_name: form.guarantorName || null,
-          guarantor_mobile: form.guarantorMobile || null,
-          current_address: form.currentAddress || null,
-          current_landmark: form.currentLandmark || null,
-          current_district: form.currentDistrict || null,
-          current_state: form.currentState || null,
-          current_pincode: form.currentPincode || null,
-          our_branch: form.ourBranch || null,
-          income_source: form.incomeSource || null,
-          monthly_income: Number(form.monthlyIncome) || null,
-          selected_financier: form.selectedFinancier === 'Others' ? form.otherSelectedFinancier : form.selectedFinancier,
-          financier_location: form.financierLocation || null,
-          loan_amount: Number(form.loanAmount) || 0,
-          ltv: Number(form.ltv) || null,
-          loan_type_vehicle: form.loanTypeVehicle || null,
-          vehicle_number: form.vehicleNumber || null,
-          engine_number: form.engineNumber || null,
-          chassis_number: form.chassisNumber || null,
-          owner_name: form.ownerName || null,
-          maker_name: form.makerName || null,
-          maker_model: form.makerModel || null,
-          model_variant_name: form.modelVariantName || null,
-          fuel_type: form.fuelType || null,
-          manufacturing_date: form.manufacturingDate || null,
-          ownership_type: form.ownershipType || null,
-          financer: form.financer || null,
-          finance_status: form.financeStatus || null,
-          insurance_company: form.insuranceCompany || null,
-          insurance_valid_upto: form.insuranceValidUpto || null,
-          pucc_valid_upto: form.puccValidUpto || null,
-          
-          emi_amount: emi || null,
-          total_emi: Number(form.tenure) || null,
-          total_interest: (totalInterest > 0 ? totalInterest : null),
-          irr: Number(form.irr) || null,
-          tenure: Number(form.tenure) || 60,
-          emi_start_date: form.emiStartDate || null,
-          emi_end_date: form.emiEndDate || null,
-          processing_fee: Number(form.processingFee) || null,
-          emi: emi || null,
-          interest_rate: Number(form.irr) || null,
-          assigned_bank_id: form.assignedBankId || null,
-          assigned_broker_id: form.assignedBrokerId || null,
-          financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
-          sanction_amount: Number(form.sanctionAmount) || null,
-          sanction_date: form.sanctionDate || null,
-          insurance_company_name: form.insuranceCompanyName || null,
-          premium_amount: Number(form.premiumAmount) || null,
-          insurance_date: form.insuranceDate || null,
-          insurance_policy_number: form.insurancePolicyNumber || null,
-          total_deduction: Number(form.totalDeduction) || null,
-          net_disbursement_amount: Number(form.netDisbursementAmount) || null,
-          payment_received_date: form.paymentReceivedDate || null,
-          rc_owner_name: form.rcOwnerName || null,
-          rto_agent_name: form.rtoAgentName || null,
-          agent_mobile_no: form.agentMobileNo || null,
-          login_date: form.loginDate || null,
-          sourcing_person_name: form.sourcingPersonName || null,
-          remark: form.remark || null,
-          status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
-          created_by: user?.id,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to create loan');
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['loans'] });
-      queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
-      toast.success('Loan application created successfully!');
-      navigate('/loans');
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to create loan');
-    },
-  });
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -393,7 +301,75 @@ export default function CreateLoan() {
       toast.error('Customer Name, Mobile, and Loan Amount are required');
       return;
     }
-    createLoan.mutate();
+    
+    // Prepare loan data to pass to next page
+    const loanData = {
+      loan_number: form.loanNumber || null,
+      customer_id: form.customerId || null,
+      applicant_name: form.customerName,
+      mobile: form.mobile,
+      co_applicant_name: form.coApplicantName || null,
+      co_applicant_mobile: form.coApplicantMobile || null,
+      guarantor_name: form.guarantorName || null,
+      guarantor_mobile: form.guarantorMobile || null,
+      current_address: form.currentAddress || null,
+      current_landmark: form.currentLandmark || null,
+      current_district: form.currentDistrict || null,
+      current_state: form.currentState || null,
+      current_pincode: form.currentPincode || null,
+      our_branch: form.ourBranch || null,
+      income_source: form.incomeSource || null,
+      monthly_income: Number(form.monthlyIncome) || null,
+      loan_amount: Number(form.loanAmount) || 0,
+      ltv: Number(form.ltv) || null,
+      loan_type_vehicle: form.loanTypeVehicle || null,
+      vehicle_number: form.vehicleNumber || null,
+      engine_number: form.engineNumber || null,
+      chassis_number: form.chassisNumber || null,
+      owner_name: form.ownerName || null,
+      maker_name: form.makerName || null,
+      maker_model: form.makerModel || null,
+      model_variant_name: form.modelVariantName || null,
+      fuel_type: form.fuelType || null,
+      manufacturing_date: form.manufacturingDate || null,
+      ownership_type: form.ownershipType || null,
+      financer: form.financer || null,
+      finance_status: form.financeStatus || null,
+      insurance_company: form.insuranceCompany || null,
+      insurance_valid_upto: form.insuranceValidUpto || null,
+      pucc_valid_upto: form.puccValidUpto || null,
+      emi_amount: emi || null,
+      total_emi: Number(form.tenure) || null,
+      total_interest: (totalInterest > 0 ? totalInterest : null),
+      irr: Number(form.irr) || null,
+      tenure: Number(form.tenure) || 60,
+      emi_start_date: form.emiStartDate || null,
+      emi_end_date: form.emiEndDate || null,
+      processing_fee: Number(form.processingFee) || null,
+      emi: emi || null,
+      interest_rate: Number(form.irr) || null,
+      assigned_bank_id: form.assignedBankId || null,
+      assigned_broker_id: form.assignedBrokerId || null,
+      financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
+      sanction_amount: Number(form.sanctionAmount) || null,
+      sanction_date: form.sanctionDate || null,
+      insurance_company_name: form.insuranceCompanyName || null,
+      premium_amount: Number(form.premiumAmount) || null,
+      insurance_date: form.insuranceDate || null,
+      insurance_policy_number: form.insurancePolicyNumber || null,
+      total_deduction: Number(form.totalDeduction) || null,
+      net_disbursement_amount: Number(form.netDisbursementAmount) || null,
+      payment_received_date: form.paymentReceivedDate || null,
+      rc_owner_name: form.rcOwnerName || null,
+      rto_agent_name: form.rtoAgentName || null,
+      agent_mobile_no: form.agentMobileNo || null,
+      login_date: form.loginDate || null,
+      sourcing_person_name: form.sourcingPersonName || null,
+      status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
+    };
+    
+    // Navigate to login details page with loan data
+    navigate('/loans/login-details', { state: { loanData } });
   };
 
   // Check if mandatory documents are uploaded (for executive and team_leader roles)
@@ -674,18 +650,9 @@ export default function CreateLoan() {
           </button>
           <button 
             type="submit" 
-            disabled={createLoan.isPending} 
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
+            className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
           >
-            {createLoan.isPending ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Creating...
-              </span>
-            ) : '✓ Create Application'}
+            Next →
           </button>
         </div>
           </div>

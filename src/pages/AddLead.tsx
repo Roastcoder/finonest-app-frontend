@@ -89,10 +89,10 @@ export default function AddLead() {
     },
     onSuccess: async (data) => {
       console.log('Lead created response:', data);
-      const leadId = data?.id || data?.lead_id;
+      const leadId = data.id || data.leadId || data.lead_id;
       
       if (!leadId) {
-        toast.success('Lead created successfully!');
+        toast.error('Lead created but ID not returned. Documents cannot be uploaded.');
         navigate('/leads-list');
         return;
       }
@@ -105,7 +105,7 @@ export default function AddLead() {
         for (const [docType, file] of Object.entries(documents)) {
           const formData = new FormData();
           formData.append('document', file);
-          formData.append('lead_id', String(leadId));
+          formData.append('lead_id', leadId.toString());
           formData.append('document_type', docType);
 
           try {
@@ -120,19 +120,22 @@ export default function AddLead() {
             if (response.ok) {
               uploadSuccess++;
             } else {
+              const errorData = await response.json().catch(() => ({}));
+              console.error('Document upload failed:', docType, errorData);
               uploadFailed++;
             }
           } catch (error) {
-            console.error('Document upload error:', error);
+            console.error('Document upload error:', docType, error);
             uploadFailed++;
           }
         }
         
-        if (uploadSuccess > 0) {
-          toast.success(`Lead created! ${uploadSuccess} document(s) uploaded successfully.`);
-        }
-        if (uploadFailed > 0) {
-          toast.warning(`${uploadFailed} document(s) failed to upload.`);
+        if (uploadSuccess > 0 && uploadFailed === 0) {
+          toast.success(`Lead created! All ${uploadSuccess} document(s) uploaded successfully.`);
+        } else if (uploadSuccess > 0 && uploadFailed > 0) {
+          toast.warning(`Lead created! ${uploadSuccess} document(s) uploaded, ${uploadFailed} failed.`);
+        } else if (uploadFailed > 0) {
+          toast.error(`Lead created but all ${uploadFailed} document(s) failed to upload.`);
         }
       } else {
         toast.success('Lead created successfully!');
@@ -141,6 +144,7 @@ export default function AddLead() {
       navigate('/leads-list');
     },
     onError: (err: any) => {
+      console.error('Create lead error:', err);
       toast.error(err.message || 'Failed to create lead');
     },
   });
