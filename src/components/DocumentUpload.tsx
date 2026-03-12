@@ -290,6 +290,8 @@ interface DocumentListProps {
 export function DocumentList({ leadId }: DocumentListProps) {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   const fetchDocuments = async () => {
     try {
@@ -312,9 +314,50 @@ export function DocumentList({ leadId }: DocumentListProps) {
     }
   };
 
+  const handlePreview = async (doc: any) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+        setPreviewDoc(doc);
+      } else {
+        toast.error('Failed to load document preview');
+      }
+    } catch (error) {
+      console.error('Failed to preview document:', error);
+      toast.error('Failed to load document preview');
+    }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl('');
+    setPreviewDoc(null);
+  };
+
   useEffect(() => {
     fetchDocuments();
   }, [leadId]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   if (loading) {
     return (
@@ -401,7 +444,7 @@ export function DocumentList({ leadId }: DocumentListProps) {
                     </p>
                   )}
                   <button
-                    onClick={() => window.open(doc.file_url, '_blank')}
+                    onClick={() => handlePreview(doc)}
                     className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <Eye className="w-3.5 h-3.5" />
