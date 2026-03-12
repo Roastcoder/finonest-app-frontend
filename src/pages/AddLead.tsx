@@ -88,7 +88,14 @@ export default function AddLead() {
       return response.json();
     },
     onSuccess: async (data) => {
-      const leadId = data.id;
+      console.log('Lead created response:', data);
+      const leadId = data?.id || data?.lead_id;
+      
+      if (!leadId) {
+        toast.success('Lead created successfully!');
+        navigate('/leads-list');
+        return;
+      }
       
       // Upload documents if any
       if (Object.keys(documents).length > 0) {
@@ -98,7 +105,7 @@ export default function AddLead() {
         for (const [docType, file] of Object.entries(documents)) {
           const formData = new FormData();
           formData.append('document', file);
-          formData.append('lead_id', leadId.toString());
+          formData.append('lead_id', String(leadId));
           formData.append('document_type', docType);
 
           try {
@@ -116,6 +123,7 @@ export default function AddLead() {
               uploadFailed++;
             }
           } catch (error) {
+            console.error('Document upload error:', error);
             uploadFailed++;
           }
         }
