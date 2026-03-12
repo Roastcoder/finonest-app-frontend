@@ -134,12 +134,22 @@ export default function Loans() {
   };
 
   const filtered = loans.filter((l: any) => {
+    let roleFilter = true;
+    
+    if (user?.role === 'team_leader') {
+      roleFilter = (l.created_by === user.id && l.created_by_role === 'team_leader') || (l.created_by_role === 'executive' && l.team_leader_id === user.id);
+    } else if (user?.role === 'manager') {
+      roleFilter = (l.created_by_role === 'team_leader' && l.manager_id === user.id) || (l.created_by_role === 'executive' && l.manager_id === user.id);
+    } else if (user?.role === 'executive') {
+      roleFilter = l.created_by === user.id && l.created_by_role === 'executive';
+    }
+
     const matchSearch = !search ||
       l.applicant_name?.toLowerCase().includes(search.toLowerCase()) ||
       l.id?.toLowerCase().includes(search.toLowerCase()) ||
       l.car_model?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || l.status === statusFilter;
-    return matchSearch && matchStatus;
+    return matchSearch && matchStatus && roleFilter;
   });
 
   return (
@@ -304,8 +314,8 @@ export default function Loans() {
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Applicant</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Vehicle</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Case Type</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Sourcing Name</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Bank</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Sourcing Name</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">Amount</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">EMI</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
@@ -325,8 +335,8 @@ export default function Loans() {
                       <p className="text-xs text-muted-foreground">{loan.vehicle_number || loan.car_variant}</p>
                     </td>
                     <td className="py-3.5 px-3 text-muted-foreground">{loan.case_type || '—'}</td>
+                    <td className="py-3.5 px-3 text-muted-foreground">{loan.bank_name || '—'}</td>
                     <td className="py-3.5 px-3 text-muted-foreground">{loan.sourcing_person_name || '—'}</td>
-                    <td className="py-3.5 px-3 text-muted-foreground">{loan.banks?.name || '—'}</td>
                     <td className="py-3.5 px-3 text-right font-medium text-foreground">{formatCurrency(Number(loan.loan_amount))}</td>
                     <td className="py-3.5 px-3 text-right text-muted-foreground">{formatCurrency(Number(loan.emi))}/mo</td>
                     <td className="py-3.5 px-3"><LoanStatusBadge status={loan.status} /></td>
