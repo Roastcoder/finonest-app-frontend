@@ -308,14 +308,13 @@ export default function Loans() {
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">EMI</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
                   {canEditStatus && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Update</th>}
-                  {isTeamLeader && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Action</th>}
                   {canDelete && <th className="text-left py-3 px-3 font-medium text-muted-foreground">Delete</th>}
-                  {!isTeamLeader && !canDelete && <th className="py-3 px-3"></th>}
+                  <th className="py-3 px-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((loan: any) => (
-                  <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group" style={{ cursor: isTeamLeader ? 'default' : 'pointer' }} onClick={() => !isTeamLeader && navigate(`/loans/${loan.id}`)}>
+                  <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
                     <td className="py-3.5 px-3 mono text-xs text-accent font-medium">{loan.loan_number || loan.id}</td>
                     <td className="py-3.5 px-3">
                       <p className="font-medium text-foreground">{loan.applicant_name}</p>
@@ -341,13 +340,6 @@ export default function Loans() {
                         </select>
                       </td>
                     )}
-                    {isTeamLeader && (
-                      <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => navigate(`/loans/${loan.id}/edit`)} className="flex items-center gap-1 px-2 py-1 bg-accent text-accent-foreground rounded text-xs">
-                          <Edit2 size={14} /> Edit
-                        </button>
-                      </td>
-                    )}
                     {canDelete && (
                       <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => handleDelete(loan)} className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
@@ -355,11 +347,9 @@ export default function Loans() {
                         </button>
                       </td>
                     )}
-                    {!isTeamLeader && !canDelete && (
-                      <td className="py-3.5 px-3">
-                        <ChevronRight size={16} className="text-muted-foreground group-hover:text-accent transition-colors" />
-                      </td>
-                    )}
+                    <td className="py-3.5 px-3">
+                      <ChevronRight size={16} className="text-muted-foreground group-hover:text-accent transition-colors" />
+                    </td>
                   </tr>
                 ))}
               </tbody>
