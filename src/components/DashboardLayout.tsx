@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Create Loan', path: '/loans/new', icon: <Car size={16} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader'] },
     ]
   },
-  { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['team_leader'] },
+  { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['manager', 'team_leader'] },
   {
     label: 'Operations', icon: <ShieldCheck size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'executive'],
     children: [
@@ -58,7 +58,6 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={16} />, roles: ['admin'] },
       { label: 'Branches', path: '/branches', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'ops_team'] },
       { label: 'Permissions', path: '/permissions', icon: <Settings size={16} />, roles: ['admin'] },
-      { label: 'Application Stages', path: '/application-stages', icon: <FileText size={16} />, roles: ['admin', 'manager'] },
       { label: 'Audit Logs', path: '/audit-logs', icon: <FileText size={16} />, roles: ['admin'] },
       { label: 'System Config', path: '/settings', icon: <Sliders size={16} />, roles: ['admin'] },
     ]
