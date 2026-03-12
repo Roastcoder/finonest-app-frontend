@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface LeadDocumentUploadProps {
@@ -57,6 +57,11 @@ export default function LeadDocumentUpload({ onDocumentsChange }: LeadDocumentUp
     onDocumentsChange(newFiles);
   };
 
+  const viewDocument = (file: File) => {
+    const fileURL = URL.createObjectURL(file);
+    window.open(fileURL, '_blank');
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-border p-6">
       <h2 className="text-lg font-bold text-slate-800 mb-4 tracking-tight">Documents</h2>
@@ -65,22 +70,38 @@ export default function LeadDocumentUpload({ onDocumentsChange }: LeadDocumentUp
         <h3 className="text-sm font-bold text-slate-800 mb-3">Required Documents <span className="text-red-500">*</span></h3>
         <div className="flex flex-wrap gap-4">
           {REQUIRED_DOCUMENTS.map(doc => (
-            <div key={doc.value} className="flex items-center gap-2">
+            <div key={doc.value} className="flex flex-col gap-1">
               <button
                 type="button"
                 onClick={() => handleDocTypeClick(doc.value)}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
               >
                 {doc.label} <span className="text-red-500">*</span>
               </button>
               {files[doc.value] && (
-                <div className="flex items-center gap-1">
-                  <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex items-center gap-2 ml-0">
+                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span className="text-xs text-green-600 truncate max-w-[150px]">
                     {files[doc.value].name}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => viewDocument(files[doc.value])}
+                    className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
+                    title="View document"
+                  >
+                    <Eye size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(doc.value)}
+                    className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                    title="Remove document"
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               )}
               <input
@@ -99,22 +120,38 @@ export default function LeadDocumentUpload({ onDocumentsChange }: LeadDocumentUp
         <h3 className="text-sm font-bold text-slate-800 mb-3">Optional Documents</h3>
         <div className="flex flex-wrap gap-4">
           {OPTIONAL_DOCUMENTS.map(doc => (
-            <div key={doc.value} className="flex items-center gap-2">
+            <div key={doc.value} className="flex flex-col gap-1">
               <button
                 type="button"
                 onClick={() => handleDocTypeClick(doc.value)}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
               >
                 {doc.label}
               </button>
               {files[doc.value] && (
-                <div className="flex items-center gap-1">
-                  <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex items-center gap-2 ml-0">
+                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span className="text-xs text-green-600 truncate max-w-[150px]">
                     {files[doc.value].name}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => viewDocument(files[doc.value])}
+                    className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
+                    title="View document"
+                  >
+                    <Eye size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(doc.value)}
+                    className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                    title="Remove document"
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               )}
               <input
