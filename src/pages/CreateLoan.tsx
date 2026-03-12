@@ -32,6 +32,93 @@ export default function CreateLoan() {
     },
   });
 
+  const LEDGER_OPTIONS = [
+    'APM Finvest',
+    'AU Small Finance Bank',
+    'Axis Bank',
+    'Bajaj Finance',
+    'Bajaj Finserv Ltd',
+    'Bandhan Bank',
+    'Bank of Baroda',
+    'Bank of India',
+    'Bank of Maharashtra',
+    'CARS 24',
+    'Canara Bank',
+    'Capital First',
+    'Central Bank of India',
+    'Cholamandalam Finance',
+    'Cholamandalam Investment & Finance',
+    'City Union Bank',
+    'Dhanlaxmi Bank',
+    'ESAF Small Finance Bank',
+    'Equitas Small Finance Bank',
+    'Federal Bank',
+    'Ford Credit India',
+    'Fortune Finance',
+    'Fullerton India',
+    'HDB Financial Services',
+    'HDFC Bank',
+    'Hero FinCorp',
+    'Hinduja Leyland Finance',
+    'ICICI Bank',
+    'IDBI Bank',
+    'IDFC First Bank',
+    'IIFL Finance',
+    'IKF Finance',
+    'Indian Bank',
+    'Indostar',
+    'Indostar Capital Finance',
+    'IndusInd Bank',
+    'Jammu & Kashmir Bank',
+    'Karnataka Bank',
+    'Karur Vysya Bank',
+    'Kogta Financial India Limited',
+    'Kotak Mahindra Bank',
+    'Kotak Mahindra Prime',
+    'L&T Finance',
+    'Lakshmi Vilas Bank',
+    'Magma Fincorp',
+    'Mahindra Finance',
+    'Manappuram Finance',
+    'Maruti Suzuki Finance',
+    'Muthoot Capital Services',
+    'Muthoot Finance',
+    'Oriental Bank of Commerce',
+    'Piramal',
+    'Poonawalla Fincorp Limited',
+    'Punjab National Bank',
+    'RBL Bank',
+    'Reliance Commercial Finance',
+    'Renault Finance',
+    'Shriram Finance Limited',
+    'Shriram Transport Finance',
+    'Sk Finance',
+    'Skoda Finance',
+    'South Indian Bank',
+    'State Bank of Bikaner & Jaipur',
+    'State Bank of Hyderabad',
+    'State Bank of India',
+    'State Bank of Mysore',
+    'State Bank of Patiala',
+    'State Bank of Travancore',
+    'Sundaram Finance',
+    'Syndicate Bank',
+    'TVS Credit Services',
+    'Tamilnad Mercantile Bank',
+    'Tata Capital',
+    'Toyota Financial Services',
+    'Toyota Financial Services India Limited',
+    'UCO Bank',
+    'Union Bank of India',
+    'United Bank of India',
+    'Vastu Finserve',
+    'Vijaya Bank',
+    'Volkswagen Finance',
+    'Yes Bank',
+    'dugar finance',
+    'Others'
+  ];
+
   const { data: brokers = [] } = useQuery({
     queryKey: ['brokers-list'],
     queryFn: async () => {
@@ -89,6 +176,13 @@ export default function CreateLoan() {
   const [showOptionalFields, setShowOptionalFields] = useState({
     coApplicant: false,
     guarantor: false,
+  });
+
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [assignmentForm, setAssignmentForm] = useState({
+    ledgerSelection: '',
+    salesManager: '',
+    remarks: ''
   });
 
   const [fetchingVehicleData, setFetchingVehicleData] = useState(false);
@@ -452,14 +546,21 @@ export default function CreateLoan() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.customerName.trim() || !form.mobile.trim() || !form.loanAmount) {
       toast.error('Customer Name, Mobile, and Loan Amount are required');
       return;
     }
-    createLoan.mutate();
+    setShowAssignmentModal(true);
   };
+
+  const handleCreateApplication = () => {
+    createLoan.mutate();
+    setShowAssignmentModal(false);
+  };
+
+
 
   // Check if mandatory documents are uploaded (for executive and team_leader roles)
   const isExecutive = user?.role === 'executive';
@@ -471,435 +572,68 @@ export default function CreateLoan() {
   const labelClass = "block text-[10px] font-medium text-foreground/70 mb-1";
 
   return (
-    <div className="w-full">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
-        <ArrowLeft size={16} /> Back
-      </button>
-
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-foreground mb-2">New Loan Application</h1>
-      </div>
-
-      <form onSubmit={handleSubmit} className="w-full">
-        <div className="bg-card rounded-lg border border-border p-4 shadow-sm mb-4 space-y-6 w-full">
-          {/* Customer Details */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Customer Details</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="relative" ref={dropdownRef}>
-                  
-                  <div className="relative">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    <input
-                      type="text"
-                      className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
-                      value={leadSearch || form.customerId}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setLeadSearch(value);
-                        setForm(f => ({ ...f, customerId: value }));
-                        setShowLeadDropdown(true);
-                      }}
-                      onFocus={() => setShowLeadDropdown(true)}
-                      placeholder="Search by Customer ID, name or phone..."
-                    />
-                    {leadSearch && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLeadSearch('');
-                          setForm(f => ({ ...f, customerId: '' }));
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X size={16} />
-                      </button>
-                    )}
-                  </div>
-                  {showLeadDropdown && filteredLeads.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {filteredLeads.slice(0, 10).map((l: any) => (
-                        <button
-                          key={l.id}
-                          type="button"
-                          onClick={() => {
-                            handleLeadSelect(l);
-                            setLeadSearch(l.customer_id);
-                            setShowLeadDropdown(false);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
-                        >
-                          <div className="font-medium text-foreground text-sm">{l.customer_name}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            <span className="font-mono text-accent">{l.customer_id}</span> • {l.phone}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="floating-input-wrapper"><input required className={inputClass} value={form.customerName} onChange={e => update('customerName', e.target.value)} placeholder=" " /><label className={labelClass}>Customer Name *</label></div>
-                <div className="floating-input-wrapper"><input required className={inputClass} value={form.mobile} onChange={e => update('mobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Mobile No *</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.sourcingPersonName} onChange={e => update('sourcingPersonName', e.target.value)} placeholder=" " /><label className={labelClass}>Sourcing Person</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.loginDate} onChange={e => update('loginDate', e.target.value)} placeholder=" " /><label className={labelClass}>Login Date</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.ourBranch} onChange={e => update('ourBranch', e.target.value)} placeholder=" " /><label className={labelClass}>Our Branch</label></div>
-                
-                {/* Co-Applicant Section */}
-                <div className="md:col-span-3 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowOptionalFields(s => ({ ...s, coApplicant: !s.coApplicant }))}
-                    className="flex items-center gap-2 text-sm font-semibold text-accent hover:text-accent/80 transition-colors"
-                  >
-                    {showOptionalFields.coApplicant ? '−' : '+'} Add Co-Applicant Details
-                  </button>
-                </div>
-                {showOptionalFields.coApplicant && (
-                  <>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantName} onChange={e => update('coApplicantName', e.target.value)} placeholder=" " /><label className={labelClass}>Co-Applicant Name</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantMobile} onChange={e => update('coApplicantMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Co-Applicant Mobile</label></div>
-                  </>
-                )}
-                
-                {/* Guarantor Section */}
-                <div className="md:col-span-3 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowOptionalFields(s => ({ ...s, guarantor: !s.guarantor }))}
-                    className="flex items-center gap-2 text-sm font-semibold text-accent hover:text-accent/80 transition-colors"
-                  >
-                    {showOptionalFields.guarantor ? '−' : '+'} Add Guarantor Details
-                  </button>
-                </div>
-                {showOptionalFields.guarantor && (
-                  <>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorName} onChange={e => update('guarantorName', e.target.value)} placeholder=" " /><label className={labelClass}>Guarantor Name</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorMobile} onChange={e => update('guarantorMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Guarantor Mobile</label></div>
-                  </>
-                )}
-                
-                <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Current Address</h3></div>
-                <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.currentAddress} onChange={e => update('currentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentLandmark} onChange={e => update('currentLandmark', e.target.value)} placeholder=" " /><label className={labelClass}>Landmark</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentDistrict} onChange={e => update('currentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentState} onChange={e => update('currentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
+    <>
+      {/* Assignment Modal */}
+      {showAssignmentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Assignment Details</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>Select Ledger *</label>
+                <select 
+                  className={inputClass}
+                  value={assignmentForm.ledgerSelection}
+                  onChange={e => setAssignmentForm(f => ({ ...f, ledgerSelection: e.target.value }))}
+                  required
+                >
+                  <option value="">Choose Ledger</option>
+                  {LEDGER_OPTIONS.map((ledger) => (
+                    <option key={ledger} value={ledger}>
+                      {ledger}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-
-          {/* Vehicle & Loan */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Vehicle & Loan Details</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div className="relative floating-input-wrapper">
-                  <input 
-                    className="w-full px-3 py-2 pr-10 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" 
-                    value={form.vehicleNumber} 
-                    onChange={e => {
-                      const value = e.target.value.toUpperCase();
-                      update('vehicleNumber', value);
-                    }}
-                    placeholder=" "
-                  />
-                  <label className={labelClass}>Vehicle Reg. No</label>
-                  <button
-                    type="button"
-                    onClick={() => fetchVehicleDetails(form.vehicleNumber)}
-                    disabled={!form.vehicleNumber || form.vehicleNumber.length < 8 || fetchingVehicleData}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    {fetchingVehicleData ? (
-                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Search size={16} />
-                    )}
-                  </button>
-                </div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Company Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.makerModel} onChange={e => update('makerModel', e.target.value)} placeholder=" " /><label className={labelClass}>Vehicle Model</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.engineNumber} onChange={e => update('engineNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Engine Number</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.chassisNumber} onChange={e => update('chassisNumber', e.target.value)} placeholder=" " /><label className={labelClass}>Chassis Number</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.ownerName} onChange={e => update('ownerName', e.target.value)} placeholder=" " /><label className={labelClass}>Owner Name</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.fuelType} onChange={e => update('fuelType', e.target.value)} placeholder=" " /><label className={labelClass}>Fuel Type</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.manufacturingDate} onChange={e => update('manufacturingDate', e.target.value)} placeholder=" " /><label className={labelClass}>Manufacturing Date</label></div>
-                <div className="floating-input-wrapper"><select className={inputClass} value={form.ownershipType} onChange={e => update('ownershipType', e.target.value)}><option value="">Select</option><option value="First Owner">First Owner</option><option value="Second Owner">Second Owner</option><option value="Third Owner">Third Owner</option><option value="Fourth Owner">Fourth Owner</option></select><label className={labelClass}>Ownership Type</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.financer} onChange={e => update('financer', e.target.value)} placeholder=" " /><label className={labelClass}>Financer</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.financeStatus} onChange={e => update('financeStatus', e.target.value)} placeholder=" " /><label className={labelClass}>Finance Status</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompany} onChange={e => update('insuranceCompany', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceValidUpto} onChange={e => update('insuranceValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Valid Upto</label></div>
-                <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.puccValidUpto} onChange={e => update('puccValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>PUCC Valid Upto</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.caseType} onChange={e => update('caseType', e.target.value)} placeholder=" " /><label className={labelClass}>Case Type</label></div>
-              </div>
-            </div>
-
-          {/* Income Details (for Executive/Team Leader) */}
-          {(isExecutive || isTeamLeader) && (
-            <div>
-              <h2 className="text-base font-bold text-foreground mb-3">Income Details</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="floating-input-wrapper">
-                  <select className={inputClass} value={form.incomeSource} onChange={e => update('incomeSource', e.target.value)}>
-                    <option value="">Select Income Source</option>
-                    <option value="Salaried">Salaried</option>
-                    <option value="Self Employed">Self Employed</option>
-                    <option value="Farmer">Farmer</option>
-                    <option value="Freelancer/Agent">Freelancer/Agent</option>
-                    <option value="Other Income">Other Income</option>
-                  </select>
-                  <label className={labelClass}>Income Source</label>
-                </div>
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " /><label className={labelClass}>Monthly Income (₹)</label></div>
-                <div className="floating-input-wrapper">
-                  <select className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)}>
-                    <option value="">Select Financier</option>
-                    {FINANCIERS.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <label className={labelClass}>Financier Name</label>
-                </div>
-                {form.financierName === 'Others' && (
-                  <div className="floating-input-wrapper">
-                    <input className={inputClass} value={form.otherFinancierName} onChange={e => update('otherFinancierName', e.target.value)} placeholder=" " />
-                    <label className={labelClass}>Enter Financier Name</label>
-                  </div>
-                )}
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.financierLocation} onChange={e => update('financierLocation', e.target.value)} placeholder=" " /><label className={labelClass}>Location</label></div>
-              </div>
-
-              {/* Salaried Income Fields */}
-              {form.incomeSource === 'Salaried' && (
-                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Salaried Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.companyName} onChange={e => update('companyName', e.target.value)} placeholder=" " /><label className={labelClass}>Company Name</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.designation} onChange={e => update('designation', e.target.value)} placeholder=" " /><label className={labelClass}>Designation</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.workExperience} onChange={e => update('workExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Work Experience</label></div>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.currentJobYears} onChange={e => update('currentJobYears', e.target.value)} placeholder=" " /><label className={labelClass}>Current Job (In Yrs)</label></div>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalWorkExp} onChange={e => update('totalWorkExp', e.target.value)} placeholder=" " /><label className={labelClass}>Total Work Exp. (In Yrs)</label></div>
-                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netMonthlySalary} onChange={e => update('netMonthlySalary', e.target.value)} placeholder=" " /><label className={labelClass}>Net Monthly Salary</label></div>
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.salaryCreditMode} onChange={e => update('salaryCreditMode', e.target.value)}>
-                        <option value="">Select Mode</option>
-                        <option value="Account Transfer">Account Transfer</option>
-                        <option value="Cash">Cash</option>
-                      </select>
-                      <label className={labelClass}>Salary Credit Mode</label>
-                    </div>
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.salarySlipAvailable} onChange={e => update('salarySlipAvailable', e.target.value)}>
-                        <option value="">Select</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                      <label className={labelClass}>Salary Slip Available</label>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Self Employed Fields */}
-              {form.incomeSource === 'Self Employed' && (
-                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Self Employed Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.profile} onChange={e => update('profile', e.target.value)}>
-                        <option value="">Select Profile</option>
-                        <option value="Business">Business</option>
-                        <option value="Professional">Professional</option>
-                        <option value="Freelancer/Agent">Freelancer/Agent</option>
-                        <option value="Farmer">Farmer</option>
-                        <option value="Other Income">Other Income</option>
-                      </select>
-                      <label className={labelClass}>Profile</label>
-                    </div>
-
-                    {form.profile && (
-                      <div className="floating-input-wrapper">
-                        <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
-                          <option value="">Select</option>
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </select>
-                        <label className={labelClass}>ITR Available</label>
-                      </div>
-                    )}
-
-                    {form.itrAvailable === 'Yes' && (
-                      <div className="floating-input-wrapper">
-                        <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
-                        <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
-                      </div>
-                    )}
-
-                    {form.profile === 'Business' && (
-                      <>
-                        <div className="floating-input-wrapper"><input className={inputClass} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder=" " /><label className={labelClass}>Business Name</label></div>
-                        <div className="floating-input-wrapper"><input className={inputClass} value={form.businessType} onChange={e => update('businessType', e.target.value)} placeholder=" " /><label className={labelClass}>Business Type</label></div>
-                        <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.businessVintage} onChange={e => update('businessVintage', e.target.value)} placeholder=" " /><label className={labelClass}>Business Vintage (Years)</label></div>
-                      </>
-                    )}
-
-                    {form.profile === 'Professional' && (
-                      <>
-                        <div className="floating-input-wrapper">
-                          <select className={inputClass} value={form.professionalSubtype} onChange={e => update('professionalSubtype', e.target.value)}>
-                            <option value="">Select Subtype</option>
-                            <option value="CA">CA</option>
-                            <option value="Doctor">Doctor</option>
-                            <option value="MBBD">MBBD</option>
-                            <option value="MD/MS">MD/MS</option>
-                            <option value="BDS/MDS (Dentist)">BDS/MDS (Dentist)</option>
-                            <option value="Engineer">Engineer</option>
-                            <option value="Architect">Architect</option>
-                          </select>
-                          <label className={labelClass}>Professional Subtype</label>
-                        </div>
-                        <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.practiceExperience} onChange={e => update('practiceExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Practice Experience (In Yrs)</label></div>
-                      </>
-                    )}
-
-                    {form.profile === 'Freelancer/Agent' && (
-                      <div className="floating-input-wrapper">
-                        <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
-                          <option value="">Select Subtype</option>
-                          <option value="IT Freelancer">IT Freelancer</option>
-                          <option value="LIC Agent">LIC Agent</option>
-                          <option value="Property Broker">Property Broker</option>
-                          <option value="Gig Worker">Gig Worker</option>
-                          <option value="Other Commission Agent">Other Commission Agent</option>
-                        </select>
-                        <label className={labelClass}>Subtype</label>
-                      </div>
-                    )}
-
-                    {form.profile === 'Other Income' && (
-                      <div className="floating-input-wrapper">
-                        <select className={inputClass} value={form.otherIncomeType} onChange={e => update('otherIncomeType', e.target.value)}>
-                          <option value="">Select Type</option>
-                          <option value="Dairy">Dairy</option>
-                          <option value="Rental">Rental</option>
-                        </select>
-                        <label className={labelClass}>Other Income Type</label>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Freelancer/Agent Fields */}
-              {form.incomeSource === 'Freelancer/Agent' && (
-                <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Freelancer/Agent Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
-                        <option value="">Select Subtype</option>
-                        <option value="IT Freelancer">IT Freelancer</option>
-                        <option value="LIC Agent">LIC Agent</option>
-                        <option value="Property Broker">Property Broker</option>
-                        <option value="Gig Worker">Gig Worker</option>
-                        <option value="Other Commission Agent">Other Commission Agent</option>
-                      </select>
-                      <label className={labelClass}>Subtype</label>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-
-
-          {/* Documents */}
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Documents</h2>
               
-              {/* Customer Documents */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Customer Documents {(isExecutive || isTeamLeader) && <span className="text-xs text-red-500">(Upload mandatory documents first)</span>}</h3>
-                
-                {/* Mandatory Documents for Executive */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className={labelClass}>Aadhar Card Front {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.aadharFront && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharFront as File).name}</p>}
-                  </div>
-                  <div>
-                    <label className={labelClass}>Aadhar Card Back {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('aadharBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.aadharBack && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharBack as File).name}</p>}
-                  </div>
-                  <div>
-                    <label className={labelClass}>Pan Card {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('panCard', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.panCard && <p className="text-xs text-green-600 mt-1">✓ {(form.panCard as File).name}</p>}
-                  </div>
-                  <div>
-                    <label className={labelClass}>RC (Front) {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('rcFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.rcFront && <p className="text-xs text-green-600 mt-1">✓ {(form.rcFront as File).name}</p>}
-                  </div>
-                  <div>
-                    <label className={labelClass}>RC (Back) {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('rcBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.rcBack && <p className="text-xs text-green-600 mt-1">✓ {(form.rcBack as File).name}</p>}
-                  </div>
-                </div>
-
-                {/* Other Documents - Show only after mandatory docs are uploaded */}
-                {showOtherDocs ? (
-                  <>
-                    {(isExecutive || isTeamLeader) && <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-300">✓ Mandatory documents uploaded. You can now upload additional documents.</div>}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div><label className={labelClass}>Driving Licence</label><input type="file" className={inputClass} onChange={e => update('drivingLicence', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Light Bill</label><input type="file" className={inputClass} onChange={e => update('lightBill', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Last 6 Month Bank Statement</label><input type="file" className={inputClass} onChange={e => update('bankStatement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Cheque</label><input type="file" className={inputClass} onChange={e => update('cheque', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Income Proof</label><input type="file" className={inputClass} onChange={e => update('incomeProof', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Rent Agreement</label><input type="file" className={inputClass} onChange={e => update('rentAgreement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Customer Photo</label><input type="file" className={inputClass} onChange={e => update('customerPhoto', e.target.files?.[0] || null)} accept="image/*" /></div>
-                      <div><label className={labelClass}>Disbursement Memo</label><input type="file" className={inputClass} onChange={e => update('disbursementMemo', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Insurance</label><input type="file" className={inputClass} onChange={e => update('insurance', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Customer Ledger</label><input type="file" className={inputClass} onChange={e => update('customerLedger', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-xs text-yellow-700 dark:text-yellow-300">
-                    ⚠️ Please upload all 5 mandatory documents (Aadhar Front, Aadhar Back, PAN Card, RC Front, RC Back) to unlock additional document uploads.
-                  </div>
-                )}
+              <div>
+                <label className={labelClass}>Sales Manager</label>
+                <input 
+                  className={inputClass}
+                  value={assignmentForm.salesManager}
+                  onChange={e => setAssignmentForm(f => ({ ...f, salesManager: e.target.value }))}
+                  placeholder="Enter sales manager name"
+                />
               </div>
-
+              
+              <div>
+                <label className={labelClass}>Remarks (Optional)</label>
+                <textarea 
+                  className={inputClass}
+                  rows={3}
+                  value={assignmentForm.remarks}
+                  onChange={e => setAssignmentForm(f => ({ ...f, remarks: e.target.value }))}
+                  placeholder="Add any additional remarks..."
+                />
+              </div>
             </div>
-
-        {/* Submit Button */}
-        <div className="flex justify-end gap-3 pb-6">
-          <button 
-            type="button" 
-            onClick={() => navigate(-1)} 
-            className="px-6 py-3 rounded-xl border-2 border-border font-semibold hover:bg-muted transition-all"
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            disabled={createLoan.isPending} 
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
-          >
-            {createLoan.isPending ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Creating...
-              </span>
-            ) : '✓ Create Application'}
-          </button>
-        </div>
-          </div>
-      </form>
-    </div>
-  );
-}
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <button 
+                type="button" 
+                onClick={() => setShowAssignmentModal(false)}
+                className="px-4 py-2 rounded-lg border border-border font-medium hover:bg-muted transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleCreateApplication}
+                disabled={!assignmentForm.ledgerSelection || createLoan.isPending}
+                className="px-6 py-2 rounded-lg bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
+              >
+                {createLoan.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="o
