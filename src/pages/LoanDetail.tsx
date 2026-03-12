@@ -215,20 +215,20 @@ export default function LoanDetail() {
       </div>
 
       {/* Status Pipeline */}
-      <div className="stat-card mb-5 overflow-x-auto">
+      <div className="stat-card mb-5">
         <h3 className="text-sm font-semibold text-foreground mb-3">Status Pipeline</h3>
-        <div className="flex items-center gap-1 min-w-max">
+        <div className="flex flex-wrap items-center gap-1">
           {LEAD_STATUSES.map((s, i) => {
             const isActive = i <= currentIdx && loan.status !== 'rejected';
             const isCurrent = s.value === loan.status;
             return (
               <div key={s.value} className="flex items-center gap-1">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${isCurrent ? 'bg-accent text-accent-foreground' : isActive ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                  <div className={`w-2 h-2 rounded-full ${isCurrent ? 'bg-accent-foreground' : isActive ? 'bg-accent' : 'bg-muted-foreground/40'}`} />
+                <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all ${isCurrent ? 'bg-accent text-accent-foreground' : isActive ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-accent-foreground' : isActive ? 'bg-accent' : 'bg-muted-foreground/40'}`} />
                   {s.label}
                 </div>
                 {i < LEAD_STATUSES.length - 1 && (
-                  <div className={`w-6 h-0.5 ${isActive && i < currentIdx ? 'bg-accent' : 'bg-border'}`} />
+                  <div className={`w-3 h-0.5 ${isActive && i < currentIdx ? 'bg-accent' : 'bg-border'}`} />
                 )}
               </div>
             );
