@@ -1,44 +1,73 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
-import { ArrowLeft, User, Car, IndianRupee, ArrowRight, FileText, Copy } from 'lucide-react';
+import { ArrowLeft, User, Car, IndianRupee, ArrowRight, FileText, Copy, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/mock-data';
+import { FINANCIERS } from '@/lib/financiers';
 import DocumentUpload, { DocumentList } from '@/components/DocumentUpload';
 import CustomerProfileForm from '@/components/CustomerProfileForm';
 
 export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showReapplyModal, setShowReapplyModal] = useState(false);
+  const [selectedFinancier, setSelectedFinancier] = useState('');
 
-  const { data: lead, isLoading } = useQuery({
+  const { data: banks = [] } = useQuery({
+    queryKey: ['banks-list'],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/banks`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return [];
+        return await response.json();
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const queryClient = useQueryClient();
+
+  const { data: lead, isLoading, error } = useQuery({
     queryKey: ['lead', id],
     queryFn: async () => {
+      console.log('Fetching lead with ID:', id);
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           }
         });
-        if (!response.ok) throw new Error('Lead not found');
-        return await response.json();
+        console.log('Lead fetch response status:', response.status);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Lead fetch error:', errorText);
+          throw new Error(`Failed to fetch lead: ${response.status} ${errorText}`);
+        }
+        const data = await response.json();
+        console.log('Lead data received:', data);
+        return data;
       } catch (error) {
+        console.error('Lead fetch error:', error);
         throw error;
       }
     },
     enabled: !!id,
   });
 
-  const queryClient = useQueryClient();
   const cloneMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (newFinancierId?: number) => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${id}/clone`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
-        body: JSON.stringify({}) // Can pass new_financier_id if desired
+        body: JSON.stringify({ new_financier_id: newFinancierId })
       });
       if (!response.ok) throw new Error('Failed to clone lead');
       return await response.json();
@@ -46,6 +75,7 @@ export default function LeadDetail() {
     onSuccess: (data) => {
       toast.success('Lead successfully cloned for reapplication!');
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      setShowReapplyModal(false);
       navigate(`/leads/${data.leadId}`);
     },
     onError: (err: any) => {
@@ -53,12 +83,43 @@ export default function LeadDetail() {
     }
   });
 
+  const handleReapply = () => {
+    setSelectedFinancier(lead?.financier_name || '');
+    setShowReapplyModal(true);
+  };
+
+  const handleConfirmReapply = () => {
+    const selectedBank = banks.find(bank => bank.name === selectedFinancier);
+    cloneMutation.mutate(selectedBank?.id);
+  };
+
+  const inputClass = "w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all";
+  const labelClass = "block text-xs font-medium text-foreground/70 mb-1";
+
   if (isLoading) return <div className="py-20 text-center text-muted-foreground">Loading…</div>;
 
-  if (!lead) {
+  if (error) {
+    console.error('Lead detail error:', error);
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] bg-background border border-dashed border-border rounded-xl mt-6">
-        <p className="text-muted-foreground font-medium mb-4">Lead not found</p>
+        <p className="text-red-500 font-medium mb-2">Error loading lead details</p>
+        <p className="text-muted-foreground text-sm mb-4">{(error as Error).message}</p>
+        <button 
+          onClick={() => navigate('/leads-list')} 
+          className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-lg hover:bg-accent hover:text-white transition-all duration-200"
+        >
+          <ArrowLeft size={16} /> Back to leads
+        </button>
+      </div>
+    );
+  }
+
+  if (!lead) {
+    console.log('No lead data found for ID:', id);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-background border border-dashed border-border rounded-xl mt-6">
+        <p className="text-muted-foreground font-medium mb-4">Lead not found (ID: {id})</p>
+        <p className="text-xs text-muted-foreground mb-4">Check if the lead exists or if you have permission to view it</p>
         <button 
           onClick={() => navigate('/leads-list')} 
           className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-lg hover:bg-accent hover:text-white transition-all duration-200"
@@ -77,6 +138,73 @@ export default function LeadDetail() {
   );
 
   return (
+    <>
+      {/* Reapply Modal */}
+      {showReapplyModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Reapply with New Financier</h3>
+              <button 
+                onClick={() => setShowReapplyModal(false)}
+                className="p-1 rounded hover:bg-muted transition-colors"
+              >
+                <X size={16} className="text-muted-foreground" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>Select New Financier</label>
+                <select 
+                  className={inputClass}
+                  value={selectedFinancier}
+                  onChange={e => setSelectedFinancier(e.target.value)}
+                >
+                  <option value="">Choose Financier</option>
+                  {FINANCIERS.map((financier) => (
+                    <option key={financier} value={financier}>
+                      {financier}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="bg-muted/20 p-3 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Current Financier</p>
+                <p className="text-sm font-medium text-foreground">{lead?.financier_name || 'Not specified'}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <button 
+                type="button" 
+                onClick={() => setShowReapplyModal(false)}
+                className="px-4 py-2 rounded-lg border border-border font-medium hover:bg-muted transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleConfirmReapply}
+                disabled={!selectedFinancier || cloneMutation.isPending}
+                className="px-6 py-2 rounded-lg bg-gradient-to-r from-accent to-accent/90 text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
+              >
+                {cloneMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Creating...
+                  </span>
+                ) : 'Reapply'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     <div className="max-w-4xl mx-auto px-4">
       <button onClick={() => navigate('/leads-list')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
         <ArrowLeft size={16} /> Back to Leads
@@ -103,7 +231,7 @@ export default function LeadDetail() {
         {!lead.converted_to_loan && (
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => cloneMutation.mutate()}
+              onClick={handleReapply}
               disabled={cloneMutation.isPending}
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-border bg-background text-sm font-semibold text-foreground hover:border-accent/50 hover:bg-accent/5 transition-all duration-200 disabled:opacity-50"
             >
@@ -206,5 +334,6 @@ export default function LeadDetail() {
         </div>
       </div>
     </div>
+    </>
   );
 }
