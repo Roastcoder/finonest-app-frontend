@@ -275,6 +275,7 @@ export default function CreateLoan() {
         let failedCount = 0;
 
         // Fetch and convert each document to File object
+        const missingDocs: string[] = [];
         for (const doc of documents) {
           const formField = docTypeMap[doc.document_type];
           const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`;
@@ -294,13 +295,21 @@ export default function CreateLoan() {
                 loadedCount++;
               } else {
                 console.error(`Failed to download ${doc.document_type}: ${fileResponse.statusText}`);
+                missingDocs.push(doc.document_type.replace(/_/g, ' '));
                 failedCount++;
               }
             } catch (err) {
               console.error(`Error fetching document ${doc.document_type}:`, err);
+              missingDocs.push(doc.document_type.replace(/_/g, ' '));
               failedCount++;
             }
           }
+        }
+
+        if (missingDocs.length > 0) {
+          toast.error(`Some documents are missing on the server: ${missingDocs.join(', ')}. Please re-upload them.`, {
+            duration: 6000
+          });
         }
         
         if (loadedCount > 0) {

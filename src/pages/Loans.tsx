@@ -128,9 +128,18 @@ export default function Loans() {
   const filtered = loans.filter((l: any) => {
     const matchSearch = !search ||
       l.applicant_name?.toLowerCase().includes(search.toLowerCase()) ||
-      l.id?.toLowerCase().includes(search.toLowerCase()) ||
+      l.id?.toString().toLowerCase().includes(search.toLowerCase()) ||
       l.loan_number?.toLowerCase().includes(search.toLowerCase()) ||
-      l.car_model?.toLowerCase().includes(search.toLowerCase());
+      l.mobile?.toLowerCase().includes(search.toLowerCase()) ||
+      l.bank_name?.toLowerCase().includes(search.toLowerCase()) ||
+      l.financier_name?.toLowerCase().includes(search.toLowerCase()) ||
+      l.car_make?.toLowerCase().includes(search.toLowerCase()) ||
+      l.car_model?.toLowerCase().includes(search.toLowerCase()) ||
+      l.maker_name?.toLowerCase().includes(search.toLowerCase()) ||
+      l.model_variant_name?.toLowerCase().includes(search.toLowerCase()) ||
+      l.vehicle_number?.toLowerCase().includes(search.toLowerCase()) ||
+      l.sourcing_person_name?.toLowerCase().includes(search.toLowerCase()) ||
+      l.case_type?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || l.application_stage === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -313,7 +322,7 @@ export default function Loans() {
               <tbody>
                 {filtered.map((loan: any) => (
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
-                    <td className="py-3.5 px-3 mono text-xs text-accent font-medium whitespace-nowrap">{loan.loan_number || loan.id}</td>
+                    <td className="py-3.5 px-3 font-mono text-sm text-primary font-semibold whitespace-nowrap">{loan.loan_number || loan.id}</td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
                       <p className="font-medium text-foreground">{loan.applicant_name}</p>
                       <p className="text-xs text-muted-foreground">{loan.mobile}</p>
