@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit } from 'lucide-react';
+import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit, Filter, Users, ClipboardCheck, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
@@ -15,6 +15,9 @@ export default function LeadsList() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [stageModal, setStageModal] = useState<{ leadId: number; currentStage: ApplicationStage } | null>(null);
+  const [filterStage, setFilterStage] = useState<string>('all');
+  const [filterBranch, setFilterBranch] = useState<string>('all');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -79,116 +82,238 @@ export default function LeadsList() {
       return false;
     }
 
+    // Branch filter
+    if (filterBranch !== 'all' && l.our_branch !== filterBranch) {
+      return false;
+    }
+
+    // Stage filter
+    if (filterStage !== 'all' && l.application_stage !== filterStage) {
+      return false;
+    }
+
     return !search ||
       l.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      l.phone?.includes(search);
+      l.phone?.includes(search) ||
+      l.customer_id?.toLowerCase().includes(search.toLowerCase());
   });
+
+  const stats = {
+    total: leads.length,
+    pending: leads.filter((l: any) => !['DISBURSED', 'REJECTED', 'CANCELLED'].includes(l.application_stage)).length,
+    converted: leads.filter((l: any) => l.converted_to_loan).length
+  };
+
+  const branches = Array.from(new Set(leads.map((l: any) => l.our_branch).filter(Boolean))) as string[];
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} leads found</p>
+          <h1 className="text-2xl font-bold text-foreground">Leads Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">Overview and status of all customer leads</p>
         </div>
-        <Link to="/add-lead" className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm">
-          <Plus size={16} /> Add Lead
+        <Link to="/add-lead" className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold py-2.5 px-6 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm">
+          <Plus size={18} /> Add New Lead
         </Link>
       </div>
 
-      <div className="stat-card mb-4">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name or phone..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent"
-          />
+      <div className="grid grid-cols-3 gap-2 lg:gap-6 mb-6">
+        <div className="stat-card p-2 md:p-4 border-none bg-blue-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
+          <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
+            <Users size={16} className="text-blue-600 md:size-5" />
+            <p className="text-[10px] md:text-sm font-semibold text-blue-800/70 leading-tight">Total<br className="md:hidden" /> Leads</p>
+          </div>
+          <h3 className="text-lg md:text-2xl font-bold text-blue-900 tracking-tight leading-none">{stats.total}</h3>
+        </div>
+
+        <div className="stat-card p-2 md:p-4 border-none bg-orange-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
+          <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
+            <ClipboardCheck size={16} className="text-orange-600 md:size-5" />
+            <p className="text-[10px] md:text-sm font-semibold text-orange-800/70 leading-tight">Pending<br className="md:hidden" /> Action</p>
+          </div>
+          <h3 className="text-lg md:text-2xl font-bold text-orange-900 tracking-tight leading-none">{stats.pending}</h3>
+        </div>
+
+        <div className="stat-card p-2 md:p-4 border-none bg-emerald-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
+          <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
+            <TrendingUp size={16} className="text-emerald-600 md:size-5" />
+            <p className="text-[10px] md:text-sm font-semibold text-emerald-800/70 leading-tight">Converted</p>
+          </div>
+          <h3 className="text-lg md:text-2xl font-bold text-emerald-900 tracking-tight leading-none">{stats.converted}</h3>
         </div>
       </div>
 
+      <div className="glass-panel p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by name, phone or lead ID..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-all ${
+                isFilterOpen || filterBranch !== 'all' || filterStage !== 'all'
+                  ? 'bg-accent/10 border-accent/20 text-accent'
+                  : 'border-border bg-background/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <Filter size={18} />
+              Filters
+              {(filterBranch !== 'all' || filterStage !== 'all') && (
+                <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+              )}
+            </button>
+            {(search || filterBranch !== 'all' || filterStage !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setFilterBranch('all');
+                  setFilterStage('all');
+                }}
+                className="p-2.5 rounded-xl border border-border bg-background/50 text-muted-foreground hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
+                title="Clear all filters"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isFilterOpen && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Branch</label>
+              <select
+                value={filterBranch}
+                onChange={e => setFilterBranch(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary transition-all"
+              >
+                <option value="all">All Branches</option>
+                {branches.map(branch => (
+                  <option key={branch} value={branch}>{branch}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Application Stage</label>
+              <select
+                value={filterStage}
+                onChange={e => setFilterStage(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary transition-all"
+              >
+                <option value="all">All Stages</option>
+                {Object.entries(STAGE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Mobile Card View */}
-      <div className="lg:hidden space-y-3">
+      <div className="lg:hidden space-y-4">
         {isLoading ? (
-          <div className="py-12 text-center text-muted-foreground text-sm">Loading leads…</div>
+          <div className="py-20 flex flex-col items-center justify-center space-y-4">
+            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            <p className="text-sm text-muted-foreground animate-pulse">Loading leads...</p>
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">No leads found</div>
+          <div className="py-20 text-center glass-panel">
+            <div className="mb-4 flex justify-center text-muted-foreground/30">
+              <Users size={48} />
+            </div>
+            <p className="text-foreground font-semibold">No leads found</p>
+            <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or search terms</p>
+          </div>
         ) : (
           filtered.map((lead: any) => (
             <div
               key={lead.id}
-              className="stat-card cursor-pointer active:scale-[0.98] transition-transform"
+              className="bg-card w-full shadow-sm hover:shadow-md border border-border/50 rounded-2xl overflow-hidden active:scale-[0.99] transition-all duration-200"
+              onClick={() => navigate(`/leads/${lead.id}`)}
             >
-              {/* Header Row */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground truncate">{lead.customer_name}</p>
-                  <p className="text-xs text-muted-foreground">{lead.phone} {lead.city ? `· ${lead.city}` : ''}</p>
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-md border border-primary/10">{lead.customer_id || 'NO-ID'}</span>
+                      {lead.converted_to_loan && (
+                        <span className="text-xs font-semibold bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-md border border-emerald-500/20">Converted</span>
+                      )}
+                    </div>
+                    <p className="font-bold text-foreground text-lg tracking-tight mb-1 truncate">{lead.customer_name}</p>
+                    <div className="flex items-center gap-2 text-muted-foreground font-medium text-sm">
+                      <span>{lead.phone}</span>
+                      {lead.city && (
+                        <>
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
+                          <span className="opacity-80">{lead.city}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
+                      lead.application_stage 
+                        ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
+                        : 'bg-primary/10 text-primary border-primary/20'
+                    }`}>
+                      {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+                    </span>
+                  </div>
                 </div>
-                <span className={`shrink-0 ml-2 text-xs px-2.5 py-1 rounded-full font-semibold ${
-                  lead.application_stage 
-                    ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
-                    : 'bg-blue-100 text-blue-700'
-                }`}>
-                  {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
-                </span>
+
+                <div className="grid grid-cols-2 gap-4 py-4 border-y border-border">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Req. Amount</p>
+                    <p className="font-bold text-foreground text-base">₹{Number(lead.loan_amount_required || 0).toLocaleString('en-IN')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Reg. Number</p>
+                    <p className="font-bold text-foreground text-base truncate uppercase">{lead.vehicle_number || '—'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-3 text-xs">
+                  <span className="text-muted-foreground font-medium">{lead.our_branch || 'Direct Branch'}</span>
+                  <span className="text-muted-foreground font-medium">{new Date(lead.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                </div>
               </div>
 
-              {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Loan Amount</p>
-                  <p className="font-bold text-foreground">₹{Number(lead.loan_amount_required || 0).toLocaleString('en-IN')}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Vehicle No.</p>
-                  <p className="font-medium text-foreground">{lead.vehicle_number || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Branch</p>
-                  <p className="text-foreground truncate">{lead.our_branch || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Case Type</p>
-                  <p className="text-foreground capitalize">{lead.case_type || '—'}</p>
-                </div>
-              </div>
-
-              {/* Action Row */}
-              <div className="flex items-center gap-2 pt-3 border-t border-border" onClick={e => e.stopPropagation()}>
-                {user?.role !== 'executive' && (
-                  <>
-                    <button
-                      onClick={() => navigate(`/leads/${lead.id}`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors"
-                    >
-                      <Eye size={14} /> View
-                    </button>
-                    <button
-                      onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
-                    >
-                      <Edit size={14} /> Update Stage
-                    </button>
-                    {!lead.converted_to_loan && (
-                      <button
-                        onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-green-50 text-green-600 text-xs font-semibold hover:bg-green-100 transition-colors"
-                      >
-                        <ArrowRight size={14} /> Convert
-                      </button>
-                    )}
-                  </>
-                )}
-                {user?.role === 'admin' && (
+              {/* Action Buttons */}
+              <div className="grid grid-cols-3 divide-x divide-border/30 bg-muted/30 border-t border-border/30" onClick={e => e.stopPropagation()}>
+                <button
+                  onClick={() => navigate(`/leads/${lead.id}`)}
+                  className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-primary hover:bg-primary/5 transition-colors"
+                >
+                  <Eye size={14} /> View
+                </button>
+                <button
+                  onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })}
+                  className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-primary/70 hover:bg-primary/5 transition-colors"
+                >
+                  <Edit size={14} /> Stage
+                </button>
+                {!lead.converted_to_loan ? (
                   <button
-                    onClick={() => setDeleteConfirm(lead.id)}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 text-red-500 text-xs font-semibold hover:bg-red-100 transition-colors"
+                    onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
+                    className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <ArrowRight size={14} /> Convert
                   </button>
+                ) : (
+                  <div className="py-3 flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground opacity-50 bg-muted/50">
+                    <Check size={14} /> Done
+                  </div>
                 )}
               </div>
             </div>
@@ -197,85 +322,120 @@ export default function LeadsList() {
       </div>
 
       {/* Desktop Table View */}
-      <div className="stat-card overflow-x-auto max-lg:hidden">
+      <div className="glass-panel overflow-hidden max-lg:hidden">
         {isLoading ? (
-          <div className="py-12 text-center text-muted-foreground text-sm">Loading leads…</div>
+          <div className="py-20 flex flex-col items-center justify-center space-y-4">
+            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            <p className="text-sm text-muted-foreground animate-pulse">Loading leads...</p>
+          </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-3 font-medium text-muted-foreground">ID</th>
-                <th className="text-left py-3 px-3 font-medium text-muted-foreground">Customer</th>
-                <th className="text-left py-3 px-3 font-medium text-muted-foreground">Phone</th>
-                <th className="text-left py-3 px-3 font-medium text-muted-foreground">Vehicle</th>
-                <th className="text-right py-3 px-3 font-medium text-muted-foreground">Loan Amount</th>
-                <th className="text-left py-3 px-3 font-medium text-muted-foreground">Branch</th>
-                <th className="text-center py-3 px-3 font-medium text-muted-foreground">Stage</th>
-                <th className="py-3 px-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((lead: any) => (
-                <tr key={lead.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-3">
-                    <button
-                      onClick={() => {
-                        if (lead.customer_id) {
-                          navigator.clipboard.writeText(lead.customer_id);
-                          setCopiedId(lead.customer_id);
-                          toast.success('Customer ID copied!');
-                          setTimeout(() => setCopiedId(null), 2000);
-                        }
-                      }}
-                      className="flex items-center gap-1.5 text-xs font-mono text-accent hover:text-accent/80 transition-colors group"
-                    >
-                      <span>{lead.customer_id || '—'}</span>
-                      {lead.customer_id && (copiedId === lead.customer_id ? <Check size={12} className="text-green-600" /> : <Copy size={12} className="opacity-0 group-hover:opacity-100" />)}
-                    </button>
-                  </td>
-                  <td className="py-3 px-3">
-                    <p className="font-medium text-foreground">{lead.customer_name}</p>
-                    <p className="text-xs text-muted-foreground">{lead.city}</p>
-                  </td>
-                  <td className="py-3 px-3 text-foreground">{lead.phone}</td>
-                  <td className="py-3 px-3 text-muted-foreground">{lead.vehicle_number || '—'}</td>
-                  <td className="py-3 px-3 text-right font-medium text-foreground">₹{Number(lead.loan_amount_required || 0).toLocaleString('en-IN')}</td>
-                  <td className="py-3 px-3 text-muted-foreground">{lead.our_branch || '—'}</td>
-                  <td className="py-3 px-3 text-center">
-                    <span className={`text-xs px-2 py-1 rounded font-medium ${
-                      lead.application_stage 
-                        ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      {user?.role !== 'executive' && (
-                        <>
-                          <button onClick={() => navigate(`/leads/${lead.id}`)} className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition-colors"><Eye size={16} /></button>
-                          <button 
-                            onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })} 
-                            className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-green-500 transition-colors"><ArrowRight size={16} /></button>
-                        </>
-                      )}
-                      {user?.role === 'admin' && (
-                        <button onClick={() => setDeleteConfirm(lead.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"><Trash2 size={16} /></button>
-                      )}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-muted/50 border-b border-border">
+                  <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Lead ID</th>
+                  <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Customer Info</th>
+                  <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Vehicle No.</th>
+                  <th className="text-right py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Loan Amount</th>
+                  <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Branch</th>
+                  <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Current Stage</th>
+                  <th className="py-4 px-4"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {filtered.length === 0 && !isLoading && (
-          <div className="py-12 text-center text-muted-foreground">No leads found</div>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {filtered.map((lead: any, idx: number) => (
+                  <tr key={lead.id} className={`${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/10'} hover:bg-accent/5 transition-all group`}>
+                    <td className="py-4 px-4">
+                      <button
+                        onClick={() => {
+                          if (lead.customer_id) {
+                            navigator.clipboard.writeText(lead.customer_id);
+                            setCopiedId(lead.customer_id);
+                            toast.success('Lead ID copied!');
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }
+                        }}
+                        className="flex items-center gap-2 text-[11px] font-mono text-primary font-semibold hover:text-accent transition-colors bg-muted/50 px-2 py-1 rounded"
+                      >
+                        <span>{lead.customer_id || '—'}</span>
+                        {lead.customer_id && (copiedId === lead.customer_id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} className="opacity-0 group-hover:opacity-100" />)}
+                      </button>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">{lead.customer_name}</span>
+                        <span className="text-xs text-muted-foreground mt-0.5">{lead.phone} {lead.city ? `· ${lead.city}` : ''}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="text-xs font-semibold text-foreground bg-muted/30 px-2 py-1 rounded border border-border/50 uppercase">{lead.vehicle_number || '—'}</span>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <span className="font-bold text-foreground">₹{Number(lead.loan_amount_required || 0).toLocaleString('en-IN')}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="text-xs text-muted-foreground font-medium">{lead.our_branch || 'Direct'}</span>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
+                        lead.application_stage 
+                          ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
+                          : 'bg-primary/10 text-primary border-primary/20'
+                      }`}>
+                        {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-end gap-1 px-1">
+                        <button 
+                          onClick={() => navigate(`/leads/${lead.id}`)} 
+                          className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all hover:scale-110" 
+                          title="View Details"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button 
+                          onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })} 
+                          className="p-2 rounded-lg hover:bg-primary/5 text-primary/60 transition-all hover:scale-110" 
+                          title="Update Stage"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        {!lead.converted_to_loan ? (
+                          <button 
+                            onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} 
+                            className="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all hover:scale-110" 
+                            title="Convert to Loan"
+                          >
+                            <ArrowRight size={18} />
+                          </button>
+                        ) : (
+                          <div className="p-2 text-emerald-600 opacity-50" title="Already converted">
+                            <Check size={18} />
+                          </div>
+                        )}
+                        {user?.role === 'admin' && (
+                          <button 
+                            onClick={() => setDeleteConfirm(lead.id)} 
+                            className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all hover:scale-110" 
+                            title="Delete Lead"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && !isLoading && (
+              <div className="py-20 text-center text-muted-foreground bg-muted/5">
+                <Users size={40} className="mx-auto mb-3 opacity-20" />
+                <p className="font-medium">No leads match your search criteria</p>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

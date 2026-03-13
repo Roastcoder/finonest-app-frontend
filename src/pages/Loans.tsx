@@ -210,60 +210,60 @@ export default function Loans() {
             <div
               key={loan.id}
               onClick={() => navigate(`/loans/${loan.id}`)}
-              className="stat-card active:scale-[0.98] transition-transform cursor-pointer"
+              className="bg-card w-full shadow-sm hover:shadow-md border border-border/50 rounded-2xl overflow-hidden p-5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
             >
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground truncate">{loan.applicant_name}</p>
-                  <p className="text-xs text-muted-foreground mono">{loan.loan_number || loan.id}</p>
+                  <p className="font-bold text-foreground text-lg tracking-tight truncate">{loan.applicant_name}</p>
+                  <p className="text-xs font-semibold text-primary/70 bg-primary/5 border border-primary/10 px-2 py-0.5 rounded-md inline-block mt-2 font-mono">{loan.loan_number || loan.id}</p>
                 </div>
                 <LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} />
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-4 py-3 border-y border-border">
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Amount</p>
-                  <p className="font-bold text-foreground">{formatCurrency(Number(loan.loan_amount))}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Amount</p>
+                  <p className="font-bold text-foreground text-base">{formatCurrency(Number(loan.loan_amount))}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">EMI</p>
-                  <p className="font-medium text-foreground">{formatCurrency(Number(loan.emi))}/mo</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">EMI</p>
+                  <p className="font-bold text-foreground text-base">{formatCurrency(Number(loan.emi))}/mo</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Case Type</p>
-                  <p className="text-foreground truncate">{loan.case_type || '—'}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Case Type</p>
+                  <p className="font-medium text-foreground truncate">{loan.case_type || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Sourcing</p>
-                  <p className="text-foreground truncate">{loan.sourcing_person_name || '—'}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Sourcing</p>
+                  <p className="font-medium text-foreground truncate">{loan.sourcing_person_name || '—'}</p>
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+              <div className="mt-4 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                 {/* Action buttons row */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => exportLoanPDF(loan)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-muted transition-colors"
                   >
-                    <Printer size={13} className="text-accent" /> PDF
+                    <Printer size={14} className="text-accent" /> PDF
                   </button>
                   <button
                     onClick={() => downloadLoanPDF(loan)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-muted transition-colors"
                   >
-                    <Download size={13} className="text-accent" /> Save
+                    <Download size={14} className="text-accent" /> Save
                   </button>
                   <button
                     onClick={() => shareLoanPDF(loan)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors"
                   >
-                    <MessageCircle size={13} className="text-green-500" /> Share
+                    <MessageCircle size={14} className="text-green-500" /> Share
                   </button>
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(loan)}
-                      className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors"
+                      className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
                     >
-                      <Trash2 size={13} /> Delete
+                      <Trash2 size={14} /> Delete
                     </button>
                   )}
                 </div>
@@ -271,9 +271,9 @@ export default function Loans() {
                 {showUpdateColumn && (
                   <button
                     onClick={() => handleStageUpdate(loan)}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 mt-1 rounded-lg border border-border bg-muted/30 text-xs font-semibold text-foreground hover:bg-muted/70 transition-colors"
                   >
-                    <Settings size={13} /> Update Stage
+                    <Settings size={14} /> Update Stage
                   </button>
                 )}
                 {isTeamLeader && (

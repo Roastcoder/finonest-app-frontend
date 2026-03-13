@@ -149,19 +149,21 @@ export default function LoanDetail() {
   }
 
   const Section = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <div className="stat-card py-3">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-accent">{icon}</span>
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+    <div className="bg-card border border-border shadow-sm rounded-2xl p-5 mb-4 transition-all duration-300 hover:shadow-md">
+      <div className="flex items-center gap-3 mb-4 border-b border-border pb-3">
+        <div className="p-2 border border-primary/10 bg-primary/5 rounded-lg text-primary">
+          {icon}
+        </div>
+        <h3 className="text-lg font-bold text-foreground">{title}</h3>
       </div>
       {children}
     </div>
   );
 
   const Field = ({ label, value }: { label: string; value: string }) => (
-    <div>
-      <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
-      <p className="text-sm font-medium text-foreground">{value || '—'}</p>
+    <div className="min-w-0 bg-background/30 p-3 rounded-lg border border-border">
+      <p className="text-xs font-semibold text-muted-foreground mb-1 tracking-wide">{label}</p>
+      <p className="text-sm font-bold text-foreground">{value || '—'}</p>
     </div>
   );
 
@@ -247,21 +249,20 @@ export default function LoanDetail() {
         </div>
       </div>
 
-      {/* Status Pipeline */}
-      <div className="stat-card mb-5">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Status Pipeline</h3>
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="bg-card border border-border shadow-sm rounded-2xl p-5 mb-6">
+        <h3 className="text-sm font-bold text-foreground mb-4">Status Pipeline</h3>
+        <div className="flex flex-wrap items-center gap-2">
           {LEAD_STATUSES.map((s, i) => {
             const isActive = i <= currentIdx && loan.status !== 'rejected';
             const isCurrent = s.value === loan.status;
             return (
-              <div key={s.value} className="flex items-center gap-1">
-                <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all ${isCurrent ? 'bg-accent text-accent-foreground' : isActive ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-accent-foreground' : isActive ? 'bg-accent' : 'bg-muted-foreground/40'}`} />
+              <div key={s.value} className="flex items-center gap-2">
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isCurrent ? 'bg-primary text-secondary shadow-md' : isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-secondary' : isActive ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
                   {s.label}
                 </div>
                 {i < LEAD_STATUSES.length - 1 && (
-                  <div className={`w-3 h-0.5 ${isActive && i < currentIdx ? 'bg-accent' : 'bg-border'}`} />
+                  <div className={`w-4 h-0.5 rounded-full ${isActive && i < currentIdx ? 'bg-primary/30' : 'bg-border'}`} />
                 )}
               </div>
             );

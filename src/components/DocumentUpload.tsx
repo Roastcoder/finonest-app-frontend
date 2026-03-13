@@ -125,73 +125,85 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
   };
 
   return (
-      <div className="bg-white rounded-lg shadow-sm border border-border p-6 mb-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-4 tracking-tight">Customer Documents</h2>
-        
-        <div className="mb-6 space-y-4">
-          <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Source</label>
-            <input
-              type="text"
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              placeholder="Enter document source"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+      <div className="bg-card w-full border border-border shadow-sm rounded-2xl p-5 md:p-6 mb-6 transition-all duration-300">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+          <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+            <Upload className="w-5 h-5" />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes about the documents"
-              rows={3}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            <h2 className="text-lg font-bold text-foreground tracking-tight leading-none mb-1">Upload Documents</h2>
+            <p className="text-xs text-muted-foreground font-medium">Add Files to Case</p>
+          </div>
+        </div>
+        
+        <div className="mb-6 space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground ml-1">Document Source</label>
+              <input
+                type="text"
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                placeholder="e.g. Email, WhatsApp, Portal"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground ml-1">Internal Notes</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional processing notes..."
+                rows={1}
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none resize-none"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-5 mb-6">
-          <h3 className="text-sm font-bold text-slate-800 mb-3">Required Documents <span className="text-red-500">*</span></h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
+        <div className="bg-primary/5 rounded-xl border border-primary/10 p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield size={16} className="text-primary" />
+            <h3 className="text-xs font-bold text-primary uppercase tracking-wider">Required Documents</h3>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-3">
             {REQUIRED_DOCUMENTS.map(doc => (
-              <label key={doc.value} className="flex items-center gap-2.5 cursor-pointer group">
+              <label key={doc.value} className="flex items-center gap-2 cursor-pointer group">
                 <div className="relative flex items-center justify-center">
                   <input
                     type="checkbox"
                     checked={selectedDocTypes.includes(doc.value)}
                     onChange={(e) => handleDocTypeChange(doc.value, e.target.checked)}
-                    className="peer w-4.5 h-4.5 appearance-none border-2 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer"
+                    className="peer w-4 h-4 appearance-none border border-border rounded bg-background focus:ring-2 focus:ring-primary/20 checked:bg-primary checked:border-primary transition-all cursor-pointer"
                   />
-                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <CheckCircle size={10} className="absolute text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
                 </div>
-                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
-                  {doc.label} <span className="text-red-500">*</span>
+                <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                  {doc.label} <span className="text-primary">*</span>
                 </span>
               </label>
             ))}
           </div>
         </div>
 
-        <div className="bg-blue-50/50 rounded-xl border border-blue-100 p-5 mb-6">
-          <h3 className="text-sm font-bold text-slate-800 mb-3">Optional Documents</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+        <div className="bg-muted/30 rounded-xl border border-border p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <File size={16} className="text-muted-foreground" />
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Optional Items</h3>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-3">
             {OPTIONAL_DOCUMENTS.map(doc => (
-              <label key={doc.value} className="flex items-center gap-2.5 cursor-pointer group">
+              <label key={doc.value} className="flex items-center gap-2 cursor-pointer group">
                 <div className="relative flex items-center justify-center">
                   <input
                     type="checkbox"
                     checked={selectedDocTypes.includes(doc.value)}
                     onChange={(e) => handleDocTypeChange(doc.value, e.target.checked)}
-                    className="peer w-4.5 h-4.5 appearance-none border-2 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer"
+                    className="peer w-4 h-4 appearance-none border border-border rounded bg-background focus:ring-2 focus:ring-primary/20 checked:bg-primary checked:border-primary transition-all cursor-pointer"
                   />
-                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <CheckCircle size={10} className="absolute text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
                 </div>
-                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
+                <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate">
                   {doc.label}
                 </span>
               </label>
@@ -200,14 +212,14 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
         </div>
 
           {selectedDocTypes.length > 0 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[...REQUIRED_DOCUMENTS, ...OPTIONAL_DOCUMENTS]
                   .filter(doc => selectedDocTypes.includes(doc.value))
                   .map(({ value: docType, label, required }) => (
-                  <div key={docType} className="flex flex-col">
-                    <label className="text-[12px] font-medium text-slate-500 mb-1.5 ml-1">
-                      {label} {required && <span className="text-red-500">*</span>}
+                  <div key={docType} className="flex flex-col group/item mb-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 ml-1">
+                      {label} {required && <span className="text-primary font-bold">*</span>}
                     </label>
                     <div className="relative">
                       <input
@@ -219,17 +231,17 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
                       />
                       <label 
                         htmlFor={`file-upload-${docType}`} 
-                        className={`flex items-center w-full h-11 px-3 border border-slate-300 rounded-lg cursor-pointer bg-white hover:bg-slate-50 transition-colors focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-hidden ${files[docType] ? 'border-emerald-300 bg-emerald-50/30' : ''}`}
+                        className={`flex items-center w-full h-12 px-3 bg-background border rounded-xl cursor-pointer transition-all hover:bg-muted/50 ${
+                          files[docType] ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/30'
+                        }`}
                       >
-                        <div className="flex items-center py-1 px-3 bg-slate-100 border border-slate-300 rounded text-xs font-semibold text-slate-700 mr-3 shrink-0 uppercase shadow-sm">
-                          Choose file
+                        <div className={`p-1.5 rounded-lg mr-3 transition-colors ${
+                          files[docType] ? 'bg-primary text-secondary' : 'bg-muted text-muted-foreground'
+                        }`}>
+                          <Upload size={14} />
                         </div>
-                        <span className="text-sm text-slate-500 truncate min-w-0 flex-1">
-                          {files[docType] ? (
-                            <span className="text-slate-800 font-medium">{files[docType].name}</span>
-                          ) : (
-                            'No file chosen'
-                          )}
+                        <span className="text-xs font-semibold text-foreground truncate min-w-0 flex-1">
+                          {files[docType] ? files[docType].name : `Select file...`}
                         </span>
                         {files[docType] && (
                           <button
@@ -239,9 +251,9 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
                               e.stopPropagation();
                               removeFile(docType);
                             }}
-                            className="ml-2 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
+                            className="ml-2 p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                           >
-                            <X size={15} />
+                            <X size={14} />
                           </button>
                         )}
                       </label>
@@ -250,7 +262,7 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
                 ))}
               </div>
 
-              <div className="flex justify-end pt-4 gap-3 mt-4 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-5 mt-4 border-t border-border">
                 <button
                   onClick={() => {
                     setFiles({});
@@ -258,23 +270,21 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
                     setSource('');
                     setNotes('');
                   }}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 font-medium rounded-lg text-sm hover:bg-slate-50 transition-colors"
+                  className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-muted-foreground hover:bg-muted rounded-xl transition-colors"
                 >
-                  Cancel
+                  Clear All
                 </button>
                 <button
                   onClick={handleUpload}
                   disabled={Object.keys(files).length === 0 || uploading}
-                  className="px-5 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-primary text-secondary text-xs font-bold rounded-xl shadow-[0_4px_12px_rgba(40,114,161,0.2)] hover:shadow-[0_6px_16px_rgba(40,114,161,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
                 >
                   {uploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Uploading...
-                    </>
+                    <div className="w-4 h-4 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
                   ) : (
-                    'Upload Selected'
+                    <CheckCircle className="w-4 h-4" />
                   )}
+                  {uploading ? 'Processing...' : 'Upload To Case'}
                 </button>
               </div>
             </div>
@@ -386,95 +396,137 @@ export function DocumentList({ leadId }: DocumentListProps) {
   }
 
   return (
-    <div className="glass-card p-6 md:p-8 rounded-2xl border border-border/60 shadow-md h-full flex flex-col">
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/40">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-success/20 to-success/5 rounded-xl shadow-inner text-success">
-            <CheckCircle className="w-6 h-6" />
+    <div className="bg-card w-full border border-border shadow-sm rounded-2xl p-5 md:p-6 transition-all duration-300 min-h-[400px] flex flex-col">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+            <CheckCircle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-foreground">Uploaded Documents</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">Manage files attached to this lead.</p>
+            <h3 className="text-lg font-bold text-foreground tracking-tight leading-none mb-1">Lead Documents</h3>
+            <p className="text-xs text-muted-foreground font-medium">Files & Attachments</p>
           </div>
         </div>
         {documents.length > 0 && (
-          <span className="flex items-center justify-center w-8 h-8 bg-success/10 text-success text-sm font-bold rounded-full border border-success/20 shadow-sm">
-            {documents.length}
+          <span className="flex items-center justify-center px-3 py-1 bg-muted/60 text-muted-foreground text-xs font-semibold rounded-lg border border-border/50 shadow-sm">
+            {documents.length} FILES
           </span>
         )}
       </div>
 
-      {documents.length === 0 ? (
-        <div className="text-center py-6">
-          <div className="p-3 bg-muted/30 rounded-full w-fit mx-auto mb-2">
-            <FileText className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <p className="text-sm text-muted-foreground mb-1">No documents uploaded yet</p>
-          <p className="text-xs text-muted-foreground">Upload documents using the form above</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {documents.map((doc) => {
-            const getStatusConfig = (status: string) => {
-              switch (status) {
-                case 'verified':
-                  return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50/50 border-emerald-200/60 shadow-emerald-900/5', iconBg: 'bg-emerald-100' };
-                case 'rejected':
-                  return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50/50 border-red-200/60 shadow-red-900/5', iconBg: 'bg-red-100' };
-                default:
-                  return { icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50/50 border-amber-200/60 shadow-amber-900/5', iconBg: 'bg-amber-100' };
-              }
-            };
-            
-            const statusConfig = getStatusConfig(doc.status);
-            const StatusIcon = statusConfig.icon;
-            
-            return (
-              <div key={doc.id} className={`p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${statusConfig.bg}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`p-2 rounded-lg shadow-sm ${statusConfig.iconBg} ${statusConfig.color}`}>
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/60 shadow-sm border ${statusConfig.color} border-current/10`}>
-                    <StatusIcon className="w-3 h-3" />
-                    {doc.status || 'Pending'}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-foreground mb-1 truncate" title={doc.document_type.replace(/_/g, ' ')}>
-                    {doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate" title={doc.file_name}>{doc.file_name}</p>
-                  {doc.uploaded_at && (
-                    <p className="text-[11px] font-medium text-muted-foreground/60 mt-2 bg-background/50 inline-block px-2 py-0.5 rounded-md border border-border/30">
-                      {new Date(doc.uploaded_at).toLocaleDateString()}
-                    </p>
-                  )}
-                  <div className="flex gap-1 mt-3">
-                    <button
-                      onClick={() => handlePreview(doc)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View
-                    </button>
-                    <button
-                      onClick={() => {
-                        const testUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download-test`;
-                        window.open(testUrl, '_blank');
-                      }}
-                      className="px-2 py-2 bg-gray-500 text-white text-xs font-semibold rounded-lg hover:bg-gray-600 transition-colors"
-                      title="Test Download"
-                    >
-                      T
-                    </button>
-                  </div>
-                </div>
+      <div className="flex-1 flex flex-col gap-8 overflow-y-auto pr-2 scrollbar-hide">
+        {/* Document List Grid - Refined for Mobile App Aesthetics */}
+        <div className="shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {documents.length === 0 ? (
+            <div className="text-center py-10 bg-muted/10 rounded-2xl border border-dashed border-border/60">
+              <div className="p-3 bg-background/50 rounded-full w-fit mx-auto mb-3 border border-border/40 shadow-sm">
+                <FileText className="w-6 h-6 text-muted-foreground/40" />
               </div>
-            );
-          })}
+              <p className="text-xs font-bold text-foreground">No documents found</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider mt-1">Upload files to see them here</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {documents.map((doc) => {
+                const isSelected = previewDoc?.id === doc.id;
+                const getStatusConfig = (status: string) => {
+                  switch (status) {
+                    case 'verified':
+                      return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
+                    case 'rejected':
+                      return { icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' };
+                    default:
+                      return { icon: FileText, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' };
+                  }
+                };
+                
+                const statusConfig = getStatusConfig(doc.status);
+                
+                return (
+                  <div key={doc.id} className="contents">
+                    <div 
+                      onClick={() => handlePreview(doc)}
+                      className={`group cursor-pointer p-4 rounded-xl border transition-all duration-300 flex flex-col items-center text-center gap-3 ${
+                        isSelected 
+                          ? 'bg-primary/5 border-primary shadow-sm' 
+                          : 'bg-background border-border hover:border-primary/30 hover:bg-muted/30 hover:-translate-y-0.5 shadow-sm'
+                      }`}
+                    >
+                      <div className={`p-3 rounded-xl transition-all duration-300 ${isSelected ? 'bg-primary text-secondary shadow-md' : 'bg-muted text-muted-foreground'}`}>
+                        <FileText size={20} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0 w-full">
+                        <p className={`text-xs font-semibold mb-1.5 truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                          {doc.document_type.replace(/_/g, ' ')}
+                        </p>
+                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border ${
+                          isSelected ? 'bg-primary text-secondary border-primary/20' : `${statusConfig.bg} ${statusConfig.border} ${statusConfig.color}`
+                        }`}>
+                          {doc.status || 'Pending'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {isSelected && (
+                      <div className="col-span-full mt-2 mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                        {/* Inline Preview Area */}
+                        <div className="flex flex-col bg-background rounded-2xl border border-border shadow-md overflow-hidden ring-1 ring-border/50">
+                          <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30 sticky top-0 z-10">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                <Eye size={16} />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xs font-bold text-foreground leading-none mb-1">Document Preview</h4>
+                                <p className="text-[10px] text-muted-foreground font-medium truncate max-w-[150px] md:max-w-md leading-none">{doc.file_name}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <a 
+                                href={previewUrl} 
+                                download={doc.file_name}
+                                className="p-2 hover:bg-background rounded-lg text-muted-foreground hover:text-primary transition-all border border-transparent shadow-sm group/dl"
+                                title="Download File"
+                              >
+                                <Upload size={16} className="rotate-180 transition-transform group-hover/dl:-translate-y-0.5" />
+                              </a>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); closePreview(); }}
+                                className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all shadow-sm border border-red-200"
+                                title="Close Preview"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="w-full bg-muted/10 relative group/preview pointer-events-auto flex justify-center items-center py-4 px-2">
+                            {doc.file_name.toLowerCase().endsWith('.pdf') ? (
+                              <iframe 
+                                src={`${previewUrl}#toolbar=0`} 
+                                className="w-full h-[60vh] border border-border bg-white rounded-xl shadow-sm"
+                                title="PDF Viewer"
+                              />
+                            ) : (
+                              <img 
+                                src={previewUrl} 
+                                alt="Preview" 
+                                className="w-full max-w-2xl h-auto object-contain rounded-xl shadow-md border border-border"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Inline Preview Area - Appears directly inline for mobile focus */}      </div>
     </div>
   );
 }

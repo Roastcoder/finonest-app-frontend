@@ -158,24 +158,46 @@ export default function AddLead() {
     createLead.mutate(submissionData);
   };
 
-  const inputClass = "w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent transition-colors";
-  const labelClass = "block text-sm font-medium text-foreground mb-1.5";
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-border bg-background/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200";
+  const labelClass = "block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 ml-1";
+
+  const FormSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="mb-8 last:mb-0">
+      <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+        <span className="w-1.5 h-6 bg-accent rounded-full"></span>
+        {title}
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {children}
+      </div>
+    </div>
+  );
 
   return (
-    <div>
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft size={16} /> Back
+    <div className="max-w-4xl mx-auto px-4 pb-20">
+      <button 
+        onClick={() => navigate(-1)} 
+        className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary mb-6 transition-colors bg-white/50 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/50"
+      >
+        <ArrowLeft size={18} /> Back
       </button>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <UserPlus size={24} /> Add Lead
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tight">
+          <div className="p-2 bg-primary/5 rounded-xl text-primary border border-primary/10">
+            <UserPlus size={28} />
+          </div>
+          Create New Lead
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Capture customer details for loan application</p>
+        <p className="text-sm text-muted-foreground mt-2 ml-1">Onboard a new customer and start their loan application process</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="stat-card max-w-4xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="glass-panel p-8 border-none shadow-2xl relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl -z-10"></div>
+
+        <FormSection title="Personal Information">
           <div>
             <label className={labelClass}>Customer Name *</label>
             <input required className={inputClass} value={form.customer_name} onChange={e => setForm({ ...form, customer_name: e.target.value })} placeholder="Full legal name" />
@@ -187,13 +209,20 @@ export default function AddLead() {
           </div>
 
           <div>
-            <label className={labelClass}>Email</label>
+            <label className={labelClass}>Email Address</label>
             <input type="email" className={inputClass} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Email address" />
           </div>
 
+          <div>
+            <label className={labelClass}>PAN Number *</label>
+            <input required className={inputClass} maxLength={10} value={form.pan_number} onChange={e => setForm({ ...form, pan_number: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" />
+          </div>
+        </FormSection>
+
+        <FormSection title="Address Details">
           <div className="md:col-span-2">
             <label className={labelClass}>Current Address *</label>
-            <textarea required className={inputClass} rows={2} value={form.current_address} onChange={e => setForm({ ...form, current_address: e.target.value })} placeholder="Complete address" />
+            <textarea required className={inputClass} rows={2} value={form.current_address} onChange={e => setForm({ ...form, current_address: e.target.value })} placeholder="Complete street address, house no, etc." />
           </div>
 
           <div>
@@ -201,28 +230,26 @@ export default function AddLead() {
             <input required className={inputClass} maxLength={6} value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })} placeholder="6-digit pincode" />
           </div>
 
-          <div>
-            <label className={labelClass}>City *</label>
-            <input required className={inputClass} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? 'Fetching...' : pincodeManual ? 'Enter manually' : 'Enter pincode first'} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>City *</label>
+              <input required className={inputClass} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? '...' : 'City'} />
+            </div>
+            <div>
+              <label className={labelClass}>State *</label>
+              <input required className={inputClass} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? '...' : 'State'} />
+            </div>
           </div>
+        </FormSection>
 
-          <div>
-            <label className={labelClass}>State *</label>
-            <input required className={inputClass} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? 'Fetching...' : pincodeManual ? 'Enter manually' : 'Enter pincode first'} />
-          </div>
-
-          <div>
-            <label className={labelClass}>PAN Number *</label>
-            <input required className={inputClass} maxLength={10} value={form.pan_number} onChange={e => setForm({ ...form, pan_number: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" />
-          </div>
-
+        <FormSection title="Vehicle & Loan Details">
           <div>
             <label className={labelClass}>Vehicle Number *</label>
             <input required className={inputClass} value={form.vehicle_number} onChange={e => setForm({ ...form, vehicle_number: e.target.value.toUpperCase() })} placeholder="MH01AB1234" />
           </div>
 
           <div>
-            <label className={labelClass}>Loan Amount Required *</label>
+            <label className={labelClass}>Loan Amount *</label>
             <input required type="number" className={inputClass} value={form.loan_amount_required} onChange={e => setForm({ ...form, loan_amount_required: e.target.value })} placeholder="Amount in ₹" />
           </div>
 
@@ -238,7 +265,7 @@ export default function AddLead() {
           </div>
 
           <div>
-            <label className={labelClass}>Lead Type *</label>
+            <label className={labelClass}>Lead Source *</label>
             <select required className={inputClass} value={form.lead_type} onChange={e => setForm({ ...form, lead_type: e.target.value })}>
               <option value="branch_visit">Branch Visit</option>
               <option value="direct_login">Direct Login</option>
@@ -246,29 +273,51 @@ export default function AddLead() {
           </div>
 
           {user?.role !== 'executive' && (
-            <div>
-              <label className={labelClass}>Financier Name *</label>
+            <div className="md:col-span-2">
+              <label className={labelClass}>Preferred Financier *</label>
               <select required className={inputClass} value={form.financier_id} onChange={e => setForm({ ...form, financier_id: e.target.value })}>
                 <option value="">Select Financier</option>
                 {banks.map((bank: any) => (
                   <option key={bank.id} value={bank.id}>{bank.name}</option>
                 ))}
               </select>
-              {banks.length === 0 && <p className="text-xs text-red-500 mt-1">No financiers loaded</p>}
+              {banks.length === 0 && <p className="text-[10px] text-red-500 mt-1.5 ml-1 font-bold">Error: No financiers available</p>}
             </div>
           )}
+        </FormSection>
+
+        <div className="mt-10 pt-8 border-t border-border/50">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="w-1.5 h-6 bg-purple-500 rounded-full"></span>
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Required Documents</h3>
+          </div>
+          <div className="bg-muted/30 p-6 rounded-2xl border border-border/50">
+            <LeadDocumentUpload onDocumentsChange={setDocuments} />
+          </div>
         </div>
 
-        <div className="mt-6">
-          <LeadDocumentUpload onDocumentsChange={setDocuments} />
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button type="submit" disabled={createLead.isPending} className="px-6 py-2.5 rounded-lg bg-accent text-accent-foreground font-semibold hover:opacity-90 transition-opacity disabled:opacity-60">
-            {createLead.isPending ? 'Creating...' : 'Create Lead'}
+        <div className="flex flex-col sm:flex-row gap-4 mt-12 pt-8 border-t border-border/50">
+          <button 
+            type="submit" 
+            disabled={createLead.isPending} 
+            className="flex-1 px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-bold hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-all duration-300 disabled:opacity-60 shadow-xl"
+          >
+            {createLead.isPending ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Creating Lead...
+              </span>
+            ) : 'Create Lead Application'}
           </button>
-          <button type="button" onClick={() => navigate(-1)} className="px-6 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors">
-            Cancel
+          <button 
+            type="button" 
+            onClick={() => navigate(-1)} 
+            className="px-8 py-4 rounded-2xl border-2 border-border font-bold text-muted-foreground hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all duration-300"
+          >
+            Discard
           </button>
         </div>
       </form>
