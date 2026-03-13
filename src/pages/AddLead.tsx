@@ -6,6 +6,18 @@ import { ArrowLeft, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import LeadDocumentUpload from '@/components/LeadDocumentUpload';
 
+const FormSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div className="mb-8 last:mb-0">
+    <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+      <span className="w-1.5 h-6 bg-accent rounded-full"></span>
+      {title}
+    </h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {children}
+    </div>
+  </div>
+);
+
 export default function AddLead() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -160,18 +172,6 @@ export default function AddLead() {
 
   const inputClass = "w-full px-4 py-3 rounded-xl border border-border bg-background/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200";
   const labelClass = "block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 ml-1";
-
-  const FormSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="mb-8 last:mb-0">
-      <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-        <span className="w-1.5 h-6 bg-accent rounded-full"></span>
-        {title}
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {children}
-      </div>
-    </div>
-  );
 
   return (
     <div className="max-w-4xl mx-auto px-4 pb-20">
