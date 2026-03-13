@@ -91,27 +91,31 @@ export default function BankManagement() {
               <div key={bank.id} className="stat-card">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-sm">
-                      {bank.name.split(' ')[0].substring(0, 2).toUpperCase()}
-                    </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-semibold text-foreground">{bank.name}</h3>
-                      <p className="text-xs text-muted-foreground">{bank.contact_person || 'No contact'}</p>
+                      <p className="text-xs text-muted-foreground">{bank.code || 'No code'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${bank.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'}`}>
-                      {bank.is_active ? 'Active' : 'Inactive'}
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${bank.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'}`}>
+                      {bank.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                     <button onClick={() => handleEditBank(bank)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                       <Edit size={14} />
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3 text-center border-t border-border pt-3">
+                <div className="space-y-2 text-xs mb-3 pb-3 border-b border-border">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><span className="text-muted-foreground">Contact Person:</span> <span className="font-medium">{bank.contact_person || '—'}</span></div>
+                    <div><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{bank.contact_phone || '—'}</span></div>
+                    <div><span className="text-muted-foreground">Email:</span> <span className="font-medium text-xs">{bank.contact_email || '—'}</span></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
                   <div><p className="text-lg font-bold text-foreground">{bankLoans.length}</p><p className="text-[10px] text-muted-foreground">Cases</p></div>
                   <div><p className="text-lg font-bold text-foreground">{disbursed}</p><p className="text-[10px] text-muted-foreground">Disbursed</p></div>
-                  <div><p className="text-lg font-bold text-accent">{bank.interest_rate}%</p><p className="text-[10px] text-muted-foreground">Rate</p></div>
+                  <div><p className="text-lg font-bold text-accent">—</p><p className="text-[10px] text-muted-foreground">Status</p></div>
                 </div>
               </div>
             );
