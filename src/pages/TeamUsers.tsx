@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Search, Shield, ChevronDown, ChevronRight } from 'lucide-react';
+import { Users, Search, Shield, ChevronDown, ChevronRight, UserPlus, X } from 'lucide-react';
 import { ROLE_LABELS, UserRole } from '@/lib/auth';
+import { toast } from 'sonner';
 
 const UserHierarchyNode = ({ user, childrenMap, level = 0 }: any) => {
   const [expanded, setExpanded] = useState(true);
@@ -60,8 +61,18 @@ const UserHierarchyNode = ({ user, childrenMap, level = 0 }: any) => {
 
 export default function TeamUsers() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newUser, setNewUser] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'executive' as 'team_leader' | 'executive',
+    reporting_to: user?.id || null
+  });
 
   const { data: teamData = [], isLoading, error } = useQuery({
     queryKey: ['team-hierarchy', user?.id],
@@ -77,6 +88,40 @@ export default function TeamUsers() {
       return await response.json();
     },
     enabled: !!user?.id,
+  });
+
+  const createUser = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify(newUser)
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create user');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-hierarchy'] });
+      toast.success('User created successfully!');
+      setShowAddModal(false);
+      setNewUser({
+        full_name: '',
+        email: '',
+        phone: '',
+        password: '',
+        role: 'executive',
+        reporting_to: user?.id || null
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create user');
+    }
   });
 
   // Flatten team data for filtering
@@ -129,6 +174,14 @@ export default function TeamUsers() {
             {isManager ? 'View your team leaders and their team members' : 'View and manage your team members'}
           </p>
         </div>
+        {isManager && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm"
+          >
+            <UserPlus size={16} /> Add User
+          </button>
+        )}
       </div>
 
       {/* Role summary cards */}
@@ -199,6 +252,104 @@ export default function TeamUsers() {
           </div>
         )}
       </div>
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Add New User</h3>
+                <p className="text-sm text-muted-foreground mt-1">Create a team leader or executive</p>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="p-1 rounded-lg hover:bg-muted">
+                <X size={20} className="text-muted-foreground" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); createUser.mutate(); }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newUser.full_name}
+                  onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent"
+                  placeholder="Enter full name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent"
+                  placeholder="Enter email"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={newUser.phone}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent"
+                  placeholder="Enter phone number"
+                  maxLength={10}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent"
+                  placeholder="Enter password"
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Role *</label>
+                <select
+                  required
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'team_leader' | 'executive' })}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent"
+                >
+                  <option value="team_leader">Team Leader</option>
+                  <option value="executive">Executive</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createUser.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-accent-foreground hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
+                >
+                  {createUser.isPending ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

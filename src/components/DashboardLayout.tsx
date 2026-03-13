@@ -52,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Administration', icon: <Settings size={18} />, roles: ['admin', 'manager', 'ops_team', 'dsa'],
     children: [
       { label: 'Reports', path: '/reports', icon: <BarChart3 size={16} />, roles: ['admin', 'manager', 'dsa'] },
-      { label: 'Users', path: '/users', icon: <Users size={16} />, roles: ['admin', 'manager'] },
+      { label: 'Users', path: '/users', icon: <Users size={16} />, roles: ['admin'] },
       { label: 'Banks / NBFC', path: '/banks', icon: <Building2 size={16} />, roles: ['admin'] },
       { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={16} />, roles: ['admin'] },
       { label: 'Branches', path: '/branches', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'ops_team'] },
