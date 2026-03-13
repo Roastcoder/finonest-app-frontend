@@ -151,6 +151,7 @@ export default function CreateLoan() {
 
   const [leadSearch, setLeadSearch] = useState('');
   const [showLeadDropdown, setShowLeadDropdown] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null); // Store lead ID
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -415,6 +416,7 @@ export default function CreateLoan() {
     if (leadId && leads.length > 0) {
       const lead = leads.find((l: any) => l.id === Number(leadId));
       if (lead) {
+        setSelectedLeadId(Number(leadId)); // Store lead ID in state
         handleLeadSelect(lead);
         setLeadSearch(lead.customer_id);
       }
@@ -455,6 +457,9 @@ export default function CreateLoan() {
   const createLoan = useMutation({
     mutationFn: async () => {
       const loanId = form.loanNumber || generateLoanId();
+      
+      console.log('Creating loan with lead_id:', selectedLeadId); // Debug log
+      
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
         method: 'POST',
         headers: {
@@ -464,6 +469,7 @@ export default function CreateLoan() {
         body: JSON.stringify({
           id: loanId,
           loan_number: loanId,
+          lead_id: selectedLeadId, // Use stored lead ID
           customer_id: form.customerId || null,
           applicant_name: form.customerName,
           mobile: form.mobile,
@@ -539,6 +545,7 @@ export default function CreateLoan() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] }); // Refresh leads list
       toast.success('Loan application created successfully!');
       navigate('/loans');
     },
@@ -582,14 +589,14 @@ export default function CreateLoan() {
             
             <div className="space-y-4">
               <div>
-                <label className={labelClass}>Select Ledger *</label>
+                <label className={labelClass}>Select lender *</label>
                 <select 
                   className={inputClass}
                   value={assignmentForm.ledgerSelection}
                   onChange={e => setAssignmentForm(f => ({ ...f, ledgerSelection: e.target.value }))}
                   required
                 >
-                  <option value="">Choose Ledger</option>
+                  <option value="">Choose lender</option>
                   {LEDGER_OPTIONS.map((ledger) => (
                     <option key={ledger} value={ledger}>
                       {ledger}

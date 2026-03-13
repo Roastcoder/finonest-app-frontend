@@ -3,21 +3,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatCurrency, LEAD_STATUSES } from '@/lib/mock-data';
+import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
 import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
-import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2 } from 'lucide-react';
+import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
+import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings } from 'lucide-react';
 
-type LeadStatusFilter = 'new' | 'contacted' | 'documents_collected' | 'in_process' | 'approved' | 'rejected' | 'disbursed' | 'all';
+type ApplicationStageFilter = ApplicationStage | 'all';
 
 export default function Loans() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<LeadStatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<ApplicationStageFilter>('all');
+  const [selectedLoan, setSelectedLoan] = useState<any>(null);
+  const [showStageManager, setShowStageManager] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   const { data: loans = [], isLoading } = useQuery({
@@ -38,24 +41,10 @@ export default function Loans() {
     enabled: !!user,
   });
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        body: JSON.stringify({ status })
-      });
-      if (!response.ok) throw new Error('Failed to update status');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['loans'] });
-      toast.success('Status updated');
-    },
-    onError: () => toast.error('Failed to update status'),
-  });
+  const handleStageUpdate = (loan: any) => {
+    setSelectedLoan(loan);
+    setShowStageManager(true);
+  };
 
   const deleteLoan = useMutation({
     mutationFn: async (id: string) => {
@@ -142,7 +131,7 @@ export default function Loans() {
       l.id?.toLowerCase().includes(search.toLowerCase()) ||
       l.loan_number?.toLowerCase().includes(search.toLowerCase()) ||
       l.car_model?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || l.status === statusFilter;
+    const matchStatus = statusFilter === 'all' || l.application_stage === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -184,11 +173,11 @@ export default function Loans() {
         <div className="sm:hidden">
           <select
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as LeadStatusFilter)}
+            onChange={e => setStatusFilter(e.target.value as ApplicationStageFilter)}
             className="w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm font-medium text-foreground focus:outline-none focus:border-accent transition-all"
           >
-            <option value="all">All Statuses</option>
-            {LEAD_STATUSES.map(s => (
+            <option value="all">All Stages</option>
+            {APPLICATION_STAGES.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
@@ -200,10 +189,10 @@ export default function Loans() {
             onClick={() => setStatusFilter('all')}
             className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${statusFilter === 'all' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
           >All</button>
-          {LEAD_STATUSES.map(s => (
+          {APPLICATION_STAGES.map(s => (
             <button
               key={s.value}
-              onClick={() => setStatusFilter(s.value as LeadStatusFilter)}
+              onClick={() => setStatusFilter(s.value as ApplicationStageFilter)}
               className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${statusFilter === s.value ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
             >{s.label}</button>
           ))}
@@ -228,7 +217,7 @@ export default function Loans() {
                   <p className="font-semibold text-foreground truncate">{loan.applicant_name}</p>
                   <p className="text-xs text-muted-foreground mono">{loan.loan_number || loan.id}</p>
                 </div>
-                <LoanStatusBadge status={loan.status} />
+                <LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} />
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -280,14 +269,12 @@ export default function Loans() {
                 </div>
                 {/* Status update row */}
                 {showUpdateColumn && (
-                  <select
-                    value={loan.status}
-                    onChange={(e) => updateStatus.mutate({ id: loan.id, status: e.target.value })}
-                    disabled={updateStatus.isPending}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent"
+                  <button
+                    onClick={() => handleStageUpdate(loan)}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
                   >
-                    {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
+                    <Settings size={13} /> Update Stage
+                  </button>
                 )}
                 {isTeamLeader && (
                   <div className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-xs font-medium text-muted-foreground text-center">
@@ -317,9 +304,9 @@ export default function Loans() {
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground">Sourcing Name</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">Amount</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground">EMI</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Application Stage</th>
                   {showUpdateColumn && (
-                    <th className="text-left py-3 px-3 font-medium text-muted-foreground">Update</th>
+                    <th className="text-left py-3 px-3 font-medium text-muted-foreground">Stage Management</th>
                   )}
                 </tr>
               </thead>
@@ -340,17 +327,15 @@ export default function Loans() {
                     <td className="py-3.5 px-3 text-muted-foreground">{loan.sourcing_person_name || '—'}</td>
                     <td className="py-3.5 px-3 text-right font-medium text-foreground">{formatCurrency(Number(loan.loan_amount))}</td>
                     <td className="py-3.5 px-3 text-right text-muted-foreground">{formatCurrency(Number(loan.emi))}/mo</td>
-                    <td className="py-3.5 px-3"><LoanStatusBadge status={loan.status} /></td>
+                    <td className="py-3.5 px-3"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
                     {showUpdateColumn && (
                       <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={loan.status}
-                          onChange={(e) => updateStatus.mutate({ id: loan.id, status: e.target.value })}
-                          disabled={updateStatus.isPending}
-                          className="px-2 py-1 rounded-md border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent"
+                        <button
+                          onClick={() => handleStageUpdate(loan)}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
                         >
-                          {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
+                          <Settings size={14} /> Update
+                        </button>
                       </td>
                     )}
                   </tr>
@@ -363,6 +348,16 @@ export default function Loans() {
           </div>
         )}
       </div>
+      
+      {/* Loan Application Stage Manager Modal */}
+      <LoanApplicationStageManager
+        loan={selectedLoan}
+        isOpen={showStageManager}
+        onClose={() => {
+          setShowStageManager(false);
+          setSelectedLoan(null);
+        }}
+      />
     </div>
   );
 }
