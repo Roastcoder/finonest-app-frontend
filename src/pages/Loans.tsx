@@ -296,40 +296,40 @@ export default function Loans() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Loan ID</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Applicant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Vehicle</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Case Type</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Bank</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Sourcing Name</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground">Amount</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground">EMI</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground">Application Stage</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Loan ID</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Applicant</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Vehicle</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Case Type</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Bank</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Sourcing Name</th>
+                  <th className="text-right py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Amount</th>
+                  <th className="text-right py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">EMI</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Application Stage</th>
                   {showUpdateColumn && (
-                    <th className="text-left py-3 px-3 font-medium text-muted-foreground">Stage Management</th>
+                    <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Stage Management</th>
                   )}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((loan: any) => (
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
-                    <td className="py-3.5 px-3 mono text-xs text-accent font-medium">{loan.loan_number || loan.id}</td>
-                    <td className="py-3.5 px-3">
+                    <td className="py-3.5 px-3 mono text-xs text-accent font-medium whitespace-nowrap">{loan.loan_number || loan.id}</td>
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       <p className="font-medium text-foreground">{loan.applicant_name}</p>
                       <p className="text-xs text-muted-foreground">{loan.mobile}</p>
                     </td>
-                    <td className="py-3.5 px-3">
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       <p className="text-foreground">{loan.maker_name || loan.car_make} {loan.model_variant_name || loan.car_model}</p>
                       <p className="text-xs text-muted-foreground">{loan.vehicle_number || loan.car_variant}</p>
                     </td>
-                    <td className="py-3.5 px-3 text-muted-foreground">{loan.case_type || '—'}</td>
-                    <td className="py-3.5 px-3 text-muted-foreground">{loan.bank_name || '—'}</td>
-                    <td className="py-3.5 px-3 text-muted-foreground">{loan.sourcing_person_name || '—'}</td>
-                    <td className="py-3.5 px-3 text-right font-medium text-foreground">{formatCurrency(Number(loan.loan_amount))}</td>
-                    <td className="py-3.5 px-3 text-right text-muted-foreground">{formatCurrency(Number(loan.emi))}/mo</td>
-                    <td className="py-3.5 px-3"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
+                    <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.case_type || '—'}</td>
+                    <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.bank_name || '—'}</td>
+                    <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.sourcing_person_name || '—'}</td>
+                    <td className="py-3.5 px-3 text-right font-medium text-foreground whitespace-nowrap">{formatCurrency(Number(loan.loan_amount))}</td>
+                    <td className="py-3.5 px-3 text-right text-muted-foreground whitespace-nowrap">{formatCurrency(Number(loan.emi))}/mo</td>
+                    <td className="py-3.5 px-3 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
                     {showUpdateColumn && (
-                      <td className="py-3.5 px-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-3.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleStageUpdate(loan)}
                           className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"

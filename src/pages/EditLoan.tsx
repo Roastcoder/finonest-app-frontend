@@ -103,6 +103,7 @@ export default function EditLoan() {
     aadharFront: null, aadharBack: null, panCard: null, drivingLicence: null, lightBill: null,
     bankStatement: null, cheque: null, rcFront: null, rcBack: null, incomeProof: null,
     rentAgreement: null, customerPhoto: null, disbursementMemo: null, insurance: null, customerLedger: null,
+    caseType: '',
   });
 
   // Populate form when loan data is loaded
@@ -187,6 +188,7 @@ export default function EditLoan() {
         sourcingPersonName: loanData.sourcing_person_name || '',
         remark: loanData.remark || '',
         fileStatus: loanData.status || 'submitted',
+        caseType: loanData.case_type || '',
       });
     }
   }, [loanData]);
@@ -233,7 +235,6 @@ export default function EditLoan() {
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
           monthly_income: Number(form.monthlyIncome) || null,
-          financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName || null,
           app_stage: form.appStage || null,
           app_score: form.appScore || null,
           credit_score: form.creditScore || null,
@@ -292,6 +293,8 @@ export default function EditLoan() {
           sourcing_person_name: form.sourcingPersonName || null,
           remark: form.remark || null,
           status: form.fileStatus || 'submitted',
+          financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName || null,
+          case_type: form.caseType || null,
         }),
       });
       if (!res.ok) throw new Error('Failed to update loan');

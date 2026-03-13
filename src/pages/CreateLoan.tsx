@@ -10,6 +10,56 @@ import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
 import '@/styles/floating-labels.css';
 
+// Helper component for document previews
+const DocumentPreview = ({ file }: { file: File | null }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (file && file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [file]);
+
+  if (!file) return null;
+
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+        {file.name}
+      </p>
+      {previewUrl && (
+        <div className="relative group">
+          <img 
+            src={previewUrl} 
+            alt="Preview" 
+            className="w-10 h-10 object-cover rounded shadow-sm border border-border group-hover:scale-110 transition-transform cursor-zoom-in" 
+            onClick={() => window.open(previewUrl, '_blank')} 
+          />
+        </div>
+      )}
+      {file.type === 'application/pdf' && (
+        <button 
+          type="button"
+          onClick={() => {
+            const url = URL.createObjectURL(file);
+            window.open(url, '_blank');
+            // Revoke after a delay as it opens in new tab
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }}
+          className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100 hover:bg-red-100 transition-colors"
+        >
+          PDF
+        </button>
+      )}
+    </div>
+  );
+};
+
 export default function CreateLoan() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -210,26 +260,54 @@ export default function CreateLoan() {
           'rc_back': 'rcBack',
           'bank_statement': 'bankStatement',
           'loan_statement': 'loanStatement',
+          'driving_licence': 'drivingLicence',
+          'light_bill': 'lightBill',
+          'cheque': 'cheque',
+          'income_proof': 'incomeProof',
+          'rent_agreement': 'rentAgreement',
+          'customer_photo': 'customerPhoto',
+          'disbursement_memo': 'disbursementMemo',
+          'insurance': 'insurance',
+          'customer_ledger': 'customerLedger',
         };
         
+        let loadedCount = 0;
+        let failedCount = 0;
+
         // Fetch and convert each document to File object
         for (const doc of documents) {
           const formField = docTypeMap[doc.document_type];
-          if (formField && doc.file_url) {
+          const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`;
+          
+          if (formField) {
             try {
-              const fileResponse = await fetch(doc.file_url);
-              const blob = await fileResponse.blob();
-              const fileName = doc.file_url.split('/').pop() || `${doc.document_type}.pdf`;
-              const file = new File([blob], fileName, { type: blob.type });
-              setForm(f => ({ ...f, [formField]: file }));
+              const fileResponse = await fetch(downloadUrl, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+              });
+              
+              if (fileResponse.ok) {
+                const blob = await fileResponse.blob();
+                const fileName = doc.file_name || `${doc.document_type}.pdf`;
+                const file = new File([blob], fileName, { type: blob.type });
+                setForm(f => ({ ...f, [formField]: file }));
+                console.log(`Successfully loaded ${doc.document_type}`);
+                loadedCount++;
+              } else {
+                console.error(`Failed to download ${doc.document_type}: ${fileResponse.statusText}`);
+                failedCount++;
+              }
             } catch (err) {
               console.error(`Error fetching document ${doc.document_type}:`, err);
+              failedCount++;
             }
           }
         }
         
-        if (documents.length > 0) {
-          toast.success(`${documents.length} document(s) loaded from lead`);
+        if (loadedCount > 0) {
+          toast.success(`${loadedCount} document(s) loaded from lead`);
+        }
+        if (failedCount > 0) {
+          toast.error(`${failedCount} document(s) could not be loaded and may need manual re-upload.`);
         }
       }
     } catch (error) {
@@ -518,7 +596,6 @@ export default function CreateLoan() {
           interest_rate: Number(form.irr) || null,
           assigned_bank_id: form.assignedBankId || null,
           assigned_broker_id: form.assignedBrokerId || null,
-          financier_name: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
           sanction_amount: Number(form.sanctionAmount) || null,
           sanction_date: form.sanctionDate || null,
           insurance_company_name: form.insuranceCompanyName || null,
@@ -535,7 +612,8 @@ export default function CreateLoan() {
           sourcing_person_name: form.sourcingPersonName || null,
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
-          bank_name: assignmentForm.ledgerSelection || null,
+          financier_name: assignmentForm.ledgerSelection || (form.financierName === 'Others' ? form.otherFinancierName : form.financierName) || null,
+          case_type: form.caseType === 'purchase' ? 'Purchase' : form.caseType === 'refinance' ? 'Refinance' : form.caseType === 'bt' ? 'BT' : (form.caseType || null),
           created_by: user?.id,
         }),
       });
@@ -1010,28 +1088,28 @@ export default function CreateLoan() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className={labelClass}>Aadhar Card Front {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.aadharFront && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharFront as File).name}</p>}
+                    {!form.aadharFront && <input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />}
+                    <DocumentPreview file={form.aadharFront as File | null} />
                   </div>
                   <div>
                     <label className={labelClass}>Aadhar Card Back {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('aadharBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.aadharBack && <p className="text-xs text-green-600 mt-1">✓ {(form.aadharBack as File).name}</p>}
+                    {!form.aadharBack && <input type="file" className={inputClass} onChange={e => update('aadharBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />}
+                    <DocumentPreview file={form.aadharBack as File | null} />
                   </div>
                   <div>
                     <label className={labelClass}>Pan Card {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('panCard', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.panCard && <p className="text-xs text-green-600 mt-1">✓ {(form.panCard as File).name}</p>}
+                    {!form.panCard && <input type="file" className={inputClass} onChange={e => update('panCard', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />}
+                    <DocumentPreview file={form.panCard as File | null} />
                   </div>
                   <div>
                     <label className={labelClass}>RC (Front) {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('rcFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.rcFront && <p className="text-xs text-green-600 mt-1">✓ {(form.rcFront as File).name}</p>}
+                    {!form.rcFront && <input type="file" className={inputClass} onChange={e => update('rcFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />}
+                    <DocumentPreview file={form.rcFront as File | null} />
                   </div>
                   <div>
                     <label className={labelClass}>RC (Back) {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
-                    <input type="file" className={inputClass} onChange={e => update('rcBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />
-                    {form.rcBack && <p className="text-xs text-green-600 mt-1">✓ {(form.rcBack as File).name}</p>}
+                    {!form.rcBack && <input type="file" className={inputClass} onChange={e => update('rcBack', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />}
+                    <DocumentPreview file={form.rcBack as File | null} />
                   </div>
                 </div>
 
@@ -1040,16 +1118,56 @@ export default function CreateLoan() {
                   <>
                     {(isExecutive || isTeamLeader) && <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-300">✓ Mandatory documents uploaded. You can now upload additional documents.</div>}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div><label className={labelClass}>Driving Licence</label><input type="file" className={inputClass} onChange={e => update('drivingLicence', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Light Bill</label><input type="file" className={inputClass} onChange={e => update('lightBill', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Last 6 Month Bank Statement</label><input type="file" className={inputClass} onChange={e => update('bankStatement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Cheque</label><input type="file" className={inputClass} onChange={e => update('cheque', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Income Proof</label><input type="file" className={inputClass} onChange={e => update('incomeProof', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Rent Agreement</label><input type="file" className={inputClass} onChange={e => update('rentAgreement', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Customer Photo</label><input type="file" className={inputClass} onChange={e => update('customerPhoto', e.target.files?.[0] || null)} accept="image/*" /></div>
-                      <div><label className={labelClass}>Disbursement Memo</label><input type="file" className={inputClass} onChange={e => update('disbursementMemo', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Insurance</label><input type="file" className={inputClass} onChange={e => update('insurance', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
-                      <div><label className={labelClass}>Customer Ledger</label><input type="file" className={inputClass} onChange={e => update('customerLedger', e.target.files?.[0] || null)} accept="image/*,.pdf" /></div>
+                      <div>
+                        <label className={labelClass}>Driving Licence</label>
+                        {!form.drivingLicence && <input type="file" className={inputClass} onChange={e => update('drivingLicence', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.drivingLicence as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Light Bill</label>
+                        {!form.lightBill && <input type="file" className={inputClass} onChange={e => update('lightBill', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.lightBill as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Last 6 Month Bank Statement</label>
+                        {!form.bankStatement && <input type="file" className={inputClass} onChange={e => update('bankStatement', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.bankStatement as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Cheque</label>
+                        {!form.cheque && <input type="file" className={inputClass} onChange={e => update('cheque', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.cheque as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Income Proof</label>
+                        {!form.incomeProof && <input type="file" className={inputClass} onChange={e => update('incomeProof', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.incomeProof as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Rent Agreement</label>
+                        {!form.rentAgreement && <input type="file" className={inputClass} onChange={e => update('rentAgreement', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.rentAgreement as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Customer Photo</label>
+                        {!form.customerPhoto && <input type="file" className={inputClass} onChange={e => update('customerPhoto', e.target.files?.[0] || null)} accept="image/*" />}
+                        <DocumentPreview file={form.customerPhoto as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Disbursement Memo</label>
+                        {!form.disbursementMemo && <input type="file" className={inputClass} onChange={e => update('disbursementMemo', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.disbursementMemo as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Insurance</label>
+                        {!form.insurance && <input type="file" className={inputClass} onChange={e => update('insurance', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.insurance as File | null} />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Customer Ledger</label>
+                        {!form.customerLedger && <input type="file" className={inputClass} onChange={e => update('customerLedger', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
+                        <DocumentPreview file={form.customerLedger as File | null} />
+                      </div>
                     </div>
                   </>
                 ) : (
