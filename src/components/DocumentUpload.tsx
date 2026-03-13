@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Upload, X, FileText, CheckCircle, XCircle, File, Image, CreditCard, Car, Building, User, Shield, Eye } from 'lucide-react';
+import { Upload, X, FileText, CheckCircle, XCircle, File, Image, CreditCard, Car, Building, User, Shield, Eye, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DocumentUploadProps {
   leadId: number;
   onUploadComplete?: () => void;
+}
+
+interface DocumentListProps {
+  leadId: number;
 }
 
 const REQUIRED_DOCUMENTS = [
@@ -293,11 +298,8 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
   );
 }
 
-interface DocumentListProps {
-  leadId: number;
-}
-
 export function DocumentList({ leadId }: DocumentListProps) {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
@@ -362,6 +364,75 @@ export function DocumentList({ leadId }: DocumentListProps) {
     }
     setPreviewUrl('');
     setPreviewDoc(null);
+  };
+
+  const handleDeleteDoc = async (docId: number) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${docId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        toast.success('Document deleted successfully');
+        fetchDocuments();
+        if (previewDoc?.id === docId) closePreview();
+      } else {
+        toast.error('Failed to delete document');
+      }
+    } catch (error) {
+      console.error('Failed to delete document', error);
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const handleReplaceDoc = async (docId: number, docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    try {
+      // First delete the old document
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${docId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+
+      // Then upload the new one
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('lead_id', leadId.toString());
+      formData.append('document_type', docType);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        toast.success(`${docType.replace(/_/g, ' ')} replaced successfully`);
+        fetchDocuments();
+        if (previewDoc?.id === docId) closePreview();
+      } else {
+        toast.error('Failed to replace document');
+      }
+    } catch (error) {
+      console.error('Failed to replace document', error);
+      toast.error('Failed to replace document');
+    }
   };
 
   useEffect(() => {
@@ -460,11 +531,34 @@ export function DocumentList({ leadId }: DocumentListProps) {
                         <p className={`text-xs font-semibold mb-1.5 truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
                           {doc.document_type.replace(/_/g, ' ')}
                         </p>
-                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border ${
+                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border mb-2 ${
                           isSelected ? 'bg-primary text-secondary border-primary/20' : `${statusConfig.bg} ${statusConfig.border} ${statusConfig.color}`
                         }`}>
                           {doc.status || 'Pending'}
                         </div>
+                        {user?.role === 'admin' && (
+                           <div className="flex items-center justify-center gap-2 mt-1">
+                             <button
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleDeleteDoc(doc.id);
+                               }}
+                               className="p-1.5 rounded-md bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                               title="Delete Document"
+                             >
+                               <Trash2 size={12} />
+                             </button>
+                             <label className="p-1.5 rounded-md bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors cursor-pointer" title="Replace Document" onClick={(e) => e.stopPropagation()}>
+                               <Upload size={12} />
+                               <input
+                                  type="file"
+                                  className="hidden"
+                                  accept=".jpg,.jpeg,.png,.pdf"
+                                  onChange={(e) => handleReplaceDoc(doc.id, doc.document_type, e)}
+                                />
+                             </label>
+                           </div>
+                        )}
                       </div>
                     </div>
 

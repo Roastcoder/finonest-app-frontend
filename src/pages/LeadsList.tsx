@@ -297,12 +297,14 @@ export default function LeadsList() {
                 >
                   <Eye size={14} /> View
                 </button>
-                <button
-                  onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })}
-                  className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-primary/70 hover:bg-primary/5 transition-colors"
-                >
-                  <Edit size={14} /> Stage
-                </button>
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })}
+                    className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-primary/70 hover:bg-primary/5 transition-colors"
+                  >
+                    <Edit size={14} /> Stage
+                  </button>
+                )}
                 {!lead.converted_to_loan ? (
                   <button
                     onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
@@ -394,13 +396,15 @@ export default function LeadsList() {
                         >
                           <Eye size={18} />
                         </button>
-                        <button 
-                          onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })} 
-                          className="p-2 rounded-lg hover:bg-primary/5 text-primary/60 transition-all hover:scale-110" 
-                          title="Update Stage"
-                        >
-                          <Edit size={18} />
-                        </button>
+                        {user?.role === 'admin' && (
+                          <button 
+                            onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })} 
+                            className="p-2 rounded-lg hover:bg-primary/5 text-primary/60 transition-all hover:scale-110" 
+                            title="Update Stage"
+                          >
+                            <Edit size={18} />
+                          </button>
+                        )}
                         {!lead.converted_to_loan ? (
                           <button 
                             onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} 

@@ -86,7 +86,7 @@ export default function CustomerProfileForm({ leadId }: { leadId: number }) {
                     <span className="text-accent"><Briefcase size={20} /></span>
                     <h2 className="text-lg font-bold text-foreground">Customer Profile</h2>
                 </div>
-                {user?.role !== 'executive' && (
+                {user?.role === 'admin' && (
                     <button
                         onClick={() => isEditing ? handleSave() : setIsEditing(true)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'

@@ -81,7 +81,7 @@ export default function EditLead() {
     navigate('/loans');
   };
 
-  if (user?.role !== 'team_leader') {
+  if (user?.role !== 'admin') {
     return (
       <div className="text-center py-20">
         <p className="text-muted-foreground">Access denied</p>

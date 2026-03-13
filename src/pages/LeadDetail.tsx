@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, User, Car, IndianRupee, ArrowRight, FileText, Copy, X, ClipboardCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/mock-data';
@@ -15,6 +16,7 @@ import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } fr
 export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showReapplyModal, setShowReapplyModal] = useState(false);
   const [selectedFinancier, setSelectedFinancier] = useState('');
   const [showStageModal, setShowStageModal] = useState(false);
@@ -363,7 +365,7 @@ export default function LeadDetail() {
               currentStage={(lead.application_stage as ApplicationStage) || 'SUBMITTED'}
               stageHistory={lead.stage_history || []}
               onEditStage={() => setShowStageModal(true)}
-              canEdit={true}
+              canEdit={user?.role === 'admin'}
             />
           </div>
         </div>
