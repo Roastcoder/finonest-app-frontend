@@ -17,16 +17,41 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
   const [role, setRole] = useState(targetUser?.role || 'executive');
   const [branchId, setBranchId] = useState(targetUser?.branch_id || '');
   const [reportingTo, setReportingTo] = useState(targetUser?.reporting_to || '');
+  const [dsaId, setDsaId] = useState(targetUser?.dsa_id || '');
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(targetUser?.full_name || '');
   const [email, setEmail] = useState(targetUser?.email || '');
   const [phone, setPhone] = useState(targetUser?.phone || '');
   const [password, setPassword] = useState('');
 
-  // Manager can only assign team_leader and executive roles
-  const allowedRoles = user?.role === 'manager' 
-    ? { team_leader: ROLE_LABELS.team_leader, executive: ROLE_LABELS.executive }
-    : ROLE_LABELS;
+  // Determine allowed roles based on current user role
+  const getAllowedRoles = () => {
+    switch (user?.role) {
+      case 'admin':
+        return { sales_manager: ROLE_LABELS.sales_manager };
+      case 'sales_manager':
+        return { 
+          branch_manager: ROLE_LABELS.branch_manager, 
+          dsa: ROLE_LABELS.dsa 
+        };
+      case 'branch_manager':
+        return { 
+          team_leader: ROLE_LABELS.team_leader, 
+          executive: ROLE_LABELS.executive 
+        };
+      case 'dsa':
+        return { 
+          team_leader: ROLE_LABELS.team_leader, 
+          executive: ROLE_LABELS.executive 
+        };
+      case 'team_leader':
+        return { executive: ROLE_LABELS.executive };
+      default:
+        return {};
+    }
+  };
+
+  const allowedRoles = getAllowedRoles();
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
@@ -40,25 +65,38 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
   });
 
   const { data: managers = [] } = useQuery({
-    queryKey: ['managers'],
+    queryKey: ['managers', role],
     queryFn: async () => {
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch users');
       const users = await res.json();
+      
       // Filter based on selected role
-      if (role === 'team_leader') {
-        // Team leaders can only report to manager or dsa
-        return users.filter((u: any) => ['manager', 'dsa'].includes(u.role));
+      if (role === 'branch_manager' || role === 'dsa') {
+        return users.filter((u: any) => u.role === 'sales_manager');
+      } else if (role === 'team_leader') {
+        return users.filter((u: any) => ['branch_manager', 'dsa'].includes(u.role));
       } else if (role === 'executive') {
-        // Executives can report to team_leader, manager, or dsa
-        return users.filter((u: any) => ['manager', 'dsa', 'team_leader'].includes(u.role));
+        return users.filter((u: any) => ['team_leader', 'branch_manager', 'dsa'].includes(u.role));
       }
-      // For other roles, show admin, manager, team_leader
-      return users.filter((u: any) => ['admin', 'manager', 'team_leader'].includes(u.role));
+      return users.filter((u: any) => ['admin', 'sales_manager'].includes(u.role));
     },
-    enabled: open, // Only fetch when modal is open
+    enabled: open,
+  });
+
+  const { data: dsas = [] } = useQuery({
+    queryKey: ['dsas'],
+    queryFn: async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const users = await res.json();
+      return users.filter((u: any) => u.role === 'dsa');
+    },
+    enabled: open && role === 'team_leader',
   });
 
   useEffect(() => {
@@ -66,13 +104,14 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       setRole(targetUser.role || 'executive');
       setBranchId(targetUser.branch_id || '');
       setReportingTo(targetUser.reporting_to || '');
+      setDsaId(targetUser.dsa_id || '');
       setFullName(targetUser.full_name || '');
       setEmail(targetUser.email || '');
       setPhone(targetUser.phone || '');
     } else {
       setRole('executive');
       setBranchId('');
-      // Auto-set reporting_to for team leaders creating new users
+      setDsaId('');
       setReportingTo(user?.role === 'team_leader' ? user.id : '');
       setFullName('');
       setEmail('');
@@ -87,13 +126,18 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
     try {
       if (targetUser) {
         // Update existing user
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${targetUser.id}/role`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${targetUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           },
-          body: JSON.stringify({ role, branch_id: branchId || null, reporting_to: reportingTo || null }),
+          body: JSON.stringify({ 
+            role, 
+            branch_id: branchId || null, 
+            reporting_to: reportingTo || null,
+            dsa_id: dsaId || null
+          }),
         });
         if (!res.ok) throw new Error('Failed to update user');
         toast.success('User updated successfully!');
@@ -112,7 +156,8 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
             password, 
             role, 
             branch_id: branchId || null,
-            reporting_to: reportingTo || null
+            reporting_to: reportingTo || null,
+            dsa_id: dsaId || null
           }),
         });
         if (!res.ok) throw new Error('Failed to create user');
@@ -190,24 +235,79 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Select Branch</label>
-            <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={branchId} onChange={e => setBranchId(e.target.value)}>
-              <option value="">No Branch</option>
-              {branches.map((branch: any) => (
-                <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Reporting To (Manager/Team Leader)</label>
-            <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
-              <option value="">No Manager</option>
-              {managers.map((manager: any) => (
-                <option key={manager.id} value={manager.id}>{manager.full_name} ({manager.role})</option>
-              ))}
-            </select>
-          </div>
+
+          {(role === 'branch_manager') && (
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Select Branch *</label>
+              <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={branchId} onChange={e => setBranchId(e.target.value)}>
+                <option value="">Select a branch</option>
+                {branches.map((branch: any) => (
+                  <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {(role === 'branch_manager' || role === 'dsa') && (
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Reporting To (Sales Manager) *</label>
+              <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+                <option value="">Select a sales manager</option>
+                {managers.map((manager: any) => (
+                  <option key={manager.id} value={manager.id}>{manager.full_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {role === 'team_leader' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Reporting To (Branch Manager/DSA) *</label>
+                <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+                  <option value="">Select a manager</option>
+                  {managers.map((manager: any) => (
+                    <option key={manager.id} value={manager.id}>{manager.full_name} ({manager.role})</option>
+                  ))}
+                </select>
+              </div>
+              {user?.role === 'branch_manager' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Select Branch</label>
+                  <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={branchId} onChange={e => setBranchId(e.target.value)}>
+                    <option value="">No Branch</option>
+                    {branches.map((branch: any) => (
+                      <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {user?.role === 'dsa' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Associated DSA</label>
+                  <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={dsaId} onChange={e => setDsaId(e.target.value)}>
+                    <option value="">No DSA</option>
+                    {dsas.map((dsa: any) => (
+                      <option key={dsa.id} value={dsa.id}>{dsa.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
+          )}
+
+          {role === 'executive' && (
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Reporting To (Team Leader) *</label>
+              <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+                <option value="">Select a team leader</option>
+                {managers.map((manager: any) => (
+                  <option key={manager.id} value={manager.id}>{manager.full_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex gap-3 justify-end pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-border text-sm font-medium">Cancel</button>
             <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-semibold disabled:opacity-60">{loading ? 'Saving...' : (targetUser ? 'Save Changes' : 'Create User')}</button>
