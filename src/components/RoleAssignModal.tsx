@@ -47,8 +47,18 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       });
       if (!res.ok) throw new Error('Failed to fetch users');
       const users = await res.json();
+      // Filter based on selected role
+      if (role === 'team_leader') {
+        // Team leaders can only report to manager or dsa
+        return users.filter((u: any) => ['manager', 'dsa'].includes(u.role));
+      } else if (role === 'executive') {
+        // Executives can report to team_leader, manager, or dsa
+        return users.filter((u: any) => ['manager', 'dsa', 'team_leader'].includes(u.role));
+      }
+      // For other roles, show admin, manager, team_leader
       return users.filter((u: any) => ['admin', 'manager', 'team_leader'].includes(u.role));
     },
+    enabled: open, // Only fetch when modal is open
   });
 
   useEffect(() => {

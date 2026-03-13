@@ -77,7 +77,7 @@ export default function TeamUsers() {
   const { data: teamData = [], isLoading, error } = useQuery({
     queryKey: ['team-hierarchy', user?.id],
     queryFn: async () => {
-      const endpoint = user?.role === 'manager'
+      const endpoint = (user?.role === 'manager' || user?.role === 'dsa')
         ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/my-team/hierarchy`
         : `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/team/${user?.id}`;
 
@@ -163,7 +163,7 @@ export default function TeamUsers() {
     return { filteredHierarchy: hierarchy, roleCounts: counts };
   }, [teamData, search, roleFilter]);
 
-  const isManager = user?.role === 'manager';
+  const isManager = user?.role === 'manager' || user?.role === 'dsa';
 
   return (
     <div>

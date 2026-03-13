@@ -29,7 +29,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Loan Apps', path: '/loans', icon: <FileText size={16} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'team_leader'] },
     ]
   },
-  { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['manager', 'team_leader'] },
+  { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['manager', 'team_leader', 'dsa'] },
   {
     label: 'Operations', icon: <ShieldCheck size={18} />, roles: ['admin', 'ops_team', 'manager', 'dsa', 'executive'],
     children: [
