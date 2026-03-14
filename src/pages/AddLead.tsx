@@ -89,16 +89,52 @@ export default function AddLead() {
 
   const createLead = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        body: JSON.stringify(data)
-      });
-      if (!response.ok) throw new Error('Failed to create lead');
-      return response.json();
+      console.log('Sending lead data:', data);
+      
+      // Try multiple times if backend has collision
+      const maxAttempts = 3;
+      let lastError = null;
+      
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify(data)
+          });
+          
+          if (response.ok) {
+            console.log(`✅ Success on attempt ${attempt + 1}`);
+            return response.json();
+          }
+          
+          const errorText = await response.text();
+          console.error(`❌ Attempt ${attempt + 1} failed:`, response.status, errorText);
+          
+          // If it's not a duplicate error, throw immediately
+          if (!errorText.includes('duplicate key value violates unique constraint')) {
+            throw new Error(`HTTP ${response.status}: ${errorText || 'Failed to create lead'}`);
+          }
+          
+          lastError = new Error(`HTTP ${response.status}: ${errorText}`);
+          
+          // Wait before retry
+          if (attempt < maxAttempts - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+          }
+          
+        } catch (error: any) {
+          lastError = error;
+          if (attempt === maxAttempts - 1) {
+            throw error;
+          }
+        }
+      }
+      
+      throw lastError || new Error('Failed to create lead after multiple attempts');
     },
     onSuccess: async (data) => {
       console.log('Lead created response:', data);
@@ -159,16 +195,78 @@ export default function AddLead() {
     },
     onError: (err: any) => {
       console.error('Create lead error:', err);
-      toast.error(err.message || 'Failed to create lead');
+      
+      // Handle specific database errors
+      if (err.message.includes('duplicate key value violates unique constraint')) {
+        if (err.message.includes('customer_id_key')) {
+          toast.error('Customer ID conflict occurred. Please try again.');
+        } else if (err.message.includes('phone')) {
+          toast.error('A lead with this phone number already exists.');
+        } else if (err.message.includes('pan_number')) {
+          toast.error('A lead with this PAN number already exists.');
+        } else if (err.message.includes('vehicle_number')) {
+          toast.error('A lead with this vehicle number already exists.');
+        } else {
+          toast.error('This record already exists in the system.');
+        }
+      } else {
+        toast.error(err.message || 'Failed to create lead');
+      }
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const submissionData = { ...form };
-    if (user?.role === 'executive') {
-      submissionData.financier_id = null; // Executives don't set this
+    
+    // Validate required fields
+    if (!form.customer_name.trim()) {
+      toast.error('Customer name is required');
+      return;
     }
+    if (!form.phone.trim() || form.phone.length !== 10) {
+      toast.error('Valid 10-digit mobile number is required');
+      return;
+    }
+    if (!form.pan_number.trim() || form.pan_number.length !== 10) {
+      toast.error('Valid PAN number is required');
+      return;
+    }
+    if (!form.current_address.trim()) {
+      toast.error('Current address is required');
+      return;
+    }
+    if (!form.pincode.trim() || form.pincode.length !== 6) {
+      toast.error('Valid 6-digit pincode is required');
+      return;
+    }
+    if (!form.city.trim()) {
+      toast.error('City is required');
+      return;
+    }
+    if (!form.state.trim()) {
+      toast.error('State is required');
+      return;
+    }
+    if (!form.vehicle_number.trim()) {
+      toast.error('Vehicle number is required');
+      return;
+    }
+    if (!form.loan_amount_required || Number(form.loan_amount_required) <= 0) {
+      toast.error('Valid loan amount is required');
+      return;
+    }
+    if (user?.role !== 'executive' && !form.financier_id) {
+      toast.error('Please select a financier');
+      return;
+    }
+    
+    const submissionData = {
+      ...form,
+      loan_amount_required: Number(form.loan_amount_required),
+      financier_id: user?.role === 'executive' ? null : (form.financier_id || null)
+    };
+    
+    console.log('Submitting lead with data:', submissionData);
     createLead.mutate(submissionData);
   };
 
@@ -202,7 +300,13 @@ export default function AddLead() {
         <FormSection title="Personal Information">
           <div>
             <label className={labelClass}>Customer Name *</label>
-            <input required className={inputClass} value={form.customer_name} onChange={e => setForm({ ...form, customer_name: e.target.value })} placeholder="Full legal name" />
+            <input 
+              required 
+              className={inputClass} 
+              value={form.customer_name} 
+              onChange={e => setForm({ ...form, customer_name: e.target.value })}
+              placeholder="Full legal name" 
+            />
           </div>
 
           <div>
