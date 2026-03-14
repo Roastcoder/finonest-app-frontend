@@ -480,6 +480,8 @@ export default function CreateLoan() {
     // RTO Papers Checkboxes
     rtoRC: false, rtoNOC: false, rtoPermit: false, rtoPollution: false, rto2930Form: false,
     rtoSellAgreement: false, rtoRCOwnerKYC: false, rtoStampPapers: false,
+    // Bouncing Details
+    bouncingLast3m: '', bouncingLast6m: '',
     // EMI Details
     irr: '', tenure: '60', emiMode: 'Monthly', emiStartDate: '', emiEndDate: '',
     // Financier Details
@@ -658,6 +660,8 @@ export default function CreateLoan() {
           agent_mobile_no: form.agentMobileNo || null,
           login_date: form.loginDate || null,
           sourcing_person_name: form.sourcingPersonName || null,
+          bouncing_last_3m: form.bouncingLast3m ? Number(form.bouncingLast3m) : null,
+          bouncing_last_6m: form.bouncingLast6m ? Number(form.bouncingLast6m) : null,
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
           financier_name: assignmentForm.ledgerSelection || (form.financierName === 'Others' ? form.otherFinancierName : form.financierName) || null,
@@ -940,6 +944,15 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentPincode} onChange={e => update('currentPincode', e.target.value)} maxLength={6} placeholder=" " /><label className={labelClass}>Pincode</label></div>
               </div>
             </div>
+
+          {/* Bouncing Details */}
+          <div>
+            <h2 className="text-base font-bold text-foreground mb-3">Bouncing Details</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 3M</label></div>
+              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 6M</label></div>
+            </div>
+          </div>
 
           {/* Vehicle & Loan */}
           <div>

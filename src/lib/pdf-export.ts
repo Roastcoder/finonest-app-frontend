@@ -111,10 +111,8 @@ function buildLoanHTML(loan: LoanData): string {
   ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto), 'Case Type', fmt(loan.case_type), 'Vertical', fmt(loan.vertical))}
   ${row4('Scheme', fmt(loan.scheme), 'Valuation', fmtCur(loan.valuation), 'On Road Price', fmtCur(loan.on_road_price), '', '')}
 
-  ${sectionTitle('&#128176;', 'Loan & EMI Details')}
-  ${row4('Loan Amount', fmtCur(loan.loan_amount), 'Grid', fmtCur(loan.grid), 'LTV', loan.ltv ? loan.ltv + '%' : '—', 'IRR', loan.irr ? loan.irr + '%' : (loan.interest_rate ? loan.interest_rate + '%' : '—'))}
-  ${row4('Tenure', loan.tenure ? loan.tenure + ' months' : '—', 'EMI Mode', fmt(loan.emi_mode || 'Monthly'), 'Monthly EMI', fmtCur(loan.emi_amount || loan.emi), 'Total EMI', fmt(loan.total_emi || loan.tenure))}
-  ${row4('Total Interest', fmtCur(loan.total_interest), 'First EMI Date', formatDate(loan.first_installment_due_date), 'Down Payment', fmtCur(loan.down_payment), 'Advance EMI', fmt(loan.advance_emi))}
+  ${sectionTitle('&#128176;', 'Existing Loan & EMI Details')}
+  ${row4('Loan Amount', fmtCur(loan.loan_amount), 'Tenure', loan.tenure ? loan.tenure + ' months' : '—', 'Total EMI', fmt(loan.total_emi || loan.tenure), 'Total Interest', fmtCur(loan.total_interest))}
   ${row4('Financier Name', fmt(loan.rto_financier_name), 'Loan Status', fmt(loan.loan_status), 'No of EMI Paid', fmt(loan.no_of_emi_paid), '', '')}
   ${row4('Bouncing in Last 3M', fmt(loan.bouncing_last_3m), 'Bouncing in Last 6M', fmt(loan.bouncing_last_6m), '', '', '', '')}
 
@@ -294,10 +292,8 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
     ['Scheme', fmt(loan.scheme)], ['Valuation', fmtCur(loan.valuation)], ['On Road Price', fmtCur(loan.on_road_price)], ['', ''],
   ]);
 
-  drawSection('LOAN & EMI DETAILS', [
-    ['Loan Amount', fmtCur(loan.loan_amount)], ['Grid', fmtCur(loan.grid)], ['LTV', loan.ltv ? loan.ltv + '%' : '—'], ['IRR', loan.irr ? loan.irr + '%' : (loan.interest_rate ? loan.interest_rate + '%' : '—')],
-    ['Tenure', loan.tenure ? loan.tenure + ' months' : '—'], ['EMI Mode', fmt(loan.emi_mode || 'Monthly')], ['Monthly EMI', fmtCur(loan.emi_amount || loan.emi)], ['Total EMI', fmt(loan.total_emi || loan.tenure)],
-    ['Total Interest', fmtCur(loan.total_interest)], ['First EMI Date', formatDate(loan.first_installment_due_date)], ['Down Payment', fmtCur(loan.down_payment)], ['Advance EMI', fmt(loan.advance_emi)],
+  drawSection('EXISTING LOAN & EMI DETAILS', [
+    ['Loan Amount', fmtCur(loan.loan_amount)], ['Tenure', loan.tenure ? loan.tenure + ' months' : '—'], ['Total EMI', fmt(loan.total_emi || loan.tenure)], ['Total Interest', fmtCur(loan.total_interest)],
     ['Financier Name', fmt(loan.rto_financier_name)], ['Loan Status', fmt(loan.loan_status)], ['No of EMI Paid', fmt(loan.no_of_emi_paid)], ['', ''],
     ['Bouncing in Last 3M', fmt(loan.bouncing_last_3m)], ['Bouncing in Last 6M', fmt(loan.bouncing_last_6m)], ['', ''], ['', ''],
   ]);
