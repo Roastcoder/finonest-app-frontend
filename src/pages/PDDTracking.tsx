@@ -34,7 +34,7 @@ export default function PDDTracking() {
           <div key={item.loanId} className="stat-card">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <span className="mono text-xs text-accent font-medium">{item.loanId}</span>
+                <span className="font-mono text-sm text-primary font-semibold">{item.loanId}</span>
                 <p className="font-medium text-foreground">{item.applicant}</p>
               </div>
               <div className="text-xs text-muted-foreground">

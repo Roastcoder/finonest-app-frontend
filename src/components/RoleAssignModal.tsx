@@ -46,9 +46,14 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
           dsa: ROLE_LABELS.dsa 
         };
       case 'branch_manager':
+        return { 
+          team_leader: ROLE_LABELS.team_leader, 
+          executive: ROLE_LABELS.executive 
+        };
       case 'dsa':
         return { 
-          team_leader: ROLE_LABELS.team_leader
+          team_leader: ROLE_LABELS.team_leader, 
+          executive: ROLE_LABELS.executive 
         };
       case 'team_leader':
         return { executive: ROLE_LABELS.executive };
@@ -87,7 +92,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       } else if (role === 'team_leader') {
         return users.filter((u: any) => ['branch_manager', 'dsa'].includes(u.role));
       } else if (role === 'executive') {
-        return users.filter((u: any) => u.role === 'team_leader');
+        return users.filter((u: any) => ['team_leader', 'branch_manager', 'dsa'].includes(u.role));
       }
       return users.filter((u: any) => ['admin', 'operation_team'].includes(u.role));
     },
@@ -267,6 +272,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
               </select>
             </div>
           )}
+
 
           {(role === 'branch_manager' || role === 'dsa') && (
             <div>

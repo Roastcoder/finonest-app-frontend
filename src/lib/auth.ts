@@ -10,7 +10,6 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   team_leader: 'L5 - Team Leader',
   executive: 'L6 - Executive'
 };
-
 // Demo accounts for quick login (these exist in the real auth system)
 export const DEMO_ACCOUNTS = [
   { name: 'Priya Sharma', email: 'admin@finonest.com', role: 'admin' as UserRole, password: 'Demo@1234' },

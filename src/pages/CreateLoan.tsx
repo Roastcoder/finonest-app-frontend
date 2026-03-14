@@ -299,11 +299,13 @@ export default function CreateLoan() {
         let failedCount = 0;
 
         // Fetch and convert each document to File object
+        const missingDocs: string[] = [];
         for (const doc of documents) {
           const docType = doc.document_type?.toLowerCase().trim() || '';
           const formField = docTypeMap[docType];
           const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`;
           
+<<<<<<< HEAD
           console.log(`Processing document: ${doc.document_type} (normalized: ${docType}) -> ${formField}`);
           
           if (!formField) {
@@ -325,12 +327,41 @@ export default function CreateLoan() {
               loadedCount++;
             } else {
               console.error(`❌ Failed to download ${doc.document_type}: ${fileResponse.statusText}`);
+=======
+          if (formField) {
+            try {
+              const fileResponse = await fetch(downloadUrl, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+              });
+              
+              if (fileResponse.ok) {
+                const blob = await fileResponse.blob();
+                const fileName = doc.file_name || `${doc.document_type}.pdf`;
+                const file = new File([blob], fileName, { type: blob.type });
+                setForm(f => ({ ...f, [formField]: file }));
+                console.log(`Successfully loaded ${doc.document_type}`);
+                loadedCount++;
+              } else {
+                console.error(`Failed to download ${doc.document_type}: ${fileResponse.statusText}`);
+                missingDocs.push(doc.document_type.replace(/_/g, ' '));
+                failedCount++;
+              }
+            } catch (err) {
+              console.error(`Error fetching document ${doc.document_type}:`, err);
+              missingDocs.push(doc.document_type.replace(/_/g, ' '));
+>>>>>>> 95981913b1c4192dd92a8d3f02a9b2bbb8e2a28e
               failedCount++;
             }
           } catch (err) {
             console.error(`❌ Error fetching document ${doc.document_type}:`, err);
             failedCount++;
           }
+        }
+
+        if (missingDocs.length > 0) {
+          toast.error(`Some documents are missing on the server: ${missingDocs.join(', ')}. Please re-upload them.`, {
+            duration: 6000
+          });
         }
         
         if (loadedCount > 0) {
