@@ -107,7 +107,9 @@ function UserForm({ onClose, onSubmit, users }: any) {
           <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="w-full px-3 py-2 border rounded">
             <option value="executive">Executive</option>
             <option value="team_leader">Team Leader</option>
+            <option value="branch_manager">Branch Manager</option>
             <option value="dsa">DSA</option>
+            <option value="manager">Manager</option>
             <option value="sales_manager">Sales Manager</option>
             <option value="ops_team">Ops Team</option>
             <option value="admin">Admin</option>

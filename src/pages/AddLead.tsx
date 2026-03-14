@@ -27,6 +27,7 @@ export default function AddLead() {
     phone: '',
     email: '',
     current_address: '',
+    current_landmark: '',
     pincode: '',
     city: '',
     state: '',
@@ -130,14 +131,15 @@ export default function AddLead() {
             });
 
             if (response.ok) {
+              console.log(`✅ Successfully uploaded ${docType}`);
               uploadSuccess++;
             } else {
               const errorData = await response.json().catch(() => ({}));
-              console.error('Document upload failed:', docType, errorData);
+              console.error(`❌ Document upload failed for ${docType}:`, errorData);
               uploadFailed++;
             }
           } catch (error) {
-            console.error('Document upload error:', docType, error);
+            console.error(`❌ Document upload error for ${docType}:`, error);
             uploadFailed++;
           }
         }
@@ -223,6 +225,11 @@ export default function AddLead() {
           <div className="md:col-span-2">
             <label className={labelClass}>Current Address *</label>
             <textarea required className={inputClass} rows={2} value={form.current_address} onChange={e => setForm({ ...form, current_address: e.target.value })} placeholder="Complete street address, house no, etc." />
+          </div>
+
+          <div>
+            <label className={labelClass}>Landmark</label>
+            <input className={inputClass} value={form.current_landmark} onChange={e => setForm({ ...form, current_landmark: e.target.value })} placeholder="Nearby landmark" />
           </div>
 
           <div>

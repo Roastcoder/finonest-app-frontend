@@ -7,16 +7,13 @@ interface LeadDocumentUploadProps {
 }
 
 const REQUIRED_DOCUMENTS = [
-  { value: 'aadhar_front', label: 'Aadhar Front' },
-  { value: 'aadhar_back', label: 'Aadhar Back' },
-  { value: 'pan_card', label: 'PAN Card' },
-];
-
-const OPTIONAL_DOCUMENTS = [
-  { value: 'rc_front', label: 'RC Front' },
-  { value: 'rc_back', label: 'RC Back' },
-  { value: 'bank_statement', label: 'Bank Statement' },
-  { value: 'loan_statement', label: 'Loan Account Statement' },
+  { value: 'aadhar_front', label: 'Aadhar Front', required: true },
+  { value: 'aadhar_back', label: 'Aadhar Back', required: true },
+  { value: 'pan_card', label: 'PAN Card', required: true },
+  { value: 'rc_front', label: 'RC Front', required: false },
+  { value: 'rc_back', label: 'RC Back', required: false },
+  { value: 'bank_statement', label: 'Bank Statement', required: false },
+  { value: 'loan_statement', label: 'Loan Account Statement', required: false },
 ];
 
 export default function LeadDocumentUpload({ onDocumentsChange }: LeadDocumentUploadProps) {
@@ -76,57 +73,7 @@ export default function LeadDocumentUpload({ onDocumentsChange }: LeadDocumentUp
                 onClick={() => handleDocTypeClick(doc.value)}
                 className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
               >
-                {doc.label} <span className="text-red-500">*</span>
-              </button>
-              {files[doc.value] && (
-                <div className="flex items-center gap-2 ml-0">
-                  <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs text-green-600 truncate max-w-[150px]">
-                    {files[doc.value].name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => viewDocument(files[doc.value])}
-                    className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
-                    title="View document"
-                  >
-                    <Eye size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(doc.value)}
-                    className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors flex-shrink-0"
-                    title="Remove document"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
-                onChange={(e) => handleFileChange(doc.value, e)}
-                className="hidden"
-                id={`file-upload-${doc.value}`}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h3 className="text-sm font-bold text-slate-800 mb-3">Optional Documents</h3>
-        <div className="flex flex-wrap gap-4">
-          {OPTIONAL_DOCUMENTS.map(doc => (
-            <div key={doc.value} className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={() => handleDocTypeClick(doc.value)}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
-              >
-                {doc.label}
+                {doc.label} {doc.required && <span className="text-red-500">*</span>}
               </button>
               {files[doc.value] && (
                 <div className="flex items-center gap-2 ml-0">

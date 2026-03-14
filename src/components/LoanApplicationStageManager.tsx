@@ -308,11 +308,17 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                     <input
                       type="tel"
                       required
-                      pattern="[6-9][0-9]{9}"
+                      pattern="{10}"
                       value={formData.agentMobile || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, agentMobile: e.target.value }))}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                        if (value.length <= 10) {
+                          setFormData(prev => ({ ...prev, agentMobile: value }));
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent"
                       placeholder="Enter 10-digit mobile number"
+                      maxLength={10}
                     />
                   </div>
                 </div>
@@ -336,11 +342,17 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                     <input
                       type="tel"
                       required
-                      pattern="[6-9][0-9]{9}"
+                      pattern="[0-9]{10}"
                       value={formData.bankerMobile || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bankerMobile: e.target.value }))}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                        if (value.length <= 10) {
+                          setFormData(prev => ({ ...prev, bankerMobile: value }));
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent"
                       placeholder="Enter 10-digit mobile number"
+                      maxLength={10}
                     />
                   </div>
                 </div>

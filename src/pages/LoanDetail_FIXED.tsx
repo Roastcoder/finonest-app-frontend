@@ -52,13 +52,23 @@ export default function LoanDetail() {
   const { data: documents = [], refetch: refetchDocs } = useQuery({
     queryKey: ['loan-documents', id],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}/documents`, {
+      if (!loan?.lead_id) {
+        console.log('No lead_id available, skipping document fetch');
+        return [];
+      }
+      console.log('Fetching documents for lead_id:', loan.lead_id);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/lead/${loan.lead_id}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
-      if (!res.ok) return [];
-      return res.json();
+      if (!res.ok) {
+        console.error('Failed to fetch documents:', res.status);
+        return [];
+      }
+      const docs = await res.json();
+      console.log('Documents fetched:', docs.length);
+      return docs;
     },
-    enabled: !!id,
+    enabled: !!loan?.lead_id,
   });
 
   const updateStatus = useMutation({
@@ -283,7 +293,7 @@ export default function LoanDetail() {
             <Field label="Guarantor Mobile" value={(loan as any).guarantor_mobile || '—'} />
             <Field label="Our Branch" value={(loan as any).our_branch || '—'} />
             <div className="col-span-2"><Field label="Current Address" value={(loan as any).current_address || loan.address || ''} /></div>
-            <Field label="Landmark" value={(loan as any).current_landmark || (loan as any).landmark || '—'} />
+            <Field label="Landmark" value={(loan as any).current_landmark || '—'} />
             <Field label="District" value={(loan as any).current_district || ''} />
             <Field label="State" value={(loan as any).current_state || '—'} />
             <Field label="Pincode" value={(loan as any).current_pincode || ''} />
@@ -298,6 +308,7 @@ export default function LoanDetail() {
             <Field label="Owner Name" value={(loan as any).owner_name || '—'} />
             <Field label="Maker" value={(loan as any).maker_name || loan.car_make || ''} />
             <Field label="Model" value={(loan as any).maker_model || '—'} />
+            <Field label="Model/Variant" value={(loan as any).model_variant_name || loan.car_model || ''} />
             <Field label="Fuel Type" value={(loan as any).fuel_type || '—'} />
             <Field label="Manufacturing Date" value={(loan as any).manufacturing_date ? new Date((loan as any).manufacturing_date).toLocaleDateString('en-IN') : '—'} />
             <Field label="Ownership Type" value={(loan as any).ownership_type || '—'} />
@@ -305,7 +316,6 @@ export default function LoanDetail() {
             <Field label="Finance Status" value={(loan as any).finance_status || '—'} />
             <Field label="Case Type" value={(loan as any).case_type || '—'} />
             <Field label="Loan Type" value={(loan as any).loan_type_vehicle || '—'} />
-            {(loan as any).landmark && <Field label="Landmark" value={(loan as any).landmark} />}
           </div>
         </Section>
 

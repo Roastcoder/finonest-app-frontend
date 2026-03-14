@@ -169,8 +169,23 @@ export default function CreateLoan() {
     'Others'
   ];
 
+  const { data: assignableUsers = [] } = useQuery({
+    queryKey: ['assignable-users'],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/by-role?roles=branch_manager,dsa,executive`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return [];
+        return await response.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: user?.role === 'admin'
+  });
+
   const { data: brokers = [] } = useQuery({
-    queryKey: ['brokers-list'],
     queryFn: async () => {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/brokers`, {
@@ -232,7 +247,8 @@ export default function CreateLoan() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [assignmentForm, setAssignmentForm] = useState({
     ledgerSelection: '',
-    salesManager: user?.name || '',
+    assignedTo: '',
+    assignedToRole: '',
     remarks: ''
   });
 
@@ -250,17 +266,25 @@ export default function CreateLoan() {
       if (response.ok) {
         const documents = await response.json();
         console.log('Fetched documents:', documents);
+        console.log('Document types received:', documents.map((d: any) => d.document_type));
         
         // Map document types to form fields
         const docTypeMap: { [key: string]: string } = {
           'aadhar_front': 'aadharFront',
           'aadhar_back': 'aadharBack',
+          'aadhaar_front': 'aadharFront',
+          'aadhaar_back': 'aadharBack',
+          'aadhar': 'aadharFront',
+          'aadhaar': 'aadharFront',
           'pan_card': 'panCard',
+          'pan': 'panCard',
           'rc_front': 'rcFront',
           'rc_back': 'rcBack',
+          'rc': 'rcFront',
           'bank_statement': 'bankStatement',
           'loan_statement': 'loanStatement',
           'driving_licence': 'drivingLicence',
+          'driving_license': 'drivingLicence',
           'light_bill': 'lightBill',
           'cheque': 'cheque',
           'income_proof': 'incomeProof',
@@ -276,30 +300,36 @@ export default function CreateLoan() {
 
         // Fetch and convert each document to File object
         for (const doc of documents) {
-          const formField = docTypeMap[doc.document_type];
+          const docType = doc.document_type?.toLowerCase().trim() || '';
+          const formField = docTypeMap[docType];
           const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`;
           
-          if (formField) {
-            try {
-              const fileResponse = await fetch(downloadUrl, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-              });
-              
-              if (fileResponse.ok) {
-                const blob = await fileResponse.blob();
-                const fileName = doc.file_name || `${doc.document_type}.pdf`;
-                const file = new File([blob], fileName, { type: blob.type });
-                setForm(f => ({ ...f, [formField]: file }));
-                console.log(`Successfully loaded ${doc.document_type}`);
-                loadedCount++;
-              } else {
-                console.error(`Failed to download ${doc.document_type}: ${fileResponse.statusText}`);
-                failedCount++;
-              }
-            } catch (err) {
-              console.error(`Error fetching document ${doc.document_type}:`, err);
+          console.log(`Processing document: ${doc.document_type} (normalized: ${docType}) -> ${formField}`);
+          
+          if (!formField) {
+            console.warn(`⚠️ Unmapped document type: ${doc.document_type}`);
+            continue;
+          }
+          
+          try {
+            const fileResponse = await fetch(downloadUrl, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            });
+            
+            if (fileResponse.ok) {
+              const blob = await fileResponse.blob();
+              const fileName = doc.file_name || `${doc.document_type}.pdf`;
+              const file = new File([blob], fileName, { type: blob.type });
+              setForm(f => ({ ...f, [formField]: file }));
+              console.log(`✅ Successfully loaded ${doc.document_type}`);
+              loadedCount++;
+            } else {
+              console.error(`❌ Failed to download ${doc.document_type}: ${fileResponse.statusText}`);
               failedCount++;
             }
+          } catch (err) {
+            console.error(`❌ Error fetching document ${doc.document_type}:`, err);
+            failedCount++;
           }
         }
         
@@ -307,7 +337,10 @@ export default function CreateLoan() {
           toast.success(`${loadedCount} document(s) loaded from lead`);
         }
         if (failedCount > 0) {
-          toast.error(`${failedCount} document(s) could not be loaded and may need manual re-upload.`);
+          toast.warning(`${failedCount} document(s) could not be loaded. Please check the console for details.`);
+        }
+        if (documents.length === 0) {
+          toast.info('No documents found for this lead.');
         }
       }
     } catch (error) {
@@ -461,12 +494,14 @@ export default function CreateLoan() {
   const update = (key: string, val: string | File | null) => setForm(f => ({ ...f, [key]: val }));
 
   const handleLeadSelect = (lead: any) => {
+    console.log('Lead case_type received:', lead.case_type); // Debug log
     setForm(f => ({
       ...f,
       customerId: lead.customer_id || '',
       customerName: lead.customer_name || '',
       mobile: lead.phone || lead.phone_no || '',
       currentAddress: lead.current_address || '',
+      currentLandmark: lead.current_landmark || '',
       currentDistrict: lead.city || lead.district || '',
       currentState: lead.state || '',
       currentPincode: lead.pincode || '',
@@ -474,8 +509,11 @@ export default function CreateLoan() {
       caseType: lead.case_type || '',
       loanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
       purposeLoanAmount: lead.loan_amount_required ? String(lead.loan_amount_required) : '',
-      loanTypeVehicle: lead.case_type === 'purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
-      scheme: lead.case_type === 'purchase' ? 'Purchase' : lead.case_type === 'refinance' ? 'Re-finance' : 'Balance Transfer',
+      loanTypeVehicle: lead.case_type === 'new_car_purchase' ? 'New Vehicle Loan' : 'Used Vehicle Loan',
+      scheme: lead.case_type === 'new_car_purchase' ? 'Purchase' : 
+              lead.case_type === 'used_car_refinance' ? 'Re-finance' : 
+              lead.case_type === 'used_car_bt' ? 'Balance Transfer' :
+              lead.case_type === 'used_car_topup' ? 'Top-up' : 'Purchase',
       financierName: lead.financier_name || '',
       sourcingPersonName: lead.created_by_name || lead.sourcing_person_name || '',
     }));
@@ -537,6 +575,7 @@ export default function CreateLoan() {
       const loanId = form.loanNumber || generateLoanId();
       
       console.log('Creating loan with lead_id:', selectedLeadId); // Debug log
+      console.log('Case type being sent:', form.caseType); // Debug log
       
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
         method: 'POST',
@@ -557,6 +596,7 @@ export default function CreateLoan() {
           guarantor_mobile: form.guarantorMobile || null,
           current_address: form.currentAddress || null,
           current_landmark: form.currentLandmark || null,
+          landmark: form.currentLandmark || null,
           current_district: form.currentDistrict || null,
           current_state: form.currentState || null,
           current_pincode: form.currentPincode || null,
@@ -613,7 +653,12 @@ export default function CreateLoan() {
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
           financier_name: assignmentForm.ledgerSelection || (form.financierName === 'Others' ? form.otherFinancierName : form.financierName) || null,
-          case_type: form.caseType === 'purchase' ? 'Purchase' : form.caseType === 'refinance' ? 'Refinance' : form.caseType === 'bt' ? 'BT' : (form.caseType || null),
+          case_type: form.caseType === 'new_car_purchase' ? 'Purchase' : 
+                     form.caseType === 'used_car_purchase' ? 'Purchase' :
+                     form.caseType === 'used_car_refinance' ? 'Refinance' : 
+                     form.caseType === 'used_car_bt' ? 'BT' :
+                     form.caseType === 'used_car_topup' ? 'Top-up' : (form.caseType || null),
+          assigned_to: assignmentForm.assignedTo ? Number(assignmentForm.assignedTo) : null,
           created_by: user?.id,
         }),
       });
@@ -667,7 +712,7 @@ export default function CreateLoan() {
             
             <div className="space-y-4">
               <div>
-                <label className={labelClass}>Select lender *</label>
+                <label className={labelClass}>Select Lender *</label>
                 <select 
                   className={inputClass}
                   value={assignmentForm.ledgerSelection}
@@ -683,14 +728,31 @@ export default function CreateLoan() {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sales Manager</label>
-                <input 
-                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none transition-all cursor-not-allowed"
-                  value={assignmentForm.salesManager}
-                  disabled
-                />
-              </div>
+              {user?.role === 'admin' && (
+                <div>
+                  <label className={labelClass}>Assign To *</label>
+                  <select 
+                    className={inputClass}
+                    value={assignmentForm.assignedTo}
+                    onChange={e => {
+                      const selectedUser = assignableUsers.find((u: any) => u.id === Number(e.target.value));
+                      setAssignmentForm(f => ({ 
+                        ...f, 
+                        assignedTo: e.target.value,
+                        assignedToRole: selectedUser?.role || ''
+                      }));
+                    }}
+                    required
+                  >
+                    <option value="">Select Branch Manager, DSA, or Executive</option>
+                    {assignableUsers.map((user: any) => (
+                      <option key={user.id} value={user.id}>
+                        {user.full_name} ({user.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               
               <div>
                 <label className={labelClass}>Remarks (Optional)</label>
@@ -715,6 +777,7 @@ export default function CreateLoan() {
               <button 
                 type="button"
                 onClick={() => {
+                  const assignedUser = assignableUsers.find((u: any) => u.id === Number(assignmentForm.assignedTo));
                   const message = `*Loan Application Details*\n\n` +
                     `Customer: ${form.customerName}\n` +
                     `Mobile: ${form.mobile}\n` +
@@ -722,7 +785,7 @@ export default function CreateLoan() {
                     `Vehicle: ${form.makerName} ${form.makerModel}\n` +
                     `Vehicle No: ${form.vehicleNumber}\n` +
                     `Ledger: ${assignmentForm.ledgerSelection}\n` +
-                    `Sales Manager: ${assignmentForm.salesManager}\n` +
+                    `${user?.role === 'admin' && assignedUser ? `Assigned To: ${assignedUser.full_name} (${assignedUser.role})\n` : ''}` +
                     `Login Date: ${form.loginDate}`;
                   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
                 }}
@@ -734,7 +797,7 @@ export default function CreateLoan() {
               <button 
                 type="button" 
                 onClick={handleCreateApplication}
-                disabled={!assignmentForm.ledgerSelection || createLoan.isPending}
+                disabled={!assignmentForm.ledgerSelection || (user?.role === 'admin' && !assignmentForm.assignedTo) || createLoan.isPending}
                 className="flex items-center justify-center gap-2 px-8 py-2.5 rounded-full text-sm font-bold text-secondary bg-primary hover:shadow-md hover:scale-105 transition-all duration-300 border border-primary/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {createLoan.isPending ? (

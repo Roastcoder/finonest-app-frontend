@@ -43,6 +43,7 @@ function buildLoanHTML(loan: LoanData): string {
   
   .hdr-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; border-bottom: 2px solid #1a3a6b; padding-bottom: 6px; }
   .hdr-table td { vertical-align: middle; padding: 4px; }
+  .company-logo { height: 35px; width: auto; }
   .company-name { font-size: 18px; font-weight: 800; color: #1a3a6b; }
   .company-sub { font-size: 9px; color: #666; }
   .hdr-right { text-align: right; }
@@ -71,8 +72,11 @@ function buildLoanHTML(loan: LoanData): string {
 <table class="hdr-table">
   <tr>
     <td style="width:70%">
-      <span class="company-name">Finonest India</span><br/>
-      <span class="company-sub">Vehicle Loan Solutions &bull; Since 2015</span>
+      <img src="/Finonest logo.png" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+      <div style="display:none;">
+        <span class="company-name">Finonest India</span><br/>
+        <span class="company-sub">Vehicle Loan Solutions &bull; Since 2015</span>
+      </div>
     </td>
     <td class="hdr-right">
       <span class="hdr-lbl">Application ID</span><br/>
@@ -101,21 +105,28 @@ function buildLoanHTML(loan: LoanData): string {
   </tr>
 
   ${sectionTitle('&#128663;', 'Vehicle Details')}
-  ${row4('Reg. No', fmt(loan.vehicle_number), 'Maker', fmt(loan.maker_name || loan.car_make), 'Model/Variant', fmt(loan.model_variant_name || loan.car_model), 'Mfg Year', fmt(loan.mfg_year))}
-  ${row4('Vertical', fmt(loan.vertical), 'Scheme', fmt(loan.scheme), 'Valuation', fmtCur(loan.valuation), 'On Road Price', fmtCur(loan.on_road_price))}
+  ${row4('Reg. No', fmt(loan.vehicle_number), 'Maker', fmt(loan.maker_name || loan.car_make), 'Model/Variant', fmt(loan.model_variant_name || loan.car_model), 'Engine Number', fmt(loan.engine_number))}
+  ${row4('Chassis Number', fmt(loan.chassis_number), 'Owner Name', fmt(loan.owner_name), 'Fuel Type', fmt(loan.fuel_type), 'Mfg Date', formatDate(loan.manufacturing_date))}
+  ${row4('Ownership Type', fmt(loan.ownership_type), 'Financer', fmt(loan.financer), 'Finance Status', fmt(loan.finance_status), 'Insurance Company', fmt(loan.insurance_company))}
+  ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto), 'Case Type', fmt(loan.case_type), 'Vertical', fmt(loan.vertical))}
+  ${row4('Scheme', fmt(loan.scheme), 'Valuation', fmtCur(loan.valuation), 'On Road Price', fmtCur(loan.on_road_price), '', '')}
 
   ${sectionTitle('&#128176;', 'Loan & EMI Details')}
   ${row4('Loan Amount', fmtCur(loan.loan_amount), 'Grid', fmtCur(loan.grid), 'LTV', loan.ltv ? loan.ltv + '%' : '—', 'IRR', loan.irr ? loan.irr + '%' : (loan.interest_rate ? loan.interest_rate + '%' : '—'))}
   ${row4('Tenure', loan.tenure ? loan.tenure + ' months' : '—', 'EMI Mode', fmt(loan.emi_mode || 'Monthly'), 'Monthly EMI', fmtCur(loan.emi_amount || loan.emi), 'Total EMI', fmt(loan.total_emi || loan.tenure))}
   ${row4('Total Interest', fmtCur(loan.total_interest), 'First EMI Date', formatDate(loan.first_installment_due_date), 'Down Payment', fmtCur(loan.down_payment), 'Advance EMI', fmt(loan.advance_emi))}
+  ${row4('Financier Name', fmt(loan.rto_financier_name), 'Loan Status', fmt(loan.loan_status), 'No of EMI Paid', fmt(loan.no_of_emi_paid), '', '')}
+  ${row4('Bouncing in Last 3M', fmt(loan.bouncing_last_3m), 'Bouncing in Last 6M', fmt(loan.bouncing_last_6m), '', '', '', '')}
 
-  ${sectionTitle('&#127974;', 'Financier & Insurance')}
-  ${row4('Assigned Bank', fmt(loan.banks?.name), 'Financier Exec.', fmt(loan.financier_executive_name), 'Branch', fmt(loan.disburse_branch_name), 'Branch Manager', fmt(loan.branch_manager_name))}
-  ${row4('Insurance Co.', fmt(loan.insurance_company_name), 'IDV', fmtCur(loan.idv), 'Premium', fmtCur(loan.premium_amount), 'Insurance Type', fmt(loan.insurance_type))}
+  ${sectionTitle('&#127974;', 'Lender Details')}
+  ${row4('Assigned Lender', fmt(loan.financier_name || loan.selected_financier || loan.banks?.name), 'Location', fmt(loan.financier_location), 'SM Name', fmt(loan.financier_executive_name), 'Loan Amount Req', fmtCur(loan.loan_amount))}
+  ${row4('Program', fmt(loan.case_type), 'Insurance Co.', fmt(loan.insurance_company_name), 'IDV', fmtCur(loan.idv), 'Premium', fmtCur(loan.premium_amount))}
 
+  ${loan.application_stage === 'APPROVED' || loan.application_stage === 'DISBURSED' || loan.application_stage === 'CANCELLED' || loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'cancelled' ? `
   ${sectionTitle('&#128203;', 'Deductions & Disbursement')}
   ${row4('File Charge', fmtCur(loan.file_charge), 'Loan Suraksha', fmtCur(loan.loan_suraksha), 'Stamping', fmtCur(loan.stamping), 'Processing Fee', fmtCur(loan.processing_fee))}
   ${row4('Total Deduction', fmtCur(loan.total_deduction), 'Net Disbursement', fmtCur(loan.net_disbursement_amount), 'Payment Recd.', formatDate(loan.payment_received_date), 'Disburse Date', formatDate(loan.financier_disburse_date))}
+  ` : ''}
 
   ${sectionTitle('&#128197;', 'Important Dates')}
   ${row4('Login Date', formatDate(loan.login_date), 'Approval Date', formatDate(loan.approval_date), 'Disburse Date', formatDate(loan.financier_disburse_date), 'TAT', loan.tat ? loan.tat + ' days' : '—')}
@@ -126,11 +137,27 @@ function buildLoanHTML(loan: LoanData): string {
   ${row4('RTO Agent', fmt(loan.rto_agent_name), 'Agent Mobile', fmt(loan.agent_mobile_no), 'DTO Location', fmt(loan.dto_location), 'Challan', fmt(loan.challan))}
 </table>
 
+<div style="margin-top: 20px;">
+  <h3 style="font-size: 12px; font-weight: bold; color: #1a3a6b; margin-bottom: 10px;">REFERENCES</h3>
+</div>
+
 <table class="sig-table">
   <tr>
-    <td>Applicant Signature</td>
-    <td>Co-Applicant Signature</td>
-    <td>Authorized Signatory</td>
+    <td style="padding-top: 20px;">
+      <div style="font-size: 10px; font-weight: bold; color: #1a1a2e; margin-bottom: 5px;">${fmt(loan.executive_name)}</div>
+      <div style="border-top: 1px solid #333; margin: 0 10px;"></div>
+      <div style="margin-top: 5px;">Executive</div>
+    </td>
+    <td style="padding-top: 20px;">
+      <div style="font-size: 10px; font-weight: bold; color: #1a1a2e; margin-bottom: 5px;">${fmt(loan.team_leader_name)}</div>
+      <div style="border-top: 1px solid #333; margin: 0 10px;"></div>
+      <div style="margin-top: 5px;">Team Leader</div>
+    </td>
+    <td style="padding-top: 20px;">
+      <div style="font-size: 10px; font-weight: bold; color: #1a1a2e; margin-bottom: 5px;">${fmt(loan.manager_name)}</div>
+      <div style="border-top: 1px solid #333; margin: 0 10px;"></div>
+      <div style="margin-top: 5px;">Manager</div>
+    </td>
   </tr>
 </table>
 
@@ -153,32 +180,63 @@ export function exportLoanPDF(loan: LoanData) {
   setTimeout(() => win.print(), 500);
 }
 
-function generatePDFBlob(loan: LoanData): Blob {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-  const pw = 190; // printable width (A4 210 - 10*2 margins)
-  const lm = 10; // left margin
-  let y = 12;
+// Helper function to load image as base64
+function loadImageAsBase64(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = src;
+  });
+}
 
-  const colors = { primary: [26, 58, 107] as [number, number, number], dark: [26, 26, 46] as [number, number, number], gray: [136, 136, 136] as [number, number, number], light: [232, 236, 241] as [number, number, number], white: [255, 255, 255] as [number, number, number] };
+function generatePDFBlob(loan: LoanData): Promise<Blob> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pw = 190; // printable width (A4 210 - 10*2 margins)
+      const lm = 10; // left margin
+      let y = 12;
 
-  // Header
-  doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-  doc.text('Finonest India', lm, y);
-  doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-  doc.text('Vehicle Loan Solutions • Since 2015', lm, y + 5);
+      const colors = { primary: [26, 58, 107] as [number, number, number], dark: [26, 26, 46] as [number, number, number], gray: [136, 136, 136] as [number, number, number], light: [232, 236, 241] as [number, number, number], white: [255, 255, 255] as [number, number, number] };
 
-  doc.setFontSize(7); doc.setTextColor(...colors.gray);
-  doc.text('Application ID', lm + pw, y - 4, { align: 'right' });
-  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-  doc.text(String(loan.id || ''), lm + pw, y + 1, { align: 'right' });
-  doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-  doc.text('Date', lm + pw, y + 5, { align: 'right' });
-  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-  doc.text(new Date().toLocaleDateString('en-IN'), lm + pw, y + 10, { align: 'right' });
+      // Try to load and add logo
+      try {
+        const logoBase64 = await loadImageAsBase64('/Finonest logo.png');
+        doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
+      } catch (logoError) {
+        console.warn('Could not load logo, using text fallback:', logoError);
+        // Fallback to text if logo fails
+        doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
+        doc.text('Finonest India', lm, y);
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
+        doc.text('Vehicle Loan Solutions • Since 2015', lm, y + 5);
+      }
 
-  y += 14;
-  doc.setDrawColor(...colors.primary); doc.setLineWidth(0.5); doc.line(lm, y, lm + pw, y);
-  y += 6;
+      doc.setFontSize(7); doc.setTextColor(...colors.gray);
+      doc.text('Application ID', lm + pw, y - 4, { align: 'right' });
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
+      doc.text(String(loan.id || ''), lm + pw, y + 1, { align: 'right' });
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
+      doc.text('Date', lm + pw, y + 5, { align: 'right' });
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
+      doc.text(new Date().toLocaleDateString('en-IN'), lm + pw, y + 10, { align: 'right' });
+
+      y += 14;
+      doc.setDrawColor(...colors.primary); doc.setLineWidth(0.5); doc.line(lm, y, lm + pw, y);
+      y += 6;
 
   // Title bar
   doc.setFillColor(...colors.primary); doc.rect(lm, y, pw, 8, 'F');
@@ -229,25 +287,40 @@ function generatePDFBlob(loan: LoanData): Blob {
   ]);
 
   drawSection('VEHICLE DETAILS', [
-    ['Reg. No', fmt(loan.vehicle_number)], ['Maker', fmt(loan.maker_name || loan.car_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.car_model)], ['Mfg Year', fmt(loan.mfg_year)],
-    ['Vertical', fmt(loan.vertical)], ['Scheme', fmt(loan.scheme)], ['Valuation', fmtCur(loan.valuation)], ['On Road Price', fmtCur(loan.on_road_price)],
+    ['Reg. No', fmt(loan.vehicle_number)], ['Maker', fmt(loan.maker_name || loan.car_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.car_model)], ['Engine Number', fmt(loan.engine_number)],
+    ['Chassis Number', fmt(loan.chassis_number)], ['Owner Name', fmt(loan.owner_name)], ['Fuel Type', fmt(loan.fuel_type)], ['Mfg Date', formatDate(loan.manufacturing_date)],
+    ['Ownership Type', fmt(loan.ownership_type)], ['Financer', fmt(loan.financer)], ['Finance Status', fmt(loan.finance_status)], ['Insurance Company', fmt(loan.insurance_company)],
+    ['Insurance Valid Upto', formatDate(loan.insurance_valid_upto)], ['PUCC Valid Upto', formatDate(loan.pucc_valid_upto)], ['Case Type', fmt(loan.case_type)], ['Vertical', fmt(loan.vertical)],
+    ['Scheme', fmt(loan.scheme)], ['Valuation', fmtCur(loan.valuation)], ['On Road Price', fmtCur(loan.on_road_price)], ['', ''],
   ]);
 
   drawSection('LOAN & EMI DETAILS', [
     ['Loan Amount', fmtCur(loan.loan_amount)], ['Grid', fmtCur(loan.grid)], ['LTV', loan.ltv ? loan.ltv + '%' : '—'], ['IRR', loan.irr ? loan.irr + '%' : (loan.interest_rate ? loan.interest_rate + '%' : '—')],
     ['Tenure', loan.tenure ? loan.tenure + ' months' : '—'], ['EMI Mode', fmt(loan.emi_mode || 'Monthly')], ['Monthly EMI', fmtCur(loan.emi_amount || loan.emi)], ['Total EMI', fmt(loan.total_emi || loan.tenure)],
     ['Total Interest', fmtCur(loan.total_interest)], ['First EMI Date', formatDate(loan.first_installment_due_date)], ['Down Payment', fmtCur(loan.down_payment)], ['Advance EMI', fmt(loan.advance_emi)],
+    ['Financier Name', fmt(loan.rto_financier_name)], ['Loan Status', fmt(loan.loan_status)], ['No of EMI Paid', fmt(loan.no_of_emi_paid)], ['', ''],
+    ['Bouncing in Last 3M', fmt(loan.bouncing_last_3m)], ['Bouncing in Last 6M', fmt(loan.bouncing_last_6m)], ['', ''], ['', ''],
   ]);
 
-  drawSection('FINANCIER & INSURANCE', [
-    ['Assigned Bank', fmt(loan.banks?.name)], ['Financier Exec.', fmt(loan.financier_executive_name)], ['Branch', fmt(loan.disburse_branch_name)], ['Branch Manager', fmt(loan.branch_manager_name)],
-    ['Insurance Co.', fmt(loan.insurance_company_name)], ['IDV', fmtCur(loan.idv)], ['Premium', fmtCur(loan.premium_amount)], ['Insurance Type', fmt(loan.insurance_type)],
+  drawSection('LENDER DETAILS', [
+    ['Assigned Lender', fmt(loan.financier_name || loan.selected_financier || loan.banks?.name)], ['Location', fmt(loan.financier_location)], ['SM Name', fmt(loan.financier_executive_name)], ['Loan Amount Req', fmtCur(loan.loan_amount)],
+    ['Program', fmt(loan.case_type)], ['Insurance Co.', fmt(loan.insurance_company_name)], ['IDV', fmtCur(loan.idv)], ['Premium', fmtCur(loan.premium_amount)],
   ]);
 
-  drawSection('DEDUCTIONS & DISBURSEMENT', [
-    ['File Charge', fmtCur(loan.file_charge)], ['Loan Suraksha', fmtCur(loan.loan_suraksha)], ['Stamping', fmtCur(loan.stamping)], ['Processing Fee', fmtCur(loan.processing_fee)],
-    ['Total Deduction', fmtCur(loan.total_deduction)], ['Net Disbursement', fmtCur(loan.net_disbursement_amount)], ['Payment Recd.', formatDate(loan.payment_received_date)], ['Disburse Date', formatDate(loan.financier_disburse_date)],
-  ]);
+  // Only show Deductions & Disbursement section for approved/disbursed/cancelled loans
+  const showDisbursementSection = loan.application_stage === 'APPROVED' || 
+                                  loan.application_stage === 'DISBURSED' || 
+                                  loan.application_stage === 'CANCELLED' ||
+                                  loan.status === 'approved' ||
+                                  loan.status === 'disbursed' ||
+                                  loan.status === 'cancelled';
+
+  if (showDisbursementSection) {
+    drawSection('DEDUCTIONS & DISBURSEMENT', [
+      ['File Charge', fmtCur(loan.file_charge)], ['Loan Suraksha', fmtCur(loan.loan_suraksha)], ['Stamping', fmtCur(loan.stamping)], ['Processing Fee', fmtCur(loan.processing_fee)],
+      ['Total Deduction', fmtCur(loan.total_deduction)], ['Net Disbursement', fmtCur(loan.net_disbursement_amount)], ['Payment Recd.', formatDate(loan.payment_received_date)], ['Disburse Date', formatDate(loan.financier_disburse_date)],
+    ]);
+  }
 
   drawSection('IMPORTANT DATES', [
     ['Login Date', formatDate(loan.login_date)], ['Approval Date', formatDate(loan.approval_date)], ['Disburse Date', formatDate(loan.financier_disburse_date)], ['TAT', loan.tat ? loan.tat + ' days' : '—'],
@@ -259,17 +332,33 @@ function generatePDFBlob(loan: LoanData): Blob {
     ['RTO Agent', fmt(loan.rto_agent_name)], ['Agent Mobile', fmt(loan.agent_mobile_no)], ['DTO Location', fmt(loan.dto_location)], ['Challan', fmt(loan.challan)],
   ]);
 
-  // Signature area
-  if (y + 25 > 280) { doc.addPage(); y = 12; }
+  // Signature area - References section
+  if (y + 35 > 280) { doc.addPage(); y = 12; }
   y += 8;
+  
+  // References title
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
+  doc.text('REFERENCES', lm, y);
+  y += 8;
+  
   const sigW = pw / 3;
-  const sigLabels = ['Applicant Signature', 'Co-Applicant Signature', 'Authorized Signatory'];
-  sigLabels.forEach((label, i) => {
+  const refData = [
+    { name: fmt(loan.executive_name), designation: 'Executive' },
+    { name: fmt(loan.team_leader_name), designation: 'Team Leader' }, 
+    { name: fmt(loan.manager_name), designation: 'Manager' }
+  ];
+  
+  refData.forEach((ref, i) => {
     const x = lm + i * sigW + sigW / 2;
+    // Name above line
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
+    doc.text(ref.name, x, y + 10, { align: 'center' });
+    // Signature line
     doc.setDrawColor(51, 51, 51); doc.setLineWidth(0.3);
     doc.line(lm + i * sigW + 5, y + 15, lm + (i + 1) * sigW - 5, y + 15);
+    // Designation below line
     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(85, 85, 85);
-    doc.text(label, x, y + 19, { align: 'center' });
+    doc.text(ref.designation, x, y + 19, { align: 'center' });
   });
   y += 24;
 
@@ -279,14 +368,18 @@ function generatePDFBlob(loan: LoanData): Blob {
   doc.text(`Generated on ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, y + 4);
   doc.text('This is a system-generated document', lm + pw, y + 4, { align: 'right' });
 
-  return doc.output('blob');
+  resolve(doc.output('blob'));
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 export async function shareLoanPDF(loan: LoanData) {
   const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months`;
 
   try {
-    const pdfBlob = generatePDFBlob(loan);
+    const pdfBlob = await generatePDFBlob(loan);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
 
     if (navigator.share && navigator.canShare) {
@@ -297,21 +390,26 @@ export async function shareLoanPDF(loan: LoanData) {
       }
     }
   } catch (e) {
-    // User cancelled or not supported
+    console.error('Error generating PDF for sharing:', e);
   }
 
   const waText = `*Finonest India - Loan Application*%0A%0A*ID:* ${loan.id}%0A*Applicant:* ${loan.applicant_name}%0A*Mobile:* ${loan.mobile}%0A*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}%0A*Loan Amount:* ${fmtCur(loan.loan_amount)}%0A*Status:* ${loan.status}%0A*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}%0A*Tenure:* ${loan.tenure} months`;
   window.open(`https://wa.me/?text=${waText}`, '_blank');
 }
 
-export function downloadLoanPDF(loan: LoanData) {
-  const pdfBlob = generatePDFBlob(loan);
-  const url = URL.createObjectURL(pdfBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+export async function downloadLoanPDF(loan: LoanData) {
+  try {
+    const pdfBlob = await generatePDFBlob(loan);
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error generating PDF for download:', error);
+    alert('Error generating PDF. Please try again.');
+  }
 }
