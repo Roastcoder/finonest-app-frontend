@@ -91,9 +91,17 @@ export default function BankManagement() {
               <div key={bank.id} className="stat-card">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
+                    {bank.logo_url && (
+                      <img 
+                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${bank.logo_url}`} 
+                        alt={bank.name} 
+                        className="w-10 h-10 rounded-lg object-contain bg-muted" 
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }} 
+                      />
+                    )}
                     <div className="flex-1">
                       <h3 className="font-semibold text-foreground">{bank.name}</h3>
-                      <p className="text-xs text-muted-foreground">{bank.code || 'No code'}</p>
+                      <p className="text-xs text-muted-foreground">{bank.location || 'No location'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -107,9 +115,12 @@ export default function BankManagement() {
                 </div>
                 <div className="space-y-2 text-xs mb-3 pb-3 border-b border-border">
                   <div className="grid grid-cols-2 gap-2">
-                    <div><span className="text-muted-foreground">Contact Person:</span> <span className="font-medium">{bank.contact_person || '—'}</span></div>
-                    <div><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{bank.contact_phone || '—'}</span></div>
-                    <div><span className="text-muted-foreground">Email:</span> <span className="font-medium text-xs">{bank.contact_email || '—'}</span></div>
+                    <div><span className="text-muted-foreground">Location:</span> <span className="font-medium">{bank.location || '—'}</span></div>
+                    <div><span className="text-muted-foreground">Geo Limit:</span> <span className="font-medium">{bank.geo_limit ? `${bank.geo_limit} km` : '—'}</span></div>
+                    <div><span className="text-muted-foreground">Product:</span> <span className="font-medium">{bank.product || '—'}</span></div>
+                    <div><span className="text-muted-foreground">Sales Manager:</span> <span className="font-medium">{bank.sales_manager_name || '—'}</span></div>
+                    <div><span className="text-muted-foreground">SM Mobile:</span> <span className="font-medium">{bank.sales_manager_mobile || '—'}</span></div>
+                    <div><span className="text-muted-foreground">Area Manager:</span> <span className="font-medium">{bank.area_sales_manager_name || '—'}</span></div>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
