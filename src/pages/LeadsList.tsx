@@ -118,7 +118,7 @@ export default function LeadsList() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 lg:gap-6 mb-6">
+      <div className={`grid gap-2 lg:gap-6 mb-6 ${user?.role === 'executive' ? 'grid-cols-2' : 'grid-cols-3'}`}>
         <div className="stat-card p-2 md:p-4 border-none bg-blue-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
           <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
             <Users size={16} className="text-blue-600 md:size-5" />
@@ -135,13 +135,15 @@ export default function LeadsList() {
           <h3 className="text-lg md:text-2xl font-bold text-orange-900 tracking-tight leading-none">{stats.pending}</h3>
         </div>
 
-        <div className="stat-card p-2 md:p-4 border-none bg-emerald-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
-          <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
-            <TrendingUp size={16} className="text-emerald-600 md:size-5" />
-            <p className="text-[10px] md:text-sm font-semibold text-emerald-800/70 leading-tight">Converted</p>
+        {user?.role !== 'executive' && (
+          <div className="stat-card p-2 md:p-4 border-none bg-emerald-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
+            <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
+              <TrendingUp size={16} className="text-emerald-600 md:size-5" />
+              <p className="text-[10px] md:text-sm font-semibold text-emerald-800/70 leading-tight">Converted</p>
+            </div>
+            <h3 className="text-lg md:text-2xl font-bold text-emerald-900 tracking-tight leading-none">{stats.converted}</h3>
           </div>
-          <h3 className="text-lg md:text-2xl font-bold text-emerald-900 tracking-tight leading-none">{stats.converted}</h3>
-        </div>
+        )}
       </div>
 
       <div className="glass-panel p-4 mb-6">
@@ -305,18 +307,18 @@ export default function LeadsList() {
                     <Edit size={14} /> Stage
                   </button>
                 )}
-                {!lead.converted_to_loan ? (
+                {!lead.converted_to_loan && user?.role !== 'executive' ? (
                   <button
                     onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
                     className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors"
                   >
                     <ArrowRight size={14} /> Convert
                   </button>
-                ) : (
+                ) : lead.converted_to_loan ? (
                   <div className="py-3 flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground opacity-50 bg-muted/50">
                     <Check size={14} /> Done
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           ))
@@ -405,7 +407,7 @@ export default function LeadsList() {
                             <Edit size={18} />
                           </button>
                         )}
-                        {!lead.converted_to_loan ? (
+                        {!lead.converted_to_loan && user?.role !== 'executive' ? (
                           <button 
                             onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} 
                             className="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all hover:scale-110" 
@@ -413,11 +415,11 @@ export default function LeadsList() {
                           >
                             <ArrowRight size={18} />
                           </button>
-                        ) : (
+                        ) : lead.converted_to_loan ? (
                           <div className="p-2 text-emerald-600 opacity-50" title="Already converted">
                             <Check size={18} />
                           </div>
-                        )}
+                        ) : null}
                         {user?.role === 'admin' && (
                           <button 
                             onClick={() => setDeleteConfirm(lead.id)} 
