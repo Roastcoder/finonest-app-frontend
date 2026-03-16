@@ -96,7 +96,7 @@ function buildLoanHTML(loan: LoanData): string {
 
 <table class="data-table">
   ${sectionTitle('&#128100;', 'Applicant Information')}
-  ${row4('LoanApp ID', fmt(loan.loan_number || loan.id), 'Applicant Name', fmt(loan.applicant_name || loan.customer_name), 'Mobile', fmt(loan.mobile || loan.phone), 'Email', fmt(loan.email || loan.customer_email || loan.lead_email))}
+  ${row4('LoanApp ID', fmt(loan.loan_number || loan.id), 'Applicant Name', fmt(loan.applicant_name || loan.customer_name), 'Mobile', fmt(loan.mobile || loan.phone), 'Email', fmt(loan.email || loan._lead_email || loan.customer_email))}
   ${row4('Co-Applicant', fmt(loan.co_applicant_name), 'Co-App Mobile', fmt(loan.co_applicant_mobile), 'Guarantor', fmt(loan.guarantor_name), 'Guarantor Mobile', fmt(loan.guarantor_mobile))}
   <tr>
     <td class="lbl">Address</td><td class="val" colspan="3">${fmt(loan.current_address || loan.address || loan.customer_address)}</td>
@@ -111,10 +111,10 @@ function buildLoanHTML(loan: LoanData): string {
   </tr>
 
   ${sectionTitle('&#128663;', 'Vehicle Details')}
-  ${row4('Reg. No', fmt(loan.vehicle_number || loan.registration_number), 'Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make), 'Model/Variant', fmt(loan.model_variant_name || loan.car_model || loan.vehicle_model || loan.variant), 'Engine Number', fmt(loan.engine_number))}
+  ${row4('Reg. No', fmt(loan.vehicle_number || loan.registration_number), 'Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make), 'Model/Variant', fmt(loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant), 'Engine Number', fmt(loan.engine_number))}
   ${row4('Chassis Number', fmt(loan.chassis_number), 'Owner Name', fmt(loan.owner_name || loan.rc_owner_name), 'Fuel Type', fmt(loan.fuel_type), 'Mfg Date', formatDate(loan.manufacturing_date || loan.mfg_date))}
   ${row4('Ownership Type', fmt(loan.ownership_type), 'Financer', fmt(loan.financer || loan.existing_financier), 'Finance Status', fmt(loan.finance_status), 'Insurance Company', fmt(loan.insurance_company))}
-  ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry), 'Case Type', fmt(loan.case_type), 'On Road Price', fmtCur(loan.on_road_price))}
+  ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry), 'Case Type', fmt(loan.case_type), '', '')}
 
   ${sectionTitle('&#128176;', 'Existing Loan & EMI Details')}
   ${row4('Loan Status', fmt(loan.existing_loan_status || loan.loan_status), 'Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount), 'Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—', 'EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount))}
@@ -146,21 +146,17 @@ function buildLoanHTML(loan: LoanData): string {
 
 <table class="sig-table">
   <tr>
-    <td style="padding-top: 20px;">
-      <div style="font-size: 10px; font-weight: bold; color: #1a1a2e; margin-bottom: 5px;">${fmt(loan.executive_name)}</div>
-      <div style="border-top: 1px solid #333; margin: 0 10px;"></div>
-      <div style="margin-top: 5px;">Executive</div>
-    </td>
-    <td style="padding-top: 20px;">
-      <div style="font-size: 10px; font-weight: bold; color: #1a1a2e; margin-bottom: 5px;">${fmt(loan.team_leader_name)}</div>
-      <div style="border-top: 1px solid #333; margin: 0 10px;"></div>
-      <div style="margin-top: 5px;">Team Leader</div>
-    </td>
-    <td style="padding-top: 20px;">
-      <div style="font-size: 10px; font-weight: bold; color: #1a1a2e; margin-bottom: 5px;">${fmt(loan.manager_name)}</div>
-      <div style="border-top: 1px solid #333; margin: 0 10px;"></div>
-      <div style="margin-top: 5px;">Manager</div>
-    </td>
+    ${(() => {
+      const refs = loan._hierarchy || [
+        { name: loan.created_by_name || '—', designation: 'Creator' }
+      ];
+      const w = Math.floor(100 / refs.length);
+      return refs.map((ref: any) => `
+        <td style="padding-top:20px;width:${w}%;text-align:center;border-top:1px solid #333;font-size:9px;color:#555;">
+          <div style="font-size:10px;font-weight:bold;color:#1a1a2e;margin-bottom:5px;">${ref.name}</div>
+          <div style="margin-top:5px;">${ref.designation}</div>
+        </td>`).join('');
+    })()}
   </tr>
 </table>
 
@@ -174,13 +170,63 @@ function buildLoanHTML(loan: LoanData): string {
 </body></html>`;
 }
 
+const ROLE_LABELS_MAP: Record<string, string> = {
+  executive: 'Executive',
+  team_leader: 'Team Leader',
+  branch_manager: 'Branch Manager',
+  dsa: 'DSA',
+  sales_manager: 'Sales Manager',
+  manager: 'Manager',
+  admin: 'Admin',
+};
+
+async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designation: string }[]> {
+  try {
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
+
+    // If loan came from a lead, use lead's creator for hierarchy
+    let creatorId = loan.created_by;
+    if (loan.lead_id) {
+      try {
+        const leadRes = await fetch(`${API}/leads/${loan.lead_id}`, { headers });
+        if (leadRes.ok) {
+          const lead = await leadRes.json();
+          if (lead.created_by) creatorId = lead.created_by;
+          if (lead.email) loan._lead_email = lead.email;
+        }
+      } catch {}
+    }
+    // If no lead_id, use loan's created_by directly (TL or executive who created loan)
+    if (!creatorId) return [];
+
+    const hierarchy: { name: string; designation: string }[] = [];
+    let currentId = creatorId;
+    let depth = 0;
+    while (currentId && depth < 6) {
+      const res = await fetch(`${API}/users/${currentId}`, { headers });
+      if (!res.ok) break;
+      const u = await res.json();
+      hierarchy.push({ name: u.full_name || '—', designation: ROLE_LABELS_MAP[u.role] || u.role || '—' });
+      currentId = u.reporting_to;
+      depth++;
+    }
+    return hierarchy;
+  } catch {
+    return [];
+  }
+}
+
 export function exportLoanPDF(loan: LoanData) {
   const win = window.open('', '_blank');
   if (!win) return;
-  const html = buildLoanHTML(loan);
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => win.print(), 500);
+  fetchHierarchy(loan).then(hierarchy => {
+    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+    const html = buildLoanHTML(loanWithHierarchy);
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  });
 }
 
 // Helper function to load image as base64
@@ -284,16 +330,16 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   }
 
   drawSection('APPLICANT INFORMATION', [
-    ['LoanApp ID', fmt(loan.loan_number || loan.id)], ['Applicant Name', fmt(loan.applicant_name || loan.customer_name)], ['Mobile', fmt(loan.mobile || loan.phone)], ['Email', fmt(loan.email || loan.customer_email || loan.lead_email)],
+    ['LoanApp ID', fmt(loan.loan_number || loan.id)], ['Applicant Name', fmt(loan.applicant_name || loan.customer_name)], ['Mobile', fmt(loan.mobile || loan.phone)], ['Email', fmt(loan.email || loan._lead_email || loan.customer_email)],
     ['Co-Applicant', fmt(loan.co_applicant_name)], ['Co-App Mobile', fmt(loan.co_applicant_mobile)], ['Guarantor', fmt(loan.guarantor_name)], ['Guarantor Mobile', fmt(loan.guarantor_mobile)],
     ['Address', fmt(loan.current_address || loan.address || loan.customer_address)], ['Landmark', fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)], ['City & State', fmt((loan.city || loan.current_city || loan.current_district || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))], ['Pincode', fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)],
   ]);
 
   drawSection('VEHICLE DETAILS', [
-    ['Reg. No', fmt(loan.vehicle_number || loan.registration_number)], ['Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.car_model || loan.vehicle_model || loan.variant)], ['Engine Number', fmt(loan.engine_number)],
+    ['Reg. No', fmt(loan.vehicle_number || loan.registration_number)], ['Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant)], ['Engine Number', fmt(loan.engine_number)],
     ['Chassis Number', fmt(loan.chassis_number)], ['Owner Name', fmt(loan.owner_name || loan.rc_owner_name)], ['Fuel Type', fmt(loan.fuel_type)], ['Mfg Date', formatDate(loan.manufacturing_date || loan.mfg_date)],
     ['Ownership Type', fmt(loan.ownership_type)], ['Financer', fmt(loan.financer || loan.existing_financier)], ['Finance Status', fmt(loan.finance_status)], ['Insurance Company', fmt(loan.insurance_company)],
-    ['Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry)], ['PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry)], ['Case Type', fmt(loan.case_type)], ['On Road Price', fmtCur(loan.on_road_price)],
+    ['Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry)], ['PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry)], ['Case Type', fmt(loan.case_type)], ['', ''],
   ]);
 
   drawSection('EXISTING LOAN & EMI DETAILS', [
@@ -341,22 +387,16 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   doc.text('REFERENCES', lm, y);
   y += 8;
   
-  const sigW = pw / 3;
-  const refData = [
-    { name: fmt(loan.executive_name), designation: 'Executive' },
-    { name: fmt(loan.team_leader_name), designation: 'Team Leader' }, 
-    { name: fmt(loan.manager_name), designation: 'Manager' }
+  const refData: { name: string; designation: string }[] = loan._hierarchy || [
+    { name: fmt(loan.created_by_name), designation: 'Creator' }
   ];
-  
+  const sigWFinal = pw / refData.length;
   refData.forEach((ref, i) => {
-    const x = lm + i * sigW + sigW / 2;
-    // Name above line
+    const x = lm + i * sigWFinal + sigWFinal / 2;
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
     doc.text(ref.name, x, y + 10, { align: 'center' });
-    // Signature line
     doc.setDrawColor(51, 51, 51); doc.setLineWidth(0.3);
-    doc.line(lm + i * sigW + 5, y + 15, lm + (i + 1) * sigW - 5, y + 15);
-    // Designation below line
+    doc.line(lm + i * sigWFinal + 5, y + 15, lm + (i + 1) * sigWFinal - 5, y + 15);
     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(85, 85, 85);
     doc.text(ref.designation, x, y + 19, { align: 'center' });
   });
@@ -376,30 +416,26 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
 }
 
 export async function shareLoanPDF(loan: LoanData) {
+  const hierarchy = await fetchHierarchy(loan);
+  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
   const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months`;
-
   try {
-    const pdfBlob = await generatePDFBlob(loan);
+    const pdfBlob = await generatePDFBlob(loanH);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
-
     if (navigator.share && navigator.canShare) {
       const shareData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: [pdfFile] };
-      if (navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-        return;
-      }
+      if (navigator.canShare(shareData)) { await navigator.share(shareData); return; }
     }
-  } catch (e) {
-    console.error('Error generating PDF for sharing:', e);
-  }
-
+  } catch (e) { console.error('Error generating PDF for sharing:', e); }
   const waText = `*Finonest India - Loan Application*%0A%0A*ID:* ${loan.id}%0A*Applicant:* ${loan.applicant_name}%0A*Mobile:* ${loan.mobile}%0A*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}%0A*Loan Amount:* ${fmtCur(loan.loan_amount)}%0A*Status:* ${loan.status}%0A*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}%0A*Tenure:* ${loan.tenure} months`;
   window.open(`https://wa.me/?text=${waText}`, '_blank');
 }
 
 export async function downloadLoanPDF(loan: LoanData) {
   try {
-    const pdfBlob = await generatePDFBlob(loan);
+    const hierarchy = await fetchHierarchy(loan);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+    const pdfBlob = await generatePDFBlob(loanH);
     const url = URL.createObjectURL(pdfBlob);
     const a = document.createElement('a');
     a.href = url;
