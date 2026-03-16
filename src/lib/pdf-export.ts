@@ -118,12 +118,12 @@ function buildLoanHTML(loan: LoanData): string {
 
   ${sectionTitle('&#128176;', 'Existing Loan & EMI Details')}
   ${row4('Loan Status', fmt(loan.existing_loan_status || loan.loan_status), 'Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount), 'Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—', 'EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount))}
-  ${row4('No of EMI Paid', fmt(loan.no_of_emi_paid), 'Total Interest', fmtCur(loan.total_interest), 'Bouncing in Last 3M', fmt(loan.bouncing_last_3m), 'Bouncing in Last 6M', fmt(loan.bouncing_last_6m))}
+  ${row4('No of EMI Paid', fmt(loan.no_of_emi_paid), 'Total Interest', fmtCur(loan.total_interest), 'Bouncing in Last 3M', fmt(loan.bouncing_3_months), 'Bouncing in Last 6M', fmt(loan.bouncing_6_months))}
   ${row4('Financier Name', fmt(loan.rto_financier_name || loan.financer), '', '', '', '', '', '')}
 
   ${sectionTitle('&#127974;', 'Lender Details')}
   ${row4('Assigned Lender', fmt(loan.financier_name || loan.selected_financier || loan.banks?.name), 'Location', fmt(loan.financier_location), 'SM Name', fmt(loan.financier_executive_name), 'Loan Amount Req', fmtCur(loan.loan_amount))}
-  ${row4('Program', fmt(loan.case_type), 'Insurance Co.', fmt(loan.insurance_company_name), 'IDV', fmtCur(loan.idv), 'Premium', fmtCur(loan.premium_amount))}
+  ${row4('Program', fmt(loan.case_type), 'Insurance Company', fmt(loan.insurance_company_name), 'IDV', fmtCur(loan.idv), 'Premium', fmtCur(loan.premium_amount))}
 
   ${loan.application_stage === 'APPROVED' || loan.application_stage === 'DISBURSED' || loan.application_stage === 'CANCELLED' || loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'cancelled' ? `
   ${sectionTitle('&#128203;', 'Deductions & Disbursement')}
@@ -343,14 +343,14 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   ]);
 
   drawSection('EXISTING LOAN & EMI DETAILS', [
-    ['Loan Status', fmt(loan.existing_loan_status || loan.loan_status)], ['Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount)], ['Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—'], ['EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount)],
-    ['No of EMI Paid', fmt(loan.no_of_emi_paid)], ['Total Interest', fmtCur(loan.total_interest)], ['Bouncing in Last 3M', fmt(loan.bouncing_last_3m)], ['Bouncing in Last 6M', fmt(loan.bouncing_last_6m)],
-    ['Financier Name', fmt(loan.rto_financier_name || loan.financer)], ['', ''], ['', ''], ['', ''],
+    ['Loan Status', fmt(loan.existing_loan_status || loan.loan_status)], ['Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount)], ['Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—'], ['EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount || loan.emi)],
+    ['No of EMI Paid', fmt(loan.no_of_emi_paid)], ['Total Interest', fmtCur(loan.total_interest)], ['Bouncing in Last 3M', fmt(loan.bouncing_3_months ?? loan.bouncing_last_3m)], ['Bouncing in Last 6M', fmt(loan.bouncing_6_months ?? loan.bouncing_last_6m)],
+    ['Financier Name', fmt(loan.financer || loan.rto_financier_name)], ['', ''], ['', ''], ['', ''],
   ]);
 
   drawSection('LENDER DETAILS', [
-    ['Assigned Lender', fmt(loan.financier_name || loan.selected_financier || loan.banks?.name)], ['Location', fmt(loan.financier_location)], ['SM Name', fmt(loan.financier_executive_name)], ['Loan Amount Req', fmtCur(loan.loan_amount)],
-    ['Program', fmt(loan.case_type)], ['Insurance Co.', fmt(loan.insurance_company_name)], ['IDV', fmtCur(loan.idv)], ['Premium', fmtCur(loan.premium_amount)],
+    ['Assigned Lender', fmt(loan.bank_name || loan.financier_name || loan.selected_financier)], ['Location', fmt(loan.financier_location)], ['SM Name', fmt(loan.financier_executive_name || loan.sourcing_person_name)], ['Loan Amount Req', fmtCur(loan.loan_amount)],
+    ['Program', fmt(loan.case_type)], ['Insurance Company', fmt(loan.insurance_company_name)], ['IDV', fmtCur(loan.idv)], ['Premium', fmtCur(loan.premium_amount)],
   ]);
 
   // Only show Deductions & Disbursement section for approved/disbursed/cancelled loans
@@ -364,18 +364,18 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   if (showDisbursementSection) {
     drawSection('DEDUCTIONS & DISBURSEMENT', [
       ['File Charge', fmtCur(loan.file_charge)], ['Loan Suraksha', fmtCur(loan.loan_suraksha)], ['Stamping', fmtCur(loan.stamping)], ['Processing Fee', fmtCur(loan.processing_fee)],
-      ['Total Deduction', fmtCur(loan.total_deduction)], ['Net Disbursement', fmtCur(loan.net_disbursement_amount)], ['Payment Recd.', formatDate(loan.payment_received_date)], ['Disburse Date', formatDate(loan.financier_disburse_date)],
+      ['Total Deduction', fmtCur(loan.total_deduction)], ['Net Disbursement', fmtCur(loan.net_disbursement_amount)], ['Payment Recd.', formatDate(loan.payment_received_date)], ['Disburse Date', formatDate(loan.disbursement_date || loan.financier_disburse_date)],
     ]);
   }
 
   drawSection('IMPORTANT DATES', [
-    ['Login Date', formatDate(loan.login_date)], ['Approval Date', formatDate(loan.approval_date)], ['Disburse Date', formatDate(loan.financier_disburse_date)], ['TAT', loan.tat ? loan.tat + ' days' : '—'],
-    ['Agreement Date', formatDate(loan.agreement_date)], ['File Stage', fmt(loan.file_stage)], ['Created', formatDate(loan.created_at)], ['Last Updated', formatDate(loan.updated_at)],
+    ['Login Date', formatDate(loan.login_date)], ['Approval Date', formatDate(loan.approval_date || loan.sanction_date)], ['Disburse Date', formatDate(loan.disbursement_date || loan.financier_disburse_date)], ['TAT', loan.tat ? loan.tat + ' days' : '—'],
+    ['Agreement Date', formatDate(loan.agreement_date)], ['File Stage', fmt(loan.application_stage_label || loan.file_stage)], ['Created', formatDate(loan.created_at)], ['Last Updated', formatDate(loan.updated_at)],
   ]);
 
   drawSection('RTO DETAILS', [
     ['RC Owner', fmt(loan.rc_owner_name)], ['RC Mfg Date', fmt(loan.rc_mfg_date)], ['HPN at Login', fmt(loan.hpn_at_login)], ['New Financier', fmt(loan.new_financier)],
-    ['RTO Agent', fmt(loan.rto_agent_name)], ['Agent Mobile', fmt(loan.agent_mobile_no)], ['DTO Location', fmt(loan.dto_location)], ['Challan', fmt(loan.challan)],
+    ['RTO Agent', fmt(loan.rto_agent_name || loan.rto_agent_name_rc)], ['Agent Mobile', fmt(loan.agent_mobile_no || loan.rto_agent_mobile)], ['DTO Location', fmt(loan.dto_location)], ['Challan', fmt(loan.challan)],
   ]);
 
   // Signature area - References section

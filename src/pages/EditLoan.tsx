@@ -89,6 +89,9 @@ export default function EditLoan() {
     otherIncomeType: '',
     // EMI Details
     irr: '', tenure: '60', emiMode: 'Monthly', emiStartDate: '', emiEndDate: '',
+    // Existing Loan Details
+    loanStatus: '', existingLoanAmount: '', existingTenure: '', existingEmi: '', noOfEmiPaid: '',
+    bouncing3Months: '', bouncing6Months: '',
     // Financier Details
     assignedBankId: '', assignedBrokerId: '', sanctionAmount: '', sanctionDate: '',
     // Insurance Details
@@ -168,6 +171,13 @@ export default function EditLoan() {
         tenure: loanData.tenure?.toString() || '60',
         emiStartDate: loanData.emi_start_date || '',
         emiEndDate: loanData.emi_end_date || '',
+        loanStatus: loanData.existing_loan_status || '',
+        existingLoanAmount: loanData.existing_loan_amount ? String(loanData.existing_loan_amount) : '',
+        existingTenure: loanData.existing_tenure ? String(loanData.existing_tenure) : '',
+        existingEmi: loanData.existing_emi ? String(loanData.existing_emi) : '',
+        noOfEmiPaid: loanData.no_of_emi_paid ? String(loanData.no_of_emi_paid) : '',
+        bouncing3Months: loanData.bouncing_3_months ? String(loanData.bouncing_3_months) : '',
+        bouncing6Months: loanData.bouncing_6_months ? String(loanData.bouncing_6_months) : '',
         assignedBankId: loanData.assigned_bank_id?.toString() || loanData.bank_id?.toString() || '',
         assignedBrokerId: loanData.assigned_broker_id?.toString() || loanData.broker_id?.toString() || '',
         sanctionAmount: loanData.sanction_amount?.toString() || '',
@@ -268,9 +278,13 @@ export default function EditLoan() {
           total_emi: Number(form.tenure) || null,
           total_interest: (totalInterest > 0 ? totalInterest : null),
           irr: Number(form.irr) || null,
-          tenure: Number(form.tenure) || 60,
-          emi_start_date: form.emiStartDate || null,
-          emi_end_date: form.emiEndDate || null,
+          existing_loan_status: form.loanStatus || null,
+          existing_loan_amount: form.existingLoanAmount ? Number(form.existingLoanAmount) : null,
+          existing_tenure: form.existingTenure ? Number(form.existingTenure) : null,
+          existing_emi: form.existingEmi ? Number(form.existingEmi) : null,
+          no_of_emi_paid: form.noOfEmiPaid ? Number(form.noOfEmiPaid) : null,
+          bouncing_3_months: form.bouncing3Months ? Number(form.bouncing3Months) : null,
+          bouncing_6_months: form.bouncing6Months ? Number(form.bouncing6Months) : null,
           processing_fee: Number(form.processingFee) || null,
           emi: emi || null,
           interest_rate: Number(form.irr) || null,
@@ -422,6 +436,20 @@ export default function EditLoan() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Existing Loan Details */}
+                <div>
+                  <h3 className="text-sm font-bold text-foreground mb-3">Existing Loan & EMI Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="floating-input-wrapper"><select className={inputClass} value={form.loanStatus} onChange={e => update('loanStatus', e.target.value)}><option value="">Select</option><option value="Active">Active</option><option value="Closed">Closed</option><option value="Default">Default</option></select><label className={labelClass}>Loan Status</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " /><label className={labelClass}>Tenure (Months)</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Amount</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " /><label className={labelClass}>No of EMI Paid</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncing3Months} onChange={e => update('bouncing3Months', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in 3 Months</label></div>
+                    <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncing6Months} onChange={e => update('bouncing6Months', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in 6 Months</label></div>
+                  </div>
                 </div>
 
                 {/* Insurance & RTO Details */}
