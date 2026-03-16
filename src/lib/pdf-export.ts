@@ -96,12 +96,18 @@ function buildLoanHTML(loan: LoanData): string {
 
 <table class="data-table">
   ${sectionTitle('&#128100;', 'Applicant Information')}
-  ${row4('Customer ID', fmt(loan.customer_id), 'Loan Number', fmt(loan.loan_number), 'Applicant Name', fmt(loan.applicant_name), 'Mobile', fmt(loan.mobile))}
+  ${row4('LoanApp ID', fmt(loan.loan_number), 'Applicant Name', fmt(loan.applicant_name), 'Mobile', fmt(loan.mobile), 'Email', fmt(loan.email))}
   ${row4('Co-Applicant', fmt(loan.co_applicant_name), 'Co-App Mobile', fmt(loan.co_applicant_mobile), 'Guarantor', fmt(loan.guarantor_name), 'Guarantor Mobile', fmt(loan.guarantor_mobile))}
   <tr>
     <td class="lbl">Address</td><td class="val" colspan="3">${fmt(loan.current_address || loan.address)}</td>
-    <td class="lbl">Village</td><td class="val">${fmt(loan.current_village)}</td>
-    <td class="lbl">District</td><td class="val">${fmt(loan.current_district)}</td>
+    <td class="lbl">Landmark</td><td class="val">${fmt(loan.current_village || loan.landmark)}</td>
+    <td class="lbl">City & State</td><td class="val">${fmt(loan.current_district)}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Pincode</td><td class="val">${fmt(loan.pincode)}</td>
+    <td class="lbl"></td><td class="val"></td>
+    <td class="lbl"></td><td class="val"></td>
+    <td class="lbl"></td><td class="val"></td>
   </tr>
 
   ${sectionTitle('&#128663;', 'Vehicle Details')}
@@ -279,9 +285,9 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   }
 
   drawSection('APPLICANT INFORMATION', [
-    ['Customer ID', fmt(loan.customer_id)], ['Loan Number', fmt(loan.loan_number)], ['Applicant Name', fmt(loan.applicant_name)], ['Mobile', fmt(loan.mobile)],
+    ['LoanApp ID', fmt(loan.loan_number)], ['Applicant Name', fmt(loan.applicant_name)], ['Mobile', fmt(loan.mobile)], ['Email', fmt(loan.email)],
     ['Co-Applicant', fmt(loan.co_applicant_name)], ['Co-App Mobile', fmt(loan.co_applicant_mobile)], ['Guarantor', fmt(loan.guarantor_name)], ['Guarantor Mobile', fmt(loan.guarantor_mobile)],
-    ['Address', fmt(loan.current_address || loan.address)], ['Village', fmt(loan.current_village)], ['District', fmt(loan.current_district)], ['', ''],
+    ['Address', fmt(loan.current_address || loan.address)], ['Landmark', fmt(loan.current_village || loan.landmark)], ['City & State', fmt(loan.current_district)], ['Pincode', fmt(loan.pincode)],
   ]);
 
   drawSection('VEHICLE DETAILS', [
