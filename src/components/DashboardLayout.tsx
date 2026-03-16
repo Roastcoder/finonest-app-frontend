@@ -21,32 +21,32 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'] },
+  { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'] },
   {
-    label: 'Leads & Loans', icon: <Folder size={18} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'],
+    label: 'Leads & Loans', icon: <Folder size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'],
     children: [
-      { label: 'Leads', path: '/leads-list', icon: <UserPlus size={16} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'] },
-      { label: 'Loan Apps', path: '/loans', icon: <FileText size={16} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa', 'team_leader'] },
+      { label: 'Leads', path: '/leads-list', icon: <UserPlus size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'] },
+      { label: 'Loan Apps', path: '/loans', icon: <FileText size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader'] },
     ]
   },
-  { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['sales_manager', 'branch_manager', 'team_leader', 'dsa'] },
+  { label: 'My Team', path: '/team', icon: <Users size={18} />, roles: ['manager', 'sales_manager', 'branch_manager', 'team_leader', 'dsa'] },
   {
-    label: 'Operations', icon: <ShieldCheck size={18} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa', 'executive'],
+    label: 'Operations', icon: <ShieldCheck size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'executive'],
     children: [
-      { label: 'RC Limits', path: '/rc-limits', icon: <Wallet size={16} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa'] },
-      { label: 'Payouts', path: '/payouts', icon: <Receipt size={16} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa'] },
-      { label: 'Expenses', path: '/expenses', icon: <CreditCard size={16} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa'] },
-      { label: 'Insurance', path: '/insurance', icon: <ShieldCheck size={16} />, roles: ['admin', 'sales_manager', 'branch_manager'] },
+      { label: 'RC Limits', path: '/rc-limits', icon: <Wallet size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
+      { label: 'Payouts', path: '/payouts', icon: <Receipt size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
+      { label: 'Expenses', path: '/expenses', icon: <CreditCard size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
+      { label: 'Insurance', path: '/insurance', icon: <ShieldCheck size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager'] },
     ]
   },
   {
-    label: 'Administration', icon: <Settings size={18} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa'],
+    label: 'Administration', icon: <Settings size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'],
     children: [
-      { label: 'Reports', path: '/reports', icon: <BarChart3 size={16} />, roles: ['admin', 'sales_manager', 'branch_manager', 'dsa'] },
-      { label: 'Users', path: '/users', icon: <Users size={16} />, roles: ['admin', 'sales_manager'] },
+      { label: 'Reports', path: '/reports', icon: <BarChart3 size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
+      { label: 'Users', path: '/users', icon: <Users size={16} />, roles: ['admin', 'manager', 'sales_manager'] },
       { label: 'Banks / NBFC', path: '/banks', icon: <Building2 size={16} />, roles: ['admin'] },
       { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={16} />, roles: ['admin'] },
-      { label: 'Branches', path: '/branches', icon: <MapPin size={16} />, roles: ['admin', 'sales_manager'] },
+      { label: 'Branches', path: '/branches', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'sales_manager'] },
       { label: 'Permissions', path: '/permissions', icon: <Settings size={16} />, roles: ['admin'] },
       { label: 'Audit Logs', path: '/audit-logs', icon: <FileText size={16} />, roles: ['admin'] },
       { label: 'System Config', path: '/settings', icon: <Sliders size={16} />, roles: ['admin'] },

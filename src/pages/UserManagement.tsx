@@ -118,23 +118,7 @@ export default function UserManagement() {
       </div>
 
       {/* Role summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        <div
-          onClick={() => setRoleFilter(roleFilter === 'admin' ? 'all' : 'admin')}
-          className={`stat-card cursor-pointer text-center ${roleFilter === 'admin' ? 'ring-2 ring-accent' : ''}`}
-        >
-          <p className="text-lg font-bold text-foreground">{roleCounts['admin'] || 0}</p>
-          <p className="text-xs text-muted-foreground">Admin</p>
-        </div>
-
-        <div
-          onClick={() => setRoleFilter(roleFilter === 'sales_manager' ? 'all' : 'sales_manager')}
-          className={`stat-card cursor-pointer text-center ${roleFilter === 'sales_manager' ? 'ring-2 ring-accent' : ''}`}
-        >
-          <p className="text-lg font-bold text-foreground">{roleCounts['sales_manager'] || 0}</p>
-          <p className="text-xs text-muted-foreground">Sales Manager</p>
-        </div>
-
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
         <div
           onClick={() => setRoleFilter(roleFilter === 'branch_manager_dsa' ? 'all' : 'branch_manager_dsa')}
           className={`stat-card cursor-pointer text-center ${roleFilter === 'branch_manager_dsa' ? 'ring-2 ring-accent' : ''}`}
@@ -184,26 +168,6 @@ export default function UserManagement() {
           <p className="text-center text-muted-foreground py-8 text-sm">No users found</p>
         ) : (
           <>
-            {/* Admin Section */}
-            {(roleFilter === 'all' || roleFilter === 'admin') && (usersByRole['admin']?.length > 0) && (
-              <div className="stat-card">
-                <h3 className="text-md font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Shield size={18} className="text-accent" /> Admin ({usersByRole['admin']?.length || 0})
-                </h3>
-                <UserTable users={usersByRole['admin']} />
-              </div>
-            )}
-
-            {/* Sales Manager Section */}
-            {(roleFilter === 'all' || roleFilter === 'sales_manager') && (usersByRole['sales_manager']?.length > 0) && (
-              <div className="stat-card">
-                <h3 className="text-md font-semibold mb-3 text-foreground flex items-center gap-2">
-                  <Shield size={18} className="text-accent" /> Sales Manager ({usersByRole['sales_manager']?.length || 0})
-                </h3>
-                <UserTable users={usersByRole['sales_manager']} />
-              </div>
-            )}
-
             {/* Branch Manager & DSA Section (Combined) */}
             {(roleFilter === 'all' || roleFilter === 'branch_manager_dsa') && ((usersByRole['branch_manager']?.length > 0) || (usersByRole['dsa']?.length > 0)) && (
               <div className="stat-card">
