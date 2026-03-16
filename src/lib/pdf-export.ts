@@ -16,8 +16,9 @@ function fmt(val: any): string {
 }
 
 function fmtCur(val: any): string {
+  if (val === null || val === undefined || val === '') return '—';
   const n = Number(val);
-  if (!val || isNaN(n)) return '—';
+  if (isNaN(n)) return '—';
   return formatCurrency(n);
 }
 
@@ -117,13 +118,13 @@ function buildLoanHTML(loan: LoanData): string {
   ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry), 'Case Type', fmt(loan.case_type), '', '')}
 
   ${sectionTitle('&#128176;', 'Existing Loan & EMI Details')}
-  ${row4('Loan Status', fmt(loan.existing_loan_status || loan.loan_status), 'Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount), 'Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—', 'EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount))}
-  ${row4('No of EMI Paid', fmt(loan.no_of_emi_paid), 'Total Interest', fmtCur(loan.total_interest), 'Bouncing in Last 3M', fmt(loan.bouncing_3_months), 'Bouncing in Last 6M', fmt(loan.bouncing_6_months))}
+  ${row4('Loan Status', fmt(loan.existing_loan_status || loan.loan_status || loan.finance_status), 'Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount), 'Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—', 'EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount || loan.emi))}
+  ${row4('No of EMI Paid', fmt(loan.no_of_emi_paid || 0), 'Total Interest', fmtCur(loan.total_interest || 0), 'Bouncing in Last 3M', fmt(loan.bouncing_3_months || 0), 'Bouncing in Last 6M', fmt(loan.bouncing_6_months || 0))}
   ${row4('Financier Name', fmt(loan.rto_financier_name || loan.financer), '', '', '', '', '', '')}
 
   ${sectionTitle('&#127974;', 'Lender Details')}
   ${row4('Assigned Lender', fmt(loan.financier_name || loan.selected_financier || loan.banks?.name), 'Location', fmt(loan.financier_location), 'SM Name', fmt(loan.financier_executive_name), 'Loan Amount Req', fmtCur(loan.loan_amount))}
-  ${row4('Program', fmt(loan.case_type), 'Insurance Company', fmt(loan.insurance_company_name), 'IDV', fmtCur(loan.idv), 'Premium', fmtCur(loan.premium_amount))}
+  ${row4('Program', fmt(loan.case_type), 'Insurance Company', fmt(loan.insurance_company_name), '', '', '', '')}
 
   ${loan.application_stage === 'APPROVED' || loan.application_stage === 'DISBURSED' || loan.application_stage === 'CANCELLED' || loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'cancelled' ? `
   ${sectionTitle('&#128203;', 'Deductions & Disbursement')}
@@ -343,14 +344,14 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   ]);
 
   drawSection('EXISTING LOAN & EMI DETAILS', [
-    ['Loan Status', fmt(loan.existing_loan_status || loan.loan_status)], ['Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount)], ['Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—'], ['EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount || loan.emi)],
-    ['No of EMI Paid', fmt(loan.no_of_emi_paid)], ['Total Interest', fmtCur(loan.total_interest)], ['Bouncing in Last 3M', fmt(loan.bouncing_3_months ?? loan.bouncing_last_3m)], ['Bouncing in Last 6M', fmt(loan.bouncing_6_months ?? loan.bouncing_last_6m)],
+    ['Loan Status', fmt(loan.existing_loan_status || loan.loan_status || loan.finance_status)], ['Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount)], ['Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—'], ['EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount || loan.emi)],
+    ['No of EMI Paid', fmt(loan.no_of_emi_paid || 0)], ['Total Interest', fmtCur(loan.total_interest || 0)], ['Bouncing in Last 3M', fmt(loan.bouncing_3_months ?? loan.bouncing_last_3m ?? 0)], ['Bouncing in Last 6M', fmt(loan.bouncing_6_months ?? loan.bouncing_last_6m ?? 0)],
     ['Financier Name', fmt(loan.financer || loan.rto_financier_name)], ['', ''], ['', ''], ['', ''],
   ]);
 
   drawSection('LENDER DETAILS', [
     ['Assigned Lender', fmt(loan.bank_name || loan.financier_name || loan.selected_financier)], ['Location', fmt(loan.financier_location)], ['SM Name', fmt(loan.financier_executive_name || loan.sourcing_person_name)], ['Loan Amount Req', fmtCur(loan.loan_amount)],
-    ['Program', fmt(loan.case_type)], ['Insurance Company', fmt(loan.insurance_company_name)], ['IDV', fmtCur(loan.idv)], ['Premium', fmtCur(loan.premium_amount)],
+    ['Program', fmt(loan.case_type)], ['Insurance Company', fmt(loan.insurance_company_name)], ['', ''], ['', ''],
   ]);
 
   // Only show Deductions & Disbursement section for approved/disbursed/cancelled loans
