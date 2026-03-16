@@ -212,7 +212,7 @@ export default function LoanDetail() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => exportLoanPDF(loan)}
+            onClick={() => exportLoanPDF(loan, documents as any[])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 hover:border-accent transition-colors"
           >
             <Printer size={14} className="text-accent" />
@@ -226,14 +226,14 @@ export default function LoanDetail() {
             Reapply
           </button>
           <button
-            onClick={() => downloadLoanPDF(loan)}
+            onClick={() => downloadLoanPDF(loan, documents as any[])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 hover:border-accent transition-colors"
           >
             <Download size={14} className="text-accent" />
             Download
           </button>
           <button
-            onClick={() => shareLoanPDF(loan)}
+            onClick={() => shareLoanPDF(loan, documents as any[])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors"
           >
             <MessageCircle size={14} className="text-green-500" />

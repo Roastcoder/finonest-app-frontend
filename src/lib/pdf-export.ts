@@ -168,6 +168,19 @@ function buildLoanHTML(loan: LoanData): string {
   </tr>
 </table>
 
+${loan._docUrls && loan._docUrls.length > 0 ? `
+<div style="margin-top:16px;">
+  <h3 style="font-size:11px;font-weight:bold;color:#1a3a6b;margin-bottom:8px;">UPLOADED DOCUMENTS</h3>
+  <table style="width:100%;border-collapse:collapse;">
+    ${loan._docUrls.map((d: any, i: number) => `
+    <tr style="background:${i % 2 === 0 ? '#f8f9fb' : '#fff'};">
+      <td style="padding:4px 8px;border:1px solid #e0e4ea;font-size:9px;font-weight:600;color:#1a3a6b;width:20%;">${d.type}</td>
+      <td style="padding:4px 8px;border:1px solid #e0e4ea;font-size:9px;color:#333;width:30%;">${d.name}</td>
+      <td style="padding:4px 8px;border:1px solid #e0e4ea;font-size:9px;"><a href="${d.url}" style="color:#1a3a6b;">${d.url}</a></td>
+    </tr>`).join('')}
+  </table>
+</div>` : ''}
+
 </body></html>`;
 }
 
@@ -218,11 +231,26 @@ async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designati
   }
 }
 
-export function exportLoanPDF(loan: LoanData) {
+const DOC_TYPES: Record<string, string> = {
+  rc_copy: 'RC Copy', insurance: 'Insurance', income_proof: 'Income Proof',
+  bank_statement: 'Bank Statement', nach: 'NACH', other: 'Other',
+};
+
+async function fetchDocumentUrls(docs: any[]): Promise<{ name: string; type: string; url: string }[]> {
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const token = localStorage.getItem('auth_token');
+  return docs.map(doc => ({
+    name: doc.file_name,
+    type: DOC_TYPES[doc.document_type] || doc.document_type || 'Other',
+    url: `${API}/documents/${doc.id}/download?token=${token}`,
+  }));
+}
+
+export function exportLoanPDF(loan: LoanData, docs: any[] = []) {
   const win = window.open('', '_blank');
   if (!win) return;
-  fetchHierarchy(loan).then(hierarchy => {
-    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+  Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs)]).then(([hierarchy, docUrls]) => {
+    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
     const html = buildLoanHTML(loanWithHierarchy);
     win.document.write(html);
     win.document.close();
@@ -416,35 +444,69 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   });
 }
 
-export async function shareLoanPDF(loan: LoanData) {
-  const hierarchy = await fetchHierarchy(loan);
-  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
-  const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months`;
+async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
+  const files: { file: File; name: string; docType: string }[] = [];
+  for (const doc of docs) {
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/download`, { headers });
+      if (!res.ok) continue;
+      const blob = await res.blob();
+      const docLabel = DOC_TYPES[doc.document_type] || doc.document_type || 'Document';
+      const fileName = `${docLabel}-${doc.file_name}`;
+      files.push({ file: new File([blob], fileName, { type: blob.type }), name: fileName, docType: docLabel });
+    } catch {}
+  }
+  return files;
+}
+
+export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
+  const [hierarchy, docUrls] = await Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs)]);
+  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
+  const docLines = docUrls.length > 0 ? '\n\n*Documents:*\n' + docUrls.map(d => `• ${d.type}: ${d.url}`).join('\n') : '';
+  const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months${docLines}`;
   try {
-    const pdfBlob = await generatePDFBlob(loanH);
+    const [pdfBlob, docFileObjs] = await Promise.all([generatePDFBlob(loanH), fetchDocumentFiles(docs)]);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+    const allFiles = [pdfFile, ...docFileObjs.map(d => d.file)];
     if (navigator.share && navigator.canShare) {
-      const shareData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: [pdfFile] };
+      const shareData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: allFiles };
       if (navigator.canShare(shareData)) { await navigator.share(shareData); return; }
+      const pdfOnlyData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: [pdfFile] };
+      if (navigator.canShare(pdfOnlyData)) { await navigator.share(pdfOnlyData); return; }
     }
   } catch (e) { console.error('Error generating PDF for sharing:', e); }
-  const waText = `*Finonest India - Loan Application*%0A%0A*ID:* ${loan.id}%0A*Applicant:* ${loan.applicant_name}%0A*Mobile:* ${loan.mobile}%0A*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}%0A*Loan Amount:* ${fmtCur(loan.loan_amount)}%0A*Status:* ${loan.status}%0A*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}%0A*Tenure:* ${loan.tenure} months`;
+  const waDocLines = docUrls.length > 0 ? '%0A%0A*Documents:*%0A' + docUrls.map(d => `• ${d.type}: ${d.url}`).join('%0A') : '';
+  const waText = `*Finonest India - Loan Application*%0A%0A*ID:* ${loan.id}%0A*Applicant:* ${loan.applicant_name}%0A*Mobile:* ${loan.mobile}%0A*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}%0A*Loan Amount:* ${fmtCur(loan.loan_amount)}%0A*Status:* ${loan.status}%0A*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}%0A*Tenure:* ${loan.tenure} months${waDocLines}`;
   window.open(`https://wa.me/?text=${waText}`, '_blank');
 }
 
-export async function downloadLoanPDF(loan: LoanData) {
+function triggerDownload(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadLoanPDF(loan: LoanData, docs: any[] = []) {
   try {
-    const hierarchy = await fetchHierarchy(loan);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
-    const pdfBlob = await generatePDFBlob(loanH);
-    const url = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const [hierarchy, docUrls] = await Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
+    const [pdfBlob, docFileObjs] = await Promise.all([generatePDFBlob(loanH), fetchDocumentFiles(docs)]);
+
+    // Download PDF
+    triggerDownload(pdfBlob, `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`);
+
+    // Download each document with a small delay to avoid browser blocking
+    for (let i = 0; i < docFileObjs.length; i++) {
+      await new Promise(r => setTimeout(r, 400));
+      triggerDownload(docFileObjs[i].file, docFileObjs[i].name);
+    }
   } catch (error) {
     console.error('Error generating PDF for download:', error);
     alert('Error generating PDF. Please try again.');
