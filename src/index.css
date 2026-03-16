@@ -36,7 +36,7 @@
     --input: 204 40% 85%;
     --ring: 203 60% 39%; /* Ocean Blue */
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     /* Theme-specific tokens */
     --sidebar-background: 203 60% 39%;
@@ -96,7 +96,7 @@
     background-color: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.9);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
-    border-radius: 20px;
+    border-radius: 12px;
   }
 
   .glass-panel {
@@ -104,7 +104,7 @@
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     background-color: rgba(255, 255, 255, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 24px;
+    border-radius: 14px;
     box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.05);
   }
 

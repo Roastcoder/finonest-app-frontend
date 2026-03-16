@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 ${collapsed ? 'w-20 overflow-visible' : 'w-60 overflow-hidden'} glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:m-4 lg:mr-2 rounded-[2.5rem] lg:h-[calc(100vh-2rem)]`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 ${collapsed ? 'w-20 overflow-visible' : 'w-60 overflow-hidden'} glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:m-4 lg:mr-2 rounded-xl lg:h-[calc(100vh-2rem)]`}>
         {/* Logo */}
         <div className={`flex items-center h-24 border-b border-white/20 dark:border-white/5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}>
           {collapsed ? (
@@ -289,7 +289,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-12 lg:h-16 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-2xl lg:rounded-[2rem] flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
+        <header className="h-12 lg:h-16 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-xl lg:rounded-2xl flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
           {/* Mobile: Logo */}
           <div className="lg:hidden flex items-center">
             <img src={logo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />

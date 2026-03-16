@@ -530,13 +530,63 @@ export default function CreateLoan() {
     toast.success(`Lead data loaded for ${lead.customer_name}`);
   };
 
+  // Pre-fill from reapply loan data (runs immediately on mount)
+  useEffect(() => {
+    const isReapply = searchParams.get('reapply');
+    if (isReapply !== 'true') return;
+    const stored = sessionStorage.getItem('reapply_loan_data');
+    if (!stored) return;
+    const loan = JSON.parse(stored);
+    setForm(f => ({
+      ...f,
+      customerId: loan.customer_id || '',
+      customerName: loan.applicant_name || '',
+      mobile: loan.mobile || '',
+      coApplicantName: loan.co_applicant_name || '',
+      coApplicantMobile: loan.co_applicant_mobile || '',
+      guarantorName: loan.guarantor_name || '',
+      guarantorMobile: loan.guarantor_mobile || '',
+      currentAddress: loan.current_address || '',
+      currentLandmark: loan.current_landmark || '',
+      currentDistrict: loan.current_district || '',
+      currentState: loan.current_state || '',
+      currentPincode: loan.current_pincode || '',
+      vehicleNumber: loan.vehicle_number || '',
+      engineNumber: loan.engine_number || '',
+      chassisNumber: loan.chassis_number || '',
+      ownerName: loan.owner_name || '',
+      makerName: loan.maker_name || '',
+      makerModel: loan.maker_model || '',
+      modelVariantName: loan.model_variant_name || '',
+      fuelType: loan.fuel_type || '',
+      manufacturingDate: loan.manufacturing_date ? loan.manufacturing_date.split('T')[0] : '',
+      ownershipType: loan.ownership_type || '',
+      financer: loan.financer || '',
+      financeStatus: loan.finance_status || '',
+      insuranceCompany: loan.insurance_company || '',
+      insuranceValidUpto: loan.insurance_valid_upto ? loan.insurance_valid_upto.split('T')[0] : '',
+      puccValidUpto: loan.pucc_valid_upto ? loan.pucc_valid_upto.split('T')[0] : '',
+      caseType: loan.case_type || '',
+      loanAmount: loan.loan_amount ? String(loan.loan_amount) : '',
+      tenure: loan.tenure ? String(loan.tenure) : '60',
+      irr: loan.irr ? String(loan.irr) : '',
+      incomeSource: loan.income_source || '',
+      sourcingPersonName: loan.sourcing_person_name || '',
+      financierName: loan.financier_name || loan.selected_financier || '',
+      bouncingLast3m: loan.bouncing_3_months ? String(loan.bouncing_3_months) : '',
+      bouncingLast6m: loan.bouncing_6_months ? String(loan.bouncing_6_months) : '',
+    }));
+    sessionStorage.removeItem('reapply_loan_data');
+    toast.success('Loan data pre-filled. Edit and submit to reapply.');
+  }, []);
+
   // Auto-fetch lead data when leadId is in URL
   useEffect(() => {
     const leadId = searchParams.get('leadId');
     if (leadId && leads.length > 0) {
       const lead = leads.find((l: any) => l.id === Number(leadId));
       if (lead) {
-        setSelectedLeadId(Number(leadId)); // Store lead ID in state
+        setSelectedLeadId(Number(leadId));
         handleLeadSelect(lead);
         setLeadSearch(lead.customer_id);
       }

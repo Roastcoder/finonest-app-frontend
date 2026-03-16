@@ -12,21 +12,21 @@ interface NavItem {
 }
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['admin', 'manager', 'executive', 'team_leader'] },
-  { label: 'Leads', path: '/leads-list', icon: <UserPlus size={20} />, roles: ['admin', 'manager', 'executive', 'team_leader'] },
-  { label: 'Loans', path: '/loans', icon: <FileText size={20} />, roles: ['admin', 'manager', 'team_leader'] },
+  { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['admin', 'manager', 'executive', 'team_leader', 'branch_manager', 'dsa'] },
+  { label: 'Leads', path: '/leads-list', icon: <UserPlus size={20} />, roles: ['admin', 'manager', 'executive', 'team_leader', 'branch_manager', 'dsa'] },
+  { label: 'Loans', path: '/loans', icon: <FileText size={20} />, roles: ['admin', 'manager', 'team_leader', 'branch_manager', 'dsa'] },
 ];
 
 const MORE_ITEMS: NavItem[] = [
-  { label: 'Reports', path: '/reports', icon: <BarChart3 size={18} />, roles: ['admin', 'manager'] },
+  { label: 'Reports', path: '/reports', icon: <BarChart3 size={18} />, roles: ['admin', 'manager', 'branch_manager', 'dsa'] },
   { label: 'Users', path: '/users', icon: <Users size={18} />, roles: ['admin', 'manager'] },
   { label: 'Banks / NBFC', path: '/banks', icon: <Building2 size={18} />, roles: ['admin'] },
   { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={18} />, roles: ['admin'] },
   { label: 'Branches', path: '/branches', icon: <MapPin size={18} />, roles: ['admin', 'manager'] },
-  { label: 'RC Limits', path: '/rc-limits', icon: <Wallet size={18} />, roles: ['admin', 'manager'] },
-  { label: 'Payouts', path: '/payouts', icon: <Receipt size={18} />, roles: ['admin', 'manager'] },
-  { label: 'Expenses', path: '/expenses', icon: <CreditCard size={18} />, roles: ['admin', 'manager'] },
-  { label: 'Insurance', path: '/insurance', icon: <ShieldCheck size={18} />, roles: ['admin', 'manager'] },
+  { label: 'RC Limits', path: '/rc-limits', icon: <Wallet size={18} />, roles: ['admin', 'manager', 'branch_manager', 'dsa'] },
+  { label: 'Payouts', path: '/payouts', icon: <Receipt size={18} />, roles: ['admin', 'manager', 'branch_manager', 'dsa'] },
+  { label: 'Expenses', path: '/expenses', icon: <CreditCard size={18} />, roles: ['admin', 'manager', 'branch_manager', 'dsa'] },
+  { label: 'Insurance', path: '/insurance', icon: <ShieldCheck size={18} />, roles: ['admin', 'manager', 'branch_manager'] },
   { label: 'Permissions', path: '/permissions', icon: <Settings size={18} />, roles: ['admin'] },
   { label: 'Audit Logs', path: '/audit-logs', icon: <FileText size={18} />, roles: ['admin'] },
   { label: 'System Config', path: '/settings', icon: <Sliders size={18} />, roles: ['admin'] },
@@ -43,7 +43,7 @@ export default function MobileBottomNav() {
   const filteredMore = MORE_ITEMS.filter(item => !user.role || item.roles.includes(user.role));
 
   return (
-    <nav className="lg:hidden fixed bottom-4 left-4 right-4 glass-panel border border-white/20 dark:border-white/5 rounded-[2rem] shadow-xl z-40 backdrop-blur-xl bg-white/5 dark:bg-black/10">
+    <nav className="lg:hidden fixed bottom-4 left-4 right-4 glass-panel border border-white/20 dark:border-white/5 rounded-2xl shadow-xl z-40 backdrop-blur-xl bg-white/5 dark:bg-black/10">
       <div className="flex items-center justify-around px-2 py-3">
         {filteredNav.map(item => {
           const active = location.pathname === item.path;

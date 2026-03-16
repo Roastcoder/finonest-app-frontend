@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, LEAD_STATUSES } from '@/lib/mock-data';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
-import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, MessageCircle, Download } from 'lucide-react';
+import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, MessageCircle, Download, RefreshCw } from 'lucide-react';
 import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 
@@ -104,6 +104,14 @@ export default function LoanDetail() {
 
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+  const [showReapplyModal, setShowReapplyModal] = useState(false);
+
+  const handleReapply = () => {
+    if (!loan) return;
+    // Store loan data in sessionStorage to pre-fill CreateLoan form
+    sessionStorage.setItem('reapply_loan_data', JSON.stringify(loan));
+    navigate('/loans/new?reapply=true');
+  };
 
   const previewDocument = async (doc: any) => {
     setLoadingPreview(doc.id);
@@ -175,6 +183,25 @@ export default function LoanDetail() {
         <ArrowLeft size={16} /> Back to Applications
       </button>
 
+      {/* Reapply Confirmation Modal */}
+      {showReapplyModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Reapply Loan</h3>
+            <p className="text-sm text-muted-foreground mb-6">This will open a pre-filled loan form with the same details. You can edit before submitting.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowReapplyModal(false)} className="px-4 py-2 rounded-lg border border-border font-medium hover:bg-muted transition-all text-sm">Cancel</button>
+              <button
+                onClick={handleReapply}
+                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-all text-sm"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -190,6 +217,13 @@ export default function LoanDetail() {
           >
             <Printer size={14} className="text-accent" />
             Export
+          </button>
+          <button
+            onClick={() => setShowReapplyModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-orange-500/10 hover:border-orange-500 transition-colors"
+          >
+            <RefreshCw size={14} className="text-orange-500" />
+            Reapply
           </button>
           <button
             onClick={() => downloadLoanPDF(loan)}

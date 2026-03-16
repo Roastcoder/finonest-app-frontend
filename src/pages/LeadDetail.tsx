@@ -273,25 +273,15 @@ export default function LeadDetail() {
       </div>
 
       {/* Mobile Quick Action Bar */}
-      <div className="lg:hidden flex gap-3 mb-6 overflow-x-auto no-scrollbar py-2">
-        <a href={`tel:${lead.phone}`} className="flex-1 flex flex-col items-center gap-2 p-3 bg-primary text-white rounded-2xl shadow-md active:scale-95 transition-all outline-none">
-          <div className="p-1.5 bg-white/20 rounded-lg">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest">Call</span>
+      <div className="lg:hidden flex gap-2 mb-4 py-1">
+        <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl shadow-sm active:scale-95 transition-all text-xs font-bold">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          Call
         </a>
-        <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noreferrer" className="flex-1 flex flex-col items-center gap-2 p-3 bg-emerald-500 text-white rounded-2xl shadow-md active:scale-95 transition-all outline-none">
-          <div className="p-1.5 bg-white/20 rounded-lg">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest">WhatsApp</span>
+        <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-xl shadow-sm active:scale-95 transition-all text-xs font-bold">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          WhatsApp
         </a>
-        <button onClick={handleReapply} className="flex-1 flex flex-col items-center gap-2 p-3 bg-background border border-border text-foreground rounded-2xl shadow-sm active:scale-95 transition-all outline-none">
-          <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-            <Copy size={20} />
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest">Reapply</span>
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">

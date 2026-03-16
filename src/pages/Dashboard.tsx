@@ -150,7 +150,7 @@ export default function Dashboard() {
       <div className="flex lg:grid overflow-x-auto snap-x lg:grid-cols-3 gap-4 lg:gap-6 pb-4 lg:pb-0 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 scroll-smooth">
         
         {/* Area Chart Card */}
-        <div className="min-w-[85vw] lg:min-w-0 snap-center lg:col-span-2 bg-white rounded-2xl lg:rounded-xl shadow-sm border border-border overflow-hidden flex flex-col card-shadow">
+        <div className="min-w-[95vw] lg:min-w-0 snap-center lg:col-span-2 bg-white rounded-2xl lg:rounded-xl shadow-sm border border-border overflow-hidden flex flex-col card-shadow">
           <div className="bg-surface/30 px-5 py-4 border-b border-border">
             <h3 className="font-heading font-semibold text-foreground">Performance Overview</h3>
           </div>
@@ -183,7 +183,7 @@ export default function Dashboard() {
         </div>
 
         {/* Donut Chart Card */}
-        <div className="min-w-[85vw] lg:min-w-0 snap-center lg:col-span-1 bg-white rounded-2xl lg:rounded-xl shadow-sm border border-border overflow-hidden flex flex-col card-shadow">
+        <div className="min-w-[92vw] lg:min-w-0 snap-center lg:col-span-1 bg-white rounded-2xl lg:rounded-xl shadow-sm border border-border overflow-hidden flex flex-col card-shadow">
           <div className="bg-surface/30 px-5 py-4 border-b border-border">
             <h3 className="font-heading font-semibold text-foreground">In Process</h3>
           </div>

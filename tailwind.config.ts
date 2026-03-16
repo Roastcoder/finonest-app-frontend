@@ -82,11 +82,11 @@ export default {
         },
       },
       borderRadius: {
-        lg: "1.5rem",
-        md: "calc(1.5rem - 4px)",
-        sm: "calc(1.5rem - 8px)",
-        xl: "2rem",
-        "2xl": "2.5rem"
+        lg: "0.75rem",
+        md: "0.5rem",
+        sm: "0.375rem",
+        xl: "1rem",
+        "2xl": "1.25rem"
       },
       keyframes: {
         "accordion-down": {
