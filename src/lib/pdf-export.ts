@@ -96,12 +96,12 @@ function buildLoanHTML(loan: LoanData): string {
 
 <table class="data-table">
   ${sectionTitle('&#128100;', 'Applicant Information')}
-  ${row4('LoanApp ID', fmt(loan.loan_number || loan.id), 'Applicant Name', fmt(loan.applicant_name || loan.customer_name), 'Mobile', fmt(loan.mobile || loan.phone), 'Email', fmt(loan.email || loan.customer_email))}
+  ${row4('LoanApp ID', fmt(loan.loan_number || loan.id), 'Applicant Name', fmt(loan.applicant_name || loan.customer_name), 'Mobile', fmt(loan.mobile || loan.phone), 'Email', fmt(loan.email || loan.customer_email || loan.lead_email))}
   ${row4('Co-Applicant', fmt(loan.co_applicant_name), 'Co-App Mobile', fmt(loan.co_applicant_mobile), 'Guarantor', fmt(loan.guarantor_name), 'Guarantor Mobile', fmt(loan.guarantor_mobile))}
   <tr>
     <td class="lbl">Address</td><td class="val" colspan="3">${fmt(loan.current_address || loan.address || loan.customer_address)}</td>
     <td class="lbl">Landmark</td><td class="val">${fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)}</td>
-    <td class="lbl">City & State</td><td class="val">${fmt((loan.city || loan.current_city || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))}</td>
+    <td class="lbl">City & State</td><td class="val">${fmt((loan.city || loan.current_city || loan.current_district || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))}</td>
   </tr>
   <tr>
     <td class="lbl">Pincode</td><td class="val">${fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)}</td>
@@ -117,9 +117,9 @@ function buildLoanHTML(loan: LoanData): string {
   ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry), 'Case Type', fmt(loan.case_type), 'On Road Price', fmtCur(loan.on_road_price))}
 
   ${sectionTitle('&#128176;', 'Existing Loan & EMI Details')}
-  ${row4('Loan Amount', fmtCur(loan.loan_amount), 'Tenure', loan.tenure ? loan.tenure + ' months' : '—', 'Total EMI', fmt(loan.total_emi || loan.tenure), 'Total Interest', fmtCur(loan.total_interest))}
-  ${row4('Financier Name', fmt(loan.rto_financier_name), 'Loan Status', fmt(loan.loan_status), 'No of EMI Paid', fmt(loan.no_of_emi_paid), '', '')}
-  ${row4('Bouncing in Last 3M', fmt(loan.bouncing_last_3m), 'Bouncing in Last 6M', fmt(loan.bouncing_last_6m), '', '', '', '')}
+  ${row4('Loan Status', fmt(loan.existing_loan_status || loan.loan_status), 'Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount), 'Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—', 'EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount))}
+  ${row4('No of EMI Paid', fmt(loan.no_of_emi_paid), 'Total Interest', fmtCur(loan.total_interest), 'Bouncing in Last 3M', fmt(loan.bouncing_last_3m), 'Bouncing in Last 6M', fmt(loan.bouncing_last_6m))}
+  ${row4('Financier Name', fmt(loan.rto_financier_name || loan.financer), '', '', '', '', '', '')}
 
   ${sectionTitle('&#127974;', 'Lender Details')}
   ${row4('Assigned Lender', fmt(loan.financier_name || loan.selected_financier || loan.banks?.name), 'Location', fmt(loan.financier_location), 'SM Name', fmt(loan.financier_executive_name), 'Loan Amount Req', fmtCur(loan.loan_amount))}
@@ -284,9 +284,9 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   }
 
   drawSection('APPLICANT INFORMATION', [
-    ['LoanApp ID', fmt(loan.loan_number || loan.id)], ['Applicant Name', fmt(loan.applicant_name || loan.customer_name)], ['Mobile', fmt(loan.mobile || loan.phone)], ['Email', fmt(loan.email || loan.customer_email)],
+    ['LoanApp ID', fmt(loan.loan_number || loan.id)], ['Applicant Name', fmt(loan.applicant_name || loan.customer_name)], ['Mobile', fmt(loan.mobile || loan.phone)], ['Email', fmt(loan.email || loan.customer_email || loan.lead_email)],
     ['Co-Applicant', fmt(loan.co_applicant_name)], ['Co-App Mobile', fmt(loan.co_applicant_mobile)], ['Guarantor', fmt(loan.guarantor_name)], ['Guarantor Mobile', fmt(loan.guarantor_mobile)],
-    ['Address', fmt(loan.current_address || loan.address || loan.customer_address)], ['Landmark', fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)], ['City & State', fmt((loan.city || loan.current_city || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))], ['Pincode', fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)],
+    ['Address', fmt(loan.current_address || loan.address || loan.customer_address)], ['Landmark', fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)], ['City & State', fmt((loan.city || loan.current_city || loan.current_district || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))], ['Pincode', fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)],
   ]);
 
   drawSection('VEHICLE DETAILS', [
@@ -297,9 +297,9 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   ]);
 
   drawSection('EXISTING LOAN & EMI DETAILS', [
-    ['Loan Amount', fmtCur(loan.loan_amount)], ['Tenure', loan.tenure ? loan.tenure + ' months' : '—'], ['Total EMI', fmt(loan.total_emi || loan.tenure)], ['Total Interest', fmtCur(loan.total_interest)],
-    ['Financier Name', fmt(loan.rto_financier_name)], ['Loan Status', fmt(loan.loan_status)], ['No of EMI Paid', fmt(loan.no_of_emi_paid)], ['', ''],
-    ['Bouncing in Last 3M', fmt(loan.bouncing_last_3m)], ['Bouncing in Last 6M', fmt(loan.bouncing_last_6m)], ['', ''], ['', ''],
+    ['Loan Status', fmt(loan.existing_loan_status || loan.loan_status)], ['Loan Amount', fmtCur(loan.existing_loan_amount || loan.loan_amount)], ['Tenure', (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—'], ['EMI Amount', fmtCur(loan.existing_emi || loan.emi_amount)],
+    ['No of EMI Paid', fmt(loan.no_of_emi_paid)], ['Total Interest', fmtCur(loan.total_interest)], ['Bouncing in Last 3M', fmt(loan.bouncing_last_3m)], ['Bouncing in Last 6M', fmt(loan.bouncing_last_6m)],
+    ['Financier Name', fmt(loan.rto_financier_name || loan.financer)], ['', ''], ['', ''], ['', ''],
   ]);
 
   drawSection('LENDER DETAILS', [

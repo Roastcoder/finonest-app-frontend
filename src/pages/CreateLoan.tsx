@@ -476,6 +476,8 @@ export default function CreateLoan() {
     rtoSellAgreement: false, rtoRCOwnerKYC: false, rtoStampPapers: false,
     // Bouncing Details
     bouncingLast3m: '', bouncingLast6m: '',
+    // Existing Loan Details
+    loanStatus: '', existingLoanAmount: '', existingTenure: '', existingEmi: '', noOfEmiPaid: '',
     // EMI Details
     irr: '', tenure: '60', emiMode: 'Monthly', emiStartDate: '', emiEndDate: '',
     // Financier Details
@@ -575,6 +577,11 @@ export default function CreateLoan() {
       financierName: loan.financier_name || loan.selected_financier || '',
       bouncingLast3m: loan.bouncing_3_months ? String(loan.bouncing_3_months) : '',
       bouncingLast6m: loan.bouncing_6_months ? String(loan.bouncing_6_months) : '',
+      loanStatus: loan.existing_loan_status || '',
+      existingLoanAmount: loan.existing_loan_amount ? String(loan.existing_loan_amount) : '',
+      existingTenure: loan.existing_tenure ? String(loan.existing_tenure) : '',
+      existingEmi: loan.existing_emi ? String(loan.existing_emi) : '',
+      noOfEmiPaid: loan.no_of_emi_paid ? String(loan.no_of_emi_paid) : '',
     }));
     sessionStorage.removeItem('reapply_loan_data');
     toast.success('Loan data pre-filled. Edit and submit to reapply.');
@@ -706,6 +713,11 @@ export default function CreateLoan() {
           sourcing_person_name: form.sourcingPersonName || null,
           bouncing_last_3m: form.bouncingLast3m ? Number(form.bouncingLast3m) : null,
           bouncing_last_6m: form.bouncingLast6m ? Number(form.bouncingLast6m) : null,
+          existing_loan_status: form.loanStatus || null,
+          existing_loan_amount: form.existingLoanAmount ? Number(form.existingLoanAmount) : null,
+          existing_tenure: form.existingTenure ? Number(form.existingTenure) : null,
+          existing_emi: form.existingEmi ? Number(form.existingEmi) : null,
+          no_of_emi_paid: form.noOfEmiPaid ? Number(form.noOfEmiPaid) : null,
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
           financier_name: assignmentForm.ledgerSelection || (form.financierName === 'Others' ? form.otherFinancierName : form.financierName) || null,
@@ -989,10 +1001,22 @@ export default function CreateLoan() {
               </div>
             </div>
 
-          {/* Bouncing Details */}
+          {/* Existing Loan & EMI Details */}
           <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Bouncing Details</h2>
+            <h2 className="text-base font-bold text-foreground mb-3">Existing Loan & EMI Details</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="floating-input-wrapper">
+                <select className={inputClass} value={form.loanStatus} onChange={e => update('loanStatus', e.target.value)}>
+                  <option value="">Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Closed">Closed</option>
+                </select>
+                <label className={labelClass}>Loan Status</label>
+              </div>
+              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount</label></div>
+              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " /><label className={labelClass}>Tenure (Months)</label></div>
+              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Amount</label></div>
+              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " /><label className={labelClass}>No of EMI Paid</label></div>
               <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 3M</label></div>
               <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 6M</label></div>
             </div>
