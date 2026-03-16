@@ -96,26 +96,25 @@ function buildLoanHTML(loan: LoanData): string {
 
 <table class="data-table">
   ${sectionTitle('&#128100;', 'Applicant Information')}
-  ${row4('LoanApp ID', fmt(loan.loan_number), 'Applicant Name', fmt(loan.applicant_name), 'Mobile', fmt(loan.mobile), 'Email', fmt(loan.email))}
+  ${row4('LoanApp ID', fmt(loan.loan_number || loan.id), 'Applicant Name', fmt(loan.applicant_name || loan.customer_name), 'Mobile', fmt(loan.mobile || loan.phone), 'Email', fmt(loan.email || loan.customer_email))}
   ${row4('Co-Applicant', fmt(loan.co_applicant_name), 'Co-App Mobile', fmt(loan.co_applicant_mobile), 'Guarantor', fmt(loan.guarantor_name), 'Guarantor Mobile', fmt(loan.guarantor_mobile))}
   <tr>
-    <td class="lbl">Address</td><td class="val" colspan="3">${fmt(loan.current_address || loan.address)}</td>
-    <td class="lbl">Landmark</td><td class="val">${fmt(loan.current_village || loan.landmark)}</td>
-    <td class="lbl">City & State</td><td class="val">${fmt(loan.current_district)}</td>
+    <td class="lbl">Address</td><td class="val" colspan="3">${fmt(loan.current_address || loan.address || loan.customer_address)}</td>
+    <td class="lbl">Landmark</td><td class="val">${fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)}</td>
+    <td class="lbl">City & State</td><td class="val">${fmt((loan.city || loan.current_city || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))}</td>
   </tr>
   <tr>
-    <td class="lbl">Pincode</td><td class="val">${fmt(loan.pincode)}</td>
+    <td class="lbl">Pincode</td><td class="val">${fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)}</td>
     <td class="lbl"></td><td class="val"></td>
     <td class="lbl"></td><td class="val"></td>
     <td class="lbl"></td><td class="val"></td>
   </tr>
 
   ${sectionTitle('&#128663;', 'Vehicle Details')}
-  ${row4('Reg. No', fmt(loan.vehicle_number), 'Maker', fmt(loan.maker_name || loan.car_make), 'Model/Variant', fmt(loan.model_variant_name || loan.car_model), 'Engine Number', fmt(loan.engine_number))}
-  ${row4('Chassis Number', fmt(loan.chassis_number), 'Owner Name', fmt(loan.owner_name), 'Fuel Type', fmt(loan.fuel_type), 'Mfg Date', formatDate(loan.manufacturing_date))}
-  ${row4('Ownership Type', fmt(loan.ownership_type), 'Financer', fmt(loan.financer), 'Finance Status', fmt(loan.finance_status), 'Insurance Company', fmt(loan.insurance_company))}
-  ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto), 'Case Type', fmt(loan.case_type), 'Vertical', fmt(loan.vertical))}
-  ${row4('Scheme', fmt(loan.scheme), 'Valuation', fmtCur(loan.valuation), 'On Road Price', fmtCur(loan.on_road_price), '', '')}
+  ${row4('Reg. No', fmt(loan.vehicle_number || loan.registration_number), 'Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make), 'Model/Variant', fmt(loan.model_variant_name || loan.car_model || loan.vehicle_model || loan.variant), 'Engine Number', fmt(loan.engine_number))}
+  ${row4('Chassis Number', fmt(loan.chassis_number), 'Owner Name', fmt(loan.owner_name || loan.rc_owner_name), 'Fuel Type', fmt(loan.fuel_type), 'Mfg Date', formatDate(loan.manufacturing_date || loan.mfg_date))}
+  ${row4('Ownership Type', fmt(loan.ownership_type), 'Financer', fmt(loan.financer || loan.existing_financier), 'Finance Status', fmt(loan.finance_status), 'Insurance Company', fmt(loan.insurance_company))}
+  ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry), 'Case Type', fmt(loan.case_type), 'On Road Price', fmtCur(loan.on_road_price))}
 
   ${sectionTitle('&#128176;', 'Existing Loan & EMI Details')}
   ${row4('Loan Amount', fmtCur(loan.loan_amount), 'Tenure', loan.tenure ? loan.tenure + ' months' : '—', 'Total EMI', fmt(loan.total_emi || loan.tenure), 'Total Interest', fmtCur(loan.total_interest))}
@@ -285,17 +284,16 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   }
 
   drawSection('APPLICANT INFORMATION', [
-    ['LoanApp ID', fmt(loan.loan_number)], ['Applicant Name', fmt(loan.applicant_name)], ['Mobile', fmt(loan.mobile)], ['Email', fmt(loan.email)],
+    ['LoanApp ID', fmt(loan.loan_number || loan.id)], ['Applicant Name', fmt(loan.applicant_name || loan.customer_name)], ['Mobile', fmt(loan.mobile || loan.phone)], ['Email', fmt(loan.email || loan.customer_email)],
     ['Co-Applicant', fmt(loan.co_applicant_name)], ['Co-App Mobile', fmt(loan.co_applicant_mobile)], ['Guarantor', fmt(loan.guarantor_name)], ['Guarantor Mobile', fmt(loan.guarantor_mobile)],
-    ['Address', fmt(loan.current_address || loan.address)], ['Landmark', fmt(loan.current_village || loan.landmark)], ['City & State', fmt(loan.current_district)], ['Pincode', fmt(loan.pincode)],
+    ['Address', fmt(loan.current_address || loan.address || loan.customer_address)], ['Landmark', fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)], ['City & State', fmt((loan.city || loan.current_city || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))], ['Pincode', fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)],
   ]);
 
   drawSection('VEHICLE DETAILS', [
-    ['Reg. No', fmt(loan.vehicle_number)], ['Maker', fmt(loan.maker_name || loan.car_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.car_model)], ['Engine Number', fmt(loan.engine_number)],
-    ['Chassis Number', fmt(loan.chassis_number)], ['Owner Name', fmt(loan.owner_name)], ['Fuel Type', fmt(loan.fuel_type)], ['Mfg Date', formatDate(loan.manufacturing_date)],
-    ['Ownership Type', fmt(loan.ownership_type)], ['Financer', fmt(loan.financer)], ['Finance Status', fmt(loan.finance_status)], ['Insurance Company', fmt(loan.insurance_company)],
-    ['Insurance Valid Upto', formatDate(loan.insurance_valid_upto)], ['PUCC Valid Upto', formatDate(loan.pucc_valid_upto)], ['Case Type', fmt(loan.case_type)], ['Vertical', fmt(loan.vertical)],
-    ['Scheme', fmt(loan.scheme)], ['Valuation', fmtCur(loan.valuation)], ['On Road Price', fmtCur(loan.on_road_price)], ['', ''],
+    ['Reg. No', fmt(loan.vehicle_number || loan.registration_number)], ['Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.car_model || loan.vehicle_model || loan.variant)], ['Engine Number', fmt(loan.engine_number)],
+    ['Chassis Number', fmt(loan.chassis_number)], ['Owner Name', fmt(loan.owner_name || loan.rc_owner_name)], ['Fuel Type', fmt(loan.fuel_type)], ['Mfg Date', formatDate(loan.manufacturing_date || loan.mfg_date)],
+    ['Ownership Type', fmt(loan.ownership_type)], ['Financer', fmt(loan.financer || loan.existing_financier)], ['Finance Status', fmt(loan.finance_status)], ['Insurance Company', fmt(loan.insurance_company)],
+    ['Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry)], ['PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry)], ['Case Type', fmt(loan.case_type)], ['On Road Price', fmtCur(loan.on_road_price)],
   ]);
 
   drawSection('EXISTING LOAN & EMI DETAILS', [
