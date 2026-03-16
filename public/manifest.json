@@ -2,7 +2,7 @@
   "name": "Finonest India - Car Loan Management",
   "short_name": "Finonest",
   "description": "Complete car loan lifecycle management platform",
-  "start_url": "/",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
