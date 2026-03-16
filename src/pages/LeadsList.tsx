@@ -107,7 +107,7 @@ export default function LeadsList() {
   const branches = Array.from(new Set(leads.map((l: any) => l.our_branch).filter(Boolean))) as string[];
 
   return (
-    <div>
+    <div className="pb-24 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Leads Management</h1>

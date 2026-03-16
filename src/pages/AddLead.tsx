@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import LeadDocumentUpload from '@/components/LeadDocumentUpload';
+import '@/styles/floating-labels.css';
 
 const FormSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="mb-8 last:mb-0">
@@ -12,7 +13,7 @@ const FormSection = ({ title, children }: { title: string; children: React.React
       <span className="w-1.5 h-6 bg-accent rounded-full"></span>
       {title}
     </h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div className="grid grid-cols-2 gap-3">
       {children}
     </div>
   </div>
@@ -270,11 +271,11 @@ export default function AddLead() {
     createLead.mutate(submissionData);
   };
 
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-border bg-background/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200";
-  const labelClass = "block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 ml-1";
+  const inputClass = "w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all";
+  const labelClass = "block text-[10px] font-medium text-foreground/70 mb-1";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pb-20">
+    <div className="w-full pb-20">
       <button 
         onClick={() => navigate(-1)} 
         className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary mb-6 transition-colors bg-white/50 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/50"
@@ -292,80 +293,63 @@ export default function AddLead() {
         <p className="text-sm text-muted-foreground mt-2 ml-1">Onboard a new customer and start their loan application process</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="glass-panel p-8 border-none shadow-2xl relative overflow-hidden">
+      <form onSubmit={handleSubmit} className="bg-card rounded-lg border border-border p-4 shadow-sm relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl -z-10"></div>
 
         <FormSection title="Personal Information">
-          <div>
+          <div className="floating-input-wrapper">
+            <input required className={inputClass} value={form.customer_name} onChange={e => setForm({ ...form, customer_name: e.target.value })} placeholder=" " />
             <label className={labelClass}>Customer Name *</label>
-            <input 
-              required 
-              className={inputClass} 
-              value={form.customer_name} 
-              onChange={e => setForm({ ...form, customer_name: e.target.value })}
-              placeholder="Full legal name" 
-            />
           </div>
-
-          <div>
+          <div className="floating-input-wrapper">
+            <input required type="tel" maxLength={10} className={inputClass} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder=" " />
             <label className={labelClass}>Mobile Number *</label>
-            <input required type="tel" maxLength={10} className={inputClass} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="10-digit mobile" />
           </div>
-
-          <div>
+          <div className="floating-input-wrapper">
+            <input type="email" className={inputClass} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder=" " />
             <label className={labelClass}>Email Address</label>
-            <input type="email" className={inputClass} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Email address" />
           </div>
-
-          <div>
+          <div className="floating-input-wrapper">
+            <input required className={inputClass} maxLength={10} value={form.pan_number} onChange={e => setForm({ ...form, pan_number: e.target.value.toUpperCase() })} placeholder=" " />
             <label className={labelClass}>PAN Number *</label>
-            <input required className={inputClass} maxLength={10} value={form.pan_number} onChange={e => setForm({ ...form, pan_number: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" />
           </div>
         </FormSection>
 
         <FormSection title="Address Details">
-          <div className="md:col-span-2">
+          <div className="col-span-2 floating-input-wrapper">
+            <textarea required className={inputClass} rows={2} value={form.current_address} onChange={e => setForm({ ...form, current_address: e.target.value })} placeholder=" " />
             <label className={labelClass}>Current Address *</label>
-            <textarea required className={inputClass} rows={2} value={form.current_address} onChange={e => setForm({ ...form, current_address: e.target.value })} placeholder="Complete street address, house no, etc." />
           </div>
-
-          <div>
+          <div className="floating-input-wrapper">
+            <input className={inputClass} value={form.current_landmark} onChange={e => setForm({ ...form, current_landmark: e.target.value })} placeholder=" " />
             <label className={labelClass}>Landmark</label>
-            <input className={inputClass} value={form.current_landmark} onChange={e => setForm({ ...form, current_landmark: e.target.value })} placeholder="Nearby landmark" />
           </div>
-
-          <div>
+          <div className="floating-input-wrapper">
+            <input required className={inputClass} maxLength={6} value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })} placeholder=" " />
             <label className={labelClass}>Pincode *</label>
-            <input required className={inputClass} maxLength={6} value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })} placeholder="6-digit pincode" />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>City *</label>
-              <input required className={inputClass} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? '...' : 'City'} />
-            </div>
-            <div>
-              <label className={labelClass}>State *</label>
-              <input required className={inputClass} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder={pincodeLoading ? '...' : 'State'} />
-            </div>
+          <div className="floating-input-wrapper">
+            <input required className={inputClass} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder=" " />
+            <label className={labelClass}>City *</label>
+          </div>
+          <div className="floating-input-wrapper">
+            <input required className={inputClass} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} disabled={pincodeLoading || (!pincodeManual && form.pincode.length !== 6)} placeholder=" " />
+            <label className={labelClass}>State *</label>
           </div>
         </FormSection>
 
         <FormSection title="Vehicle & Loan Details">
-          <div>
+          <div className="floating-input-wrapper">
+            <input required className={inputClass} value={form.vehicle_number} onChange={e => setForm({ ...form, vehicle_number: e.target.value.toUpperCase() })} placeholder=" " />
             <label className={labelClass}>Vehicle Number *</label>
-            <input required className={inputClass} value={form.vehicle_number} onChange={e => setForm({ ...form, vehicle_number: e.target.value.toUpperCase() })} placeholder="MH01AB1234" />
           </div>
-
-          <div>
+          <div className="floating-input-wrapper">
+            <input required type="number" className={inputClass} value={form.loan_amount_required} onChange={e => setForm({ ...form, loan_amount_required: e.target.value })} placeholder=" " />
             <label className={labelClass}>Loan Amount *</label>
-            <input required type="number" className={inputClass} value={form.loan_amount_required} onChange={e => setForm({ ...form, loan_amount_required: e.target.value })} placeholder="Amount in ₹" />
           </div>
-
-          <div>
-            <label className={labelClass}>Case Type *</label>
+          <div className="floating-input-wrapper">
             <select required className={inputClass} value={form.case_type} onChange={e => setForm({ ...form, case_type: e.target.value })}>
               <option value="new_car_purchase">New Car - Purchase</option>
               <option value="used_car_purchase">Used Car - Purchase</option>
@@ -373,26 +357,25 @@ export default function AddLead() {
               <option value="used_car_topup">Used Car - Top-up</option>
               <option value="used_car_bt">Used Car - BT</option>
             </select>
+            <label className={labelClass}>Case Type *</label>
           </div>
-
-          <div>
-            <label className={labelClass}>Lead Source *</label>
+          <div className="floating-input-wrapper">
             <select required className={inputClass} value={form.lead_type} onChange={e => setForm({ ...form, lead_type: e.target.value })}>
               <option value="branch_visit">Branch Visit</option>
               <option value="direct_login">Direct Login</option>
             </select>
+            <label className={labelClass}>Lead Source *</label>
           </div>
-
           {user?.role !== 'executive' && (
-            <div className="md:col-span-2">
-              <label className={labelClass}>Preferred Financier *</label>
+            <div className="col-span-2 floating-input-wrapper">
               <select required className={inputClass} value={form.financier_id} onChange={e => setForm({ ...form, financier_id: e.target.value })}>
                 <option value="">Select Financier</option>
                 {banks.map((bank: any) => (
                   <option key={bank.id} value={bank.id}>{bank.name}</option>
                 ))}
               </select>
-              {banks.length === 0 && <p className="text-[10px] text-red-500 mt-1.5 ml-1 font-bold">Error: No financiers available</p>}
+              <label className={labelClass}>Preferred Financier *</label>
+              {banks.length === 0 && <p className="text-[10px] text-red-500 mt-1 font-bold">Error: No financiers available</p>}
             </div>
           )}
         </FormSection>

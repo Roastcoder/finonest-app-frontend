@@ -352,8 +352,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
-          <div className="animate-fade-in">
+        <main className="flex-1 overflow-y-auto px-2 py-4 lg:p-6 pb-20 lg:pb-6">
+          <div className="animate-fade-in w-full">
             {children}
           </div>
         </main>

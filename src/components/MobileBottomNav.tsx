@@ -12,10 +12,9 @@ interface NavItem {
 }
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['admin', 'manager', 'executive'] },
-  { label: 'Leads', path: '/leads-list', icon: <UserPlus size={20} />, roles: ['admin', 'manager', 'executive'] },
-  { label: 'Loans', path: '/loans', icon: <FileText size={20} />, roles: ['admin', 'manager'] },
-  { label: 'New', path: '/loans/new', icon: <Car size={20} />, roles: ['admin', 'manager'] },
+  { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['admin', 'manager', 'executive', 'team_leader'] },
+  { label: 'Leads', path: '/leads-list', icon: <UserPlus size={20} />, roles: ['admin', 'manager', 'executive', 'team_leader'] },
+  { label: 'Loans', path: '/loans', icon: <FileText size={20} />, roles: ['admin', 'manager', 'team_leader'] },
 ];
 
 const MORE_ITEMS: NavItem[] = [
@@ -63,7 +62,7 @@ export default function MobileBottomNav() {
           );
         })}
         
-        <Sheet open={open} onOpenChange={setOpen}>
+        {filteredMore.length > 0 && <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <button className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-300 min-w-0 flex-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5">
               <MoreHorizontal size={20} />
@@ -94,7 +93,7 @@ export default function MobileBottomNav() {
               })}
             </div>
           </SheetContent>
-        </Sheet>
+        </Sheet>}
       </div>
     </nav>
   );

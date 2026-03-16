@@ -365,82 +365,76 @@ export default function CreateLoan() {
     }
     
     setFetchingVehicleData(true);
+    const TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg';
+
+    const applyRCData = (rc: any) => {
+      const convertDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        if (dateStr.includes('/') && dateStr.split('/').length === 2) {
+          const [month, year] = dateStr.split('/');
+          return `${year}-${month.padStart(2, '0')}-01`;
+        }
+        if (dateStr.includes('/') && dateStr.split('/').length === 3) {
+          const [day, month, year] = dateStr.split('/');
+          return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
+          const [day, month, year] = dateStr.split('-');
+          return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return dateStr;
+      };
+      setForm(f => ({
+        ...f,
+        engineNumber: rc.vehicle_engine_number || '',
+        chassisNumber: rc.vehicle_chasi_number || '',
+        ownerName: rc.owner_name || '',
+        makerName: rc.maker_description || '',
+        makerModel: rc.maker_model || '',
+        fuelType: rc.fuel_type || '',
+        manufacturingDate: convertDate(rc.manufacturing_date || rc.manufacturing_date_formatted || ''),
+        insuranceCompany: rc.insurance_company || '',
+        insuranceValidUpto: rc.insurance_upto || '',
+        puccValidUpto: rc.pucc_upto || '',
+        financer: rc.financer || '',
+        financeStatus: rc.financed ? 'Financed' : 'Not Financed',
+        ownershipType: rc.owner_number === '1' ? 'First Owner' : rc.owner_number === '2' ? 'Second Owner' : rc.owner_number === '3' ? 'Third Owner' : rc.owner_number === '4' ? 'Fourth Owner' : '',
+      }));
+    };
+
     try {
-      console.log('Fetching vehicle details for:', rcNumber);
       toast.info('Fetching vehicle details...');
-      
-      const response = await fetch('https://kyc-api.surepass.app/api/v1/rc/rc-v2', {
+
+      // Try rc-full API first
+      try {
+        const res = await fetch('https://kyc-api.surepass.io/api/v1/rc/rc-full', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': TOKEN },
+          body: JSON.stringify({ id_number: rcNumber }),
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          applyRCData(data.data);
+          toast.success('Vehicle details fetched successfully!');
+          return;
+        }
+        console.warn('rc-full failed, falling back to rc-v2:', data.message);
+      } catch (e) {
+        console.warn('rc-full error, falling back to rc-v2:', e);
+      }
+
+      // Fallback to rc-v2
+      const res2 = await fetch('https://kyc-api.surepass.app/api/v1/rc/rc-v2', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg'
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': TOKEN },
         body: JSON.stringify({ id_number: rcNumber }),
       });
-      
-      const rcData = await response.json();
-      console.log('RC API Response:', rcData);
-      console.log('Success status:', rcData.success);
-      console.log('Full API Response:', JSON.stringify(rcData, null, 2));
-      
-      if (!rcData.success) {
-        console.error('API Error Response:', rcData);
-        throw new Error(rcData.message || 'Failed to fetch vehicle details');
-      }
-      
-      if (rcData.data) {
-        const rc = rcData.data;
-        console.log('RC Data fields:', Object.keys(rc));
-        console.log('Engine Number:', rc.engine_number);
-        console.log('Chassis Number:', rc.chassis_number);
-        console.log('Owner Name:', rc.owner_name);
-        console.log('Maker Description:', rc.maker_description);
-        console.log('Maker Model:', rc.maker_model);
-        console.log('Fuel Type:', rc.fuel_type);
-        
-        // Helper function to convert date from DD/MM/YYYY or MM/YYYY to YYYY-MM-DD
-        const convertDate = (dateStr: string) => {
-          if (!dateStr) return '';
-          // Handle MM/YYYY format (e.g., "11/2016")
-          if (dateStr.includes('/') && dateStr.split('/').length === 2) {
-            const [month, year] = dateStr.split('/');
-            return `${year}-${month.padStart(2, '0')}-01`;
-          }
-          // Handle DD/MM/YYYY format
-          if (dateStr.includes('/') && dateStr.split('/').length === 3) {
-            const [day, month, year] = dateStr.split('/');
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-          }
-          // Handle DD-MM-YYYY format
-          if (dateStr.includes('-') && dateStr.split('-')[0].length <= 2) {
-            const [day, month, year] = dateStr.split('-');
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-          }
-          // Already in YYYY-MM-DD format
-          return dateStr;
-        };
-        
-        setForm(f => ({
-          ...f,
-          engineNumber: rc.vehicle_engine_number || '',
-          chassisNumber: rc.vehicle_chasi_number || '',
-          ownerName: rc.owner_name || '',
-          makerName: rc.maker_description || '',
-          makerModel: rc.maker_model || '',
-          fuelType: rc.fuel_type || '',
-          manufacturingDate: convertDate(rc.manufacturing_date || ''),
-          insuranceCompany: rc.insurance_company || '',
-          insuranceValidUpto: rc.insurance_upto || '',
-          puccValidUpto: rc.pucc_upto || '',
-          financer: rc.financer || '',
-          financeStatus: rc.financed ? 'Financed' : 'Not Financed',
-          ownershipType: rc.owner_number === '1' ? 'First Owner' : rc.owner_number === '2' ? 'Second Owner' : rc.owner_number === '3' ? 'Third Owner' : rc.owner_number === '4' ? 'Fourth Owner' : '',
-        }));
-        
-        console.log('Form updated with values');
+      const data2 = await res2.json();
+      if (data2.success && data2.data) {
+        applyRCData(data2.data);
         toast.success('Vehicle details fetched successfully!');
       } else {
-        toast.error(rcData.message || 'Could not fetch vehicle details');
+        toast.error(data2.message || 'Could not fetch vehicle details');
       }
     } catch (error: any) {
       console.error('Error fetching vehicle details:', error);
@@ -829,7 +823,7 @@ export default function CreateLoan() {
         </div>
       )}
 
-    <div className="w-full">
+    <div className="w-full max-w-full">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
         <ArrowLeft size={16} /> Back
       </button>
@@ -838,7 +832,7 @@ export default function CreateLoan() {
         <h1 className="text-2xl font-bold text-foreground mb-2">New Loan Application</h1>
       </div>
 
-      <form onSubmit={handleNext} className="w-full">
+      <form onSubmit={handleNext} className="w-full max-w-full">
         <div className="bg-card rounded-lg border border-border p-4 shadow-sm mb-4 space-y-6 w-full">
           {/* Customer Details */}
           <div>
@@ -903,7 +897,7 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.ourBranch} onChange={e => update('ourBranch', e.target.value)} placeholder=" " /><label className={labelClass}>Our Branch</label></div>
                 
                 {/* Co-Applicant Section */}
-                <div className="md:col-span-3 mt-4">
+                <div className="col-span-2 md:col-span-3 mt-4">
                   <button
                     type="button"
                     onClick={() => setShowOptionalFields(s => ({ ...s, coApplicant: !s.coApplicant }))}
@@ -911,16 +905,16 @@ export default function CreateLoan() {
                   >
                     {showOptionalFields.coApplicant ? '−' : '+'} Add Co-Applicant Details
                   </button>
+                  {showOptionalFields.coApplicant && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                      <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantName} onChange={e => update('coApplicantName', e.target.value)} placeholder=" " /><label className={labelClass}>Co-Applicant Name</label></div>
+                      <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantMobile} onChange={e => update('coApplicantMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Co-Applicant Mobile</label></div>
+                    </div>
+                  )}
                 </div>
-                {showOptionalFields.coApplicant && (
-                  <>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantName} onChange={e => update('coApplicantName', e.target.value)} placeholder=" " /><label className={labelClass}>Co-Applicant Name</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.coApplicantMobile} onChange={e => update('coApplicantMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Co-Applicant Mobile</label></div>
-                  </>
-                )}
                 
                 {/* Guarantor Section */}
-                <div className="md:col-span-3 mt-4">
+                <div className="col-span-2 md:col-span-3 mt-4">
                   <button
                     type="button"
                     onClick={() => setShowOptionalFields(s => ({ ...s, guarantor: !s.guarantor }))}
@@ -928,16 +922,16 @@ export default function CreateLoan() {
                   >
                     {showOptionalFields.guarantor ? '−' : '+'} Add Guarantor Details
                   </button>
+                  {showOptionalFields.guarantor && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                      <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorName} onChange={e => update('guarantorName', e.target.value)} placeholder=" " /><label className={labelClass}>Guarantor Name</label></div>
+                      <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorMobile} onChange={e => update('guarantorMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Guarantor Mobile</label></div>
+                    </div>
+                  )}
                 </div>
-                {showOptionalFields.guarantor && (
-                  <>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorName} onChange={e => update('guarantorName', e.target.value)} placeholder=" " /><label className={labelClass}>Guarantor Name</label></div>
-                    <div className="floating-input-wrapper"><input className={inputClass} value={form.guarantorMobile} onChange={e => update('guarantorMobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Guarantor Mobile</label></div>
-                  </>
-                )}
                 
                 <div className="md:col-span-3 mt-3"><h3 className="font-semibold text-foreground mb-2 text-sm">Current Address</h3></div>
-                <div className="md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.currentAddress} onChange={e => update('currentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
+                <div className="col-span-2 md:col-span-3 floating-input-wrapper"><textarea className={inputClass} rows={2} value={form.currentAddress} onChange={e => update('currentAddress', e.target.value)} placeholder=" " /><label className={labelClass}>Address</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentLandmark} onChange={e => update('currentLandmark', e.target.value)} placeholder=" " /><label className={labelClass}>Landmark</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentDistrict} onChange={e => update('currentDistrict', e.target.value)} placeholder=" " /><label className={labelClass}>District</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.currentState} onChange={e => update('currentState', e.target.value)} placeholder=" " /><label className={labelClass}>State</label></div>
@@ -1169,7 +1163,7 @@ export default function CreateLoan() {
                 <h3 className="text-sm font-semibold text-foreground mb-3">Customer Documents {(isExecutive || isTeamLeader) && <span className="text-xs text-red-500">(Upload mandatory documents first)</span>}</h3>
                 
                 {/* Mandatory Documents for Executive */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className={labelClass}>Aadhar Card Front {(isExecutive || isTeamLeader) && <span className="text-red-500">*</span>}</label>
                     {!form.aadharFront && <input type="file" className={inputClass} onChange={e => update('aadharFront', e.target.files?.[0] || null)} accept="image/*,.pdf" required={isExecutive || isTeamLeader} />}
@@ -1201,7 +1195,7 @@ export default function CreateLoan() {
                 {showOtherDocs ? (
                   <>
                     {(isExecutive || isTeamLeader) && <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-300">✓ Mandatory documents uploaded. You can now upload additional documents.</div>}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className={labelClass}>Driving Licence</label>
                         {!form.drivingLicence && <input type="file" className={inputClass} onChange={e => update('drivingLicence', e.target.files?.[0] || null)} accept="image/*,.pdf" />}
