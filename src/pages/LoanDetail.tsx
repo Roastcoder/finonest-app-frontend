@@ -480,6 +480,10 @@ export default function LoanDetail() {
                       <Field label="Loan Account Number" value={lan || '—'} />
                       {rcType && <Field label="RC Type" value={rcType} />}
                       {rcBy && <Field label="RC Collected By" value={rcBy} />}
+                      {(l.rto_agent_name_rc || disbursedEntry.agentName) && <Field label="Agent Name" value={l.rto_agent_name_rc || disbursedEntry.agentName} />}
+                      {(l.rto_agent_mobile || disbursedEntry.agentMobile) && <Field label="Agent Mobile" value={l.rto_agent_mobile || disbursedEntry.agentMobile} />}
+                      {(l.banker_name || disbursedEntry.bankerName) && <Field label="Banker Name" value={l.banker_name || disbursedEntry.bankerName} />}
+                      {(l.banker_mobile || disbursedEntry.bankerMobile) && <Field label="Banker Mobile" value={l.banker_mobile || disbursedEntry.bankerMobile} />}
                     </div>
                   </div>
                 )}
