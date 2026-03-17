@@ -462,12 +462,11 @@ async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: stri
 }
 
 export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
-  const [hierarchy, docUrls] = await Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs)]);
-  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
-  const docLines = docUrls.length > 0 ? '\n\n*Documents:*\n' + docUrls.map(d => `• ${d.type}: ${d.url}`).join('\n') : '';
-  const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months${docLines}`;
+  const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months`;
   try {
-    const [pdfBlob, docFileObjs] = await Promise.all([generatePDFBlob(loanH), fetchDocumentFiles(docs)]);
+    const [hierarchy, docUrls, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs), fetchDocumentFiles(docs)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
+    const pdfBlob = await generatePDFBlob(loanH);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
     const allFiles = [pdfFile, ...docFileObjs.map(d => d.file)];
     if (navigator.share && navigator.canShare) {
@@ -476,9 +475,8 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
       const pdfOnlyData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: [pdfFile] };
       if (navigator.canShare(pdfOnlyData)) { await navigator.share(pdfOnlyData); return; }
     }
-  } catch (e) { console.error('Error generating PDF for sharing:', e); }
-  const waDocLines = docUrls.length > 0 ? '%0A%0A*Documents:*%0A' + docUrls.map(d => `• ${d.type}: ${d.url}`).join('%0A') : '';
-  const waText = `*Finonest India - Loan Application*%0A%0A*ID:* ${loan.id}%0A*Applicant:* ${loan.applicant_name}%0A*Mobile:* ${loan.mobile}%0A*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}%0A*Loan Amount:* ${fmtCur(loan.loan_amount)}%0A*Status:* ${loan.status}%0A*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}%0A*Tenure:* ${loan.tenure} months${waDocLines}`;
+  } catch (e) { console.error('Error generating files for sharing:', e); }
+  const waText = `*Finonest India - Loan Application*%0A%0A*ID:* ${loan.id}%0A*Applicant:* ${loan.applicant_name}%0A*Mobile:* ${loan.mobile}%0A*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}%0A*Loan Amount:* ${fmtCur(loan.loan_amount)}%0A*Status:* ${loan.status}%0A*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}%0A*Tenure:* ${loan.tenure} months`;
   window.open(`https://wa.me/?text=${waText}`, '_blank');
 }
 
