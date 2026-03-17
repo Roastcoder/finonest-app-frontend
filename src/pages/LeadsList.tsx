@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit, Filter, Users, ClipboardCheck, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,15 +35,7 @@ export default function LeadsList() {
   };
 
   const deleteLead = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to delete lead');
-    },
+    mutationFn: (id: number) => api.delete(`/leads/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success('Lead deleted successfully!');
@@ -53,44 +45,21 @@ export default function LeadsList() {
     },
   });
 
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: leads = [], isLoading, error: leadsError } = useQuery({
     queryKey: ['leads'],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
-        });
-        if (!response.ok) return [];
-        return await response.json();
-      } catch {
-        return [];
-      }
-    },
+    queryFn: () => api.get('/leads'),
     enabled: !!user,
   });
 
   const filtered = leads.filter((l: any) => {
-    // DSA leads only visible to admin
-    if (l.created_by_role === 'dsa' && user?.role !== 'admin') {
-      return false;
-    }
-
-    // Executives can only see their own leads
-    if (user?.role === 'executive' && l.created_by !== user?.id) {
-      return false;
-    }
-
     // Branch filter
-    if (filterBranch !== 'all' && l.our_branch !== filterBranch) {
-      return false;
-    }
+    if (filterBranch !== 'all' && l.our_branch !== filterBranch) return false;
 
     // Stage filter
-    if (filterStage !== 'all' && l.application_stage !== filterStage) {
-      return false;
-    }
+    if (filterStage !== 'all' && l.application_stage !== filterStage) return false;
+
+    // Executives can only see their own leads
+    if (user?.role === 'executive' && l.created_by !== user?.id) return false;
 
     return !search ||
       l.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -221,6 +190,12 @@ export default function LeadsList() {
         )}
       </div>
 
+      {leadsError && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          Error loading leads: {(leadsError as Error).message}
+        </div>
+      )}
+
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-4">
         {isLoading ? (
@@ -264,13 +239,19 @@ export default function LeadsList() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
-                      lead.application_stage 
-                        ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
-                        : 'bg-primary/10 text-primary border-primary/20'
-                    }`}>
-                      {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
-                    </span>
+                    {lead.converted_to_loan ? (
+                      <span className="shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+                        Converted
+                      </span>
+                    ) : (
+                      <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
+                        lead.application_stage 
+                          ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
+                          : 'bg-primary/10 text-primary border-primary/20'
+                      }`}>
+                        {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -381,13 +362,19 @@ export default function LeadsList() {
                       <span className="text-xs text-muted-foreground font-medium">{lead.our_branch || 'Direct'}</span>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
-                        lead.application_stage 
-                          ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
-                          : 'bg-primary/10 text-primary border-primary/20'
-                      }`}>
-                        {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
-                      </span>
+                      {lead.converted_to_loan ? (
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+                          Converted
+                        </span>
+                      ) : (
+                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
+                          lead.application_stage 
+                            ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
+                            : 'bg-primary/10 text-primary border-primary/20'
+                        }`}>
+                          {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+                        </span>
+                      )}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end gap-1 px-1">

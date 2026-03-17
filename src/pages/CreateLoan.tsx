@@ -664,6 +664,24 @@ export default function CreateLoan() {
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
           monthly_income: Number(form.monthlyIncome) || null,
+          company_name: form.companyName || null,
+          designation: form.designation || null,
+          work_experience: form.workExperience || null,
+          current_job_years: form.currentJobYears || null,
+          total_work_exp: form.totalWorkExp || null,
+          net_monthly_salary: Number(form.netMonthlySalary) || null,
+          salary_credit_mode: form.salaryCreditMode || null,
+          salary_slip_available: form.salarySlipAvailable || null,
+          profile: form.profile || null,
+          itr_available: form.itrAvailable || null,
+          annual_income_itr: Number(form.annualIncomeItr) || null,
+          business_name: form.businessName || null,
+          business_type: form.businessType || null,
+          business_vintage: form.businessVintage || null,
+          professional_subtype: form.professionalSubtype || null,
+          practice_experience: form.practiceExperience || null,
+          freelancer_subtype: form.freelancerSubtype || null,
+          other_income_type: form.otherIncomeType || null,
           selected_financier: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
           financier_location: form.financierLocation || null,
           loan_amount: Number(form.loanAmount) || 0,
@@ -865,7 +883,7 @@ export default function CreateLoan() {
               <button 
                 type="button" 
                 onClick={handleCreateApplication}
-                disabled={!assignmentForm.ledgerSelection || (user?.role === 'admin' && !assignmentForm.assignedTo) || createLoan.isPending}
+                disabled={!assignmentForm.ledgerSelection || createLoan.isPending}
                 className="flex items-center justify-center gap-2 px-8 py-2.5 rounded-full text-sm font-bold text-secondary bg-primary hover:shadow-md hover:scale-105 transition-all duration-300 border border-primary/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {createLoan.isPending ? (

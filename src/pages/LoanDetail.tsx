@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import { formatCurrency, LEAD_STATUSES } from '@/lib/mock-data';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, MessageCircle, Download, RefreshCw } from 'lucide-react';
@@ -35,49 +36,21 @@ export default function LoanDetail() {
 
   const { data: loan, isLoading, error } = useQuery({
     queryKey: ['loan', id],
-    queryFn: async () => {
-      console.log('Fetching loan with ID:', id);
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
-      });
-      console.log('Loan fetch response status:', res.status);
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Loan fetch error:', errorText);
-        throw new Error(`Failed to fetch loan: ${res.status} ${errorText}`);
-      }
-      const data = await res.json();
-      console.log('Loan data received:', data);
-      return data;
-    },
+    queryFn: () => api.get(`/loans/${id}`),
     enabled: !!id,
   });
 
   const { data: documents = [], refetch: refetchDocs } = useQuery({
     queryKey: ['loan-documents', id],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}/documents`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
-      });
-      if (!res.ok) return [];
-      return res.json();
+      try { return await api.get(`/loans/${id}/documents`); }
+      catch { return []; }
     },
     enabled: !!id,
   });
 
   const updateStatus = useMutation({
-    mutationFn: async (newStatus: string) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) throw new Error('Failed to update status');
-      return res.json();
-    },
+    mutationFn: (newStatus: string) => api.put(`/loans/${id}`, { status: newStatus }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loan', id] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
@@ -88,14 +61,7 @@ export default function LoanDetail() {
   });
 
   const deleteLoan = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
-      });
-      if (!res.ok) throw new Error('Failed to delete loan');
-      return res.json();
-    },
+    mutationFn: () => api.delete(`/loans/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
@@ -120,17 +86,10 @@ export default function LoanDetail() {
   const previewDocument = async (doc: any) => {
     setLoadingPreview(doc.id);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/preview`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPreviewDoc({ url: data.signedUrl, name: doc.file_name });
-      } else {
-        toast.error('Document not found in storage');
-      }
-    } catch (error) {
-      toast.error('Failed to load document');
+      const data = await api.get(`/documents/${doc.id}/preview`);
+      setPreviewDoc({ url: data.signedUrl, name: doc.file_name });
+    } catch {
+      toast.error('Document not found in storage');
     } finally {
       setLoadingPreview(null);
     }
@@ -387,32 +346,48 @@ export default function LoanDetail() {
           </div>
         </Section>
 
-        {(loan as any).income_source && (
-          <Section title="Income Details" icon={<IndianRupee size={18} />}>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Income Source" value={(loan as any).income_source} />
-              {(loan as any).monthly_income && <Field label="Monthly Income" value={formatCurrency(Number((loan as any).monthly_income))} />}
-              {(loan as any).net_monthly_salary && <Field label="Net Monthly Salary" value={formatCurrency(Number((loan as any).net_monthly_salary))} />}
-              {(loan as any).company_name && <Field label="Company Name" value={(loan as any).company_name} />}
-              {(loan as any).designation && <Field label="Designation" value={(loan as any).designation} />}
-              {(loan as any).work_experience && <Field label="Work Experience" value={(loan as any).work_experience} />}
-              {(loan as any).current_job_years && <Field label="Current Job Years" value={(loan as any).current_job_years} />}
-              {(loan as any).total_work_exp && <Field label="Total Work Exp" value={(loan as any).total_work_exp} />}
-              {(loan as any).salary_credit_mode && <Field label="Salary Credit Mode" value={(loan as any).salary_credit_mode} />}
-              {(loan as any).salary_slip_available && <Field label="Salary Slip Available" value={(loan as any).salary_slip_available} />}
-              {(loan as any).profile && <Field label="Profile" value={(loan as any).profile} />}
-              {(loan as any).itr_available && <Field label="ITR Available" value={(loan as any).itr_available} />}
-              {(loan as any).annual_income_itr && <Field label="Annual Income ITR" value={formatCurrency(Number((loan as any).annual_income_itr))} />}
-              {(loan as any).business_name && <Field label="Business Name" value={(loan as any).business_name} />}
-              {(loan as any).business_type && <Field label="Business Type" value={(loan as any).business_type} />}
-              {(loan as any).business_vintage && <Field label="Business Vintage" value={(loan as any).business_vintage} />}
-              {(loan as any).professional_subtype && <Field label="Professional Subtype" value={(loan as any).professional_subtype} />}
-              {(loan as any).practice_experience && <Field label="Practice Experience" value={(loan as any).practice_experience} />}
-              {(loan as any).freelancer_subtype && <Field label="Freelancer Subtype" value={(loan as any).freelancer_subtype} />}
-              {(loan as any).other_income_type && <Field label="Other Income Type" value={(loan as any).other_income_type} />}
-            </div>
-          </Section>
-        )}
+        <Section title="Income Details" icon={<IndianRupee size={18} />}>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Income Source" value={(loan as any).income_source} />
+            <Field label="Monthly Income" value={(loan as any).monthly_income ? formatCurrency(Number((loan as any).monthly_income)) : '—'} />
+
+            {/* Salaried */}
+            {(loan as any).income_source === 'Salaried' && <>
+              <Field label="Company Name" value={(loan as any).company_name} />
+              <Field label="Designation" value={(loan as any).designation} />
+              <Field label="Work Experience" value={(loan as any).work_experience} />
+              <Field label="Current Job (Yrs)" value={(loan as any).current_job_years} />
+              <Field label="Total Work Exp (Yrs)" value={(loan as any).total_work_exp} />
+              <Field label="Net Monthly Salary" value={(loan as any).net_monthly_salary != null && (loan as any).net_monthly_salary !== '' ? formatCurrency(Number((loan as any).net_monthly_salary)) : '—'} />
+              <Field label="Salary Credit Mode" value={(loan as any).salary_credit_mode} />
+              <Field label="Salary Slip Available" value={(loan as any).salary_slip_available} />
+            </>}
+
+            {/* Self Employed */}
+            {(loan as any).income_source === 'Self Employed' && <>
+              <Field label="Profile" value={(loan as any).profile} />
+              <Field label="ITR Available" value={(loan as any).itr_available} />
+              <Field label="Annual Income (ITR)" value={(loan as any).annual_income_itr ? formatCurrency(Number((loan as any).annual_income_itr)) : '—'} />
+              <Field label="Business Name" value={(loan as any).business_name} />
+              <Field label="Business Type" value={(loan as any).business_type} />
+              <Field label="Business Vintage (Yrs)" value={(loan as any).business_vintage} />
+              <Field label="Professional Subtype" value={(loan as any).professional_subtype} />
+              <Field label="Practice Experience (Yrs)" value={(loan as any).practice_experience} />
+              <Field label="Freelancer Subtype" value={(loan as any).freelancer_subtype} />
+              <Field label="Other Income Type" value={(loan as any).other_income_type} />
+            </>}
+
+            {/* Freelancer/Agent */}
+            {(loan as any).income_source === 'Freelancer/Agent' && <>
+              <Field label="Subtype" value={(loan as any).freelancer_subtype} />
+            </>}
+
+            {/* Farmer / Other */}
+            {((loan as any).income_source === 'Farmer' || (loan as any).income_source === 'Other Income') && <>
+              <Field label="Other Income Type" value={(loan as any).other_income_type} />
+            </>}
+          </div>
+        </Section>
 
         <Section title="Important Dates" icon={<Building2 size={18} />}>
           <div className="grid grid-cols-2 gap-4">
