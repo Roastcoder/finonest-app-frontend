@@ -1010,15 +1010,20 @@ export default function CreateLoan() {
                   <option value="">Select Status</option>
                   <option value="Active">Active</option>
                   <option value="Closed">Closed</option>
+                  <option value="No">No</option>
                 </select>
                 <label className={labelClass}>Loan Status</label>
               </div>
-              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount</label></div>
-              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " /><label className={labelClass}>Tenure (Months)</label></div>
-              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Amount</label></div>
-              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " /><label className={labelClass}>No of EMI Paid</label></div>
-              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 3M</label></div>
-              <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 6M</label></div>
+              {form.loanStatus === 'Active' && (
+                <>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " /><label className={labelClass}>Tenure (Months)</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Amount</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " /><label className={labelClass}>No of EMI Paid</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 3M</label></div>
+                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 6M</label></div>
+                </>
+              )}
             </div>
           </div>
 
