@@ -503,11 +503,12 @@ export function DocumentList({ leadId }: DocumentListProps) {
                 const getStatusConfig = (status: string) => {
                   switch (status) {
                     case 'verified':
-                      return { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
+                      return { label: 'Verified', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
                     case 'rejected':
-                      return { icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' };
+                      return { label: 'Rejected', icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' };
+                    case 'pending':
                     default:
-                      return { icon: FileText, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' };
+                      return { label: 'Uploaded', icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/20' };
                   }
                 };
                 
@@ -534,7 +535,7 @@ export function DocumentList({ leadId }: DocumentListProps) {
                         <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border mb-2 ${
                           isSelected ? 'bg-primary text-secondary border-primary/20' : `${statusConfig.bg} ${statusConfig.border} ${statusConfig.color}`
                         }`}>
-                          {doc.status || 'Pending'}
+                          {statusConfig.label}
                         </div>
                         {user?.role === 'admin' && (
                            <div className="flex items-center justify-center gap-2 mt-1">

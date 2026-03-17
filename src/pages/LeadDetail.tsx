@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/mock-data';
 import { FINANCIERS } from '@/lib/financiers';
 import DocumentUpload, { DocumentList } from '@/components/DocumentUpload';
-import CustomerProfileForm from '@/components/CustomerProfileForm';
 import ApplicationStageDisplay from '@/components/ApplicationStageDisplay';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
@@ -392,10 +391,6 @@ export default function LeadDetail() {
           onStageUpdate={handleStageUpdate}
         />
       )}
-
-      <div className="mt-6 mb-6">
-        <CustomerProfileForm leadId={Number(id)} />
-      </div>
 
       <div className="mt-8 space-y-8 pb-20">
         <section>

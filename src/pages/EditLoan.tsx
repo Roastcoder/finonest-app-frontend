@@ -244,7 +244,7 @@ export default function EditLoan() {
           permanent_pincode: form.permanentPincode || null,
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
-          monthly_income: Number(form.monthlyIncome) || null,
+          monthly_income: form.monthlyIncome ? Number(form.monthlyIncome) : null,
           app_stage: form.appStage || null,
           app_score: form.appScore || null,
           credit_score: form.creditScore || null,
@@ -698,12 +698,12 @@ export default function EditLoan() {
                 <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-3">Login Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="floating-input-wrapper">
-                    <input type="number" className={inputClass} value={form.appScore} onChange={e => update('appScore', e.target.value)} placeholder=" " />
-                    <label className={labelClass}>App Score</label>
+                    <input required type="number" min="0" max="1000" className={inputClass} value={form.appScore} onChange={e => update('appScore', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>App Score (0-1000) *</label>
                   </div>
                   <div className="floating-input-wrapper">
-                    <input type="number" className={inputClass} value={form.creditScore} onChange={e => update('creditScore', e.target.value)} placeholder=" " />
-                    <label className={labelClass}>Credit Score</label>
+                    <input required type="number" min="300" max="900" className={inputClass} value={form.creditScore} onChange={e => update('creditScore', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Credit Score (300-900) *</label>
                   </div>
                 </div>
               </div>

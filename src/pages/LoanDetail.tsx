@@ -120,7 +120,7 @@ export default function LoanDetail() {
   }
 
   const Section = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <div className="bg-card border border-border shadow-sm rounded-2xl p-5 mb-4 transition-all duration-300 hover:shadow-md">
+    <div className="bg-card border border-border shadow-sm rounded-xl p-3 mb-2 self-start">
       <div className="flex items-center gap-3 mb-4 border-b border-border pb-3">
         <div className="p-2 border border-primary/10 bg-primary/5 rounded-lg text-primary">
           {icon}
@@ -132,9 +132,9 @@ export default function LoanDetail() {
   );
 
   const Field = ({ label, value }: { label: string; value: string }) => (
-    <div className="min-w-0 bg-background/30 p-3 rounded-lg border border-border">
-      <p className="text-xs font-semibold text-muted-foreground mb-1 tracking-wide">{label}</p>
-      <p className="text-sm font-bold text-foreground">{value || '—'}</p>
+    <div className="min-w-0 bg-background/30 px-2 py-1.5 rounded-md border border-border">
+      <p className="text-[10px] font-semibold text-muted-foreground tracking-wide">{label}</p>
+      <p className="text-xs font-bold text-foreground">{value || '—'}</p>
     </div>
   );
 
@@ -256,9 +256,9 @@ export default function LoanDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-4 items-start">
         <Section title="Applicant Details" icon={<User size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-1 gap-y-1">
             <Field label="Customer ID" value={(loan as any).customer_id} />
             <Field label="Loan Number" value={(loan as any).loan_number} />
             <Field label="Full Name" value={loan.applicant_name} />
@@ -272,12 +272,12 @@ export default function LoanDetail() {
             <Field label="Landmark" value={(loan as any).current_landmark || (loan as any).landmark || '—'} />
             <Field label="District" value={(loan as any).current_district || ''} />
             <Field label="State" value={(loan as any).current_state || '—'} />
-            <Field label="Pincode" value={(loan as any).current_pincode || ''} />
+            <Field label="Pincode" value={(loan as any).current_pincode || '—'} />
           </div>
         </Section>
 
         <Section title="Vehicle Details" icon={<Car size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-1 gap-y-1">
             <Field label="Registration No" value={(loan as any).vehicle_number || ''} />
             <Field label="Engine Number" value={(loan as any).engine_number || '—'} />
             <Field label="Chassis Number" value={(loan as any).chassis_number || '—'} />
@@ -296,7 +296,7 @@ export default function LoanDetail() {
         </Section>
 
         <Section title="Loan & EMI Details" icon={<IndianRupee size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-1 gap-y-1">
             <Field label="Loan Amount" value={formatCurrency(Number(loan.loan_amount))} />
 
             <Field label="IRR" value={(loan as any).irr != null && (loan as any).irr !== '' ? `${(loan as any).irr}%` : loan.interest_rate != null && loan.interest_rate !== '' ? `${loan.interest_rate}%` : '—'} />
@@ -312,7 +312,7 @@ export default function LoanDetail() {
         </Section>
 
         <Section title="Financier Details" icon={<Building2 size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-1 gap-y-1">
             <Field label="Assigned Bank" value={(loan as any).banks?.name || '—'} />
             <Field label="Assigned Broker" value={(loan as any).brokers?.name || '—'} />
             <Field label="Financier Executive" value={(loan as any).financier_executive_name || '—'} />
@@ -324,7 +324,7 @@ export default function LoanDetail() {
         </Section>
 
         <Section title="Insurance Details" icon={<Building2 size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-1 gap-y-1">
             {((loan as any).insurance_company || (loan as any).insurance_company_name) && (
               <Field label="Insurance Company" value={(loan as any).insurance_company_name || (loan as any).insurance_company} />
             )}
@@ -347,9 +347,9 @@ export default function LoanDetail() {
         </Section>
 
         <Section title="Income Details" icon={<IndianRupee size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-1 gap-y-1">
             <Field label="Income Source" value={(loan as any).income_source} />
-            <Field label="Monthly Income" value={(loan as any).monthly_income ? formatCurrency(Number((loan as any).monthly_income)) : '—'} />
+            <Field label="Monthly Income" value={(loan as any).monthly_income ? formatCurrency(Number((loan as any).monthly_income)) : (loan as any).net_monthly_salary ? formatCurrency(Number((loan as any).net_monthly_salary)) : '—'} />
 
             {/* Salaried */}
             {(loan as any).income_source === 'Salaried' && <>
@@ -389,8 +389,127 @@ export default function LoanDetail() {
           </div>
         </Section>
 
+        <Section title="Application Stage Details" icon={<FileText size={18} />}>
+          {(() => {
+            const l = loan as any;
+            // Parse stage_history to extract data from all past stages
+            let history: any[] = [];
+            try {
+              history = Array.isArray(l.stage_history)
+                ? l.stage_history
+                : typeof l.stage_history === 'string'
+                ? JSON.parse(l.stage_history)
+                : [];
+            } catch { history = []; }
+
+            // Helper: find data from history for a given stage
+            const fromHistory = (stage: string) =>
+              history.find((h: any) => h.stage === stage);
+
+            const loginEntry = fromHistory('LOGIN');
+            const inProcessEntry = fromHistory('IN_PROCESS');
+            const approvedEntry = fromHistory('APPROVED');
+            const disbursedEntry = fromHistory('DISBURSED');
+            const rejectedEntry = fromHistory('REJECTED');
+            const cancelledEntry = fromHistory('CANCELLED');
+
+            // Resolve values: prefer DB columns, fallback to history
+            const appScore = l.app_score || loginEntry?.appScore;
+            const creditScore = l.credit_score || loginEntry?.creditScore;
+            const tags = l.tags || inProcessEntry?.tags;
+            const approvedAmount = approvedEntry?.loanAmount;
+            const approvedRoi = approvedEntry?.roi;
+            const approvedTenure = approvedEntry?.tenure;
+            const disbursedAmount = disbursedEntry?.loanAmount;
+            const disbursedRoi = disbursedEntry?.roi;
+            const disbursedTenure = disbursedEntry?.tenure;
+            const lan = l.loan_account_number || disbursedEntry?.loanAccountNumber;
+            const rcType = l.rc_type || disbursedEntry?.rcType;
+            const rcBy = l.rc_collected_by || disbursedEntry?.collectedBy;
+            const rejectedRemarks = l.rejection_remarks || rejectedEntry?.remarks;
+            const cancelledRemarks = l.cancellation_remarks || cancelledEntry?.remarks;
+
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-1 gap-y-1">
+                  <Field label="Current Stage" value={l.application_stage || l.app_stage || loan.status || '—'} />
+                  <Field label="Stage Changed At" value={l.stage_changed_at ? new Date(l.stage_changed_at).toLocaleDateString('en-IN') : '—'} />
+                </div>
+
+                {/* Login */}
+                {(appScore || creditScore) && (
+                  <div>
+                    <p className="text-xs font-bold text-blue-600 mb-2 uppercase tracking-wide">Login Stage</p>
+                    <div className="grid grid-cols-2 gap-x-1 gap-y-1">
+                      <Field label="App Score" value={appScore?.toString() || '—'} />
+                      <Field label="Credit Score" value={creditScore?.toString() || '—'} />
+                    </div>
+                  </div>
+                )}
+
+                {/* In Process */}
+                {tags && (Array.isArray(tags) ? tags.length > 0 : true) && (
+                  <div>
+                    <p className="text-xs font-bold text-yellow-600 mb-2 uppercase tracking-wide">In Process Stage</p>
+                    <div className="grid grid-cols-1 gap-4">
+                      <Field label="Pendency Tags" value={Array.isArray(tags) ? tags.join(', ') : tags} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Approved */}
+                {approvedEntry && (
+                  <div>
+                    <p className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide">Approved Stage</p>
+                    <div className="grid grid-cols-2 gap-x-1 gap-y-1">
+                      <Field label="Approved Loan Amount" value={approvedEntry.loanAmount ? formatCurrency(Number(approvedEntry.loanAmount)) : '—'} />
+                      <Field label="Approved ROI" value={approvedEntry.roi ? `${approvedEntry.roi}%` : '—'} />
+                      <Field label="Approved Tenure" value={approvedEntry.tenure ? `${approvedEntry.tenure} months` : '—'} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Disbursed */}
+                {disbursedEntry && (
+                  <div>
+                    <p className="text-xs font-bold text-emerald-600 mb-2 uppercase tracking-wide">Disbursed Stage</p>
+                    <div className="grid grid-cols-2 gap-x-1 gap-y-1">
+                      <Field label="Disbursed Loan Amount" value={disbursedEntry.loanAmount ? formatCurrency(Number(disbursedEntry.loanAmount)) : '—'} />
+                      <Field label="Disbursed ROI" value={disbursedEntry.roi ? `${disbursedEntry.roi}%` : '—'} />
+                      <Field label="Disbursed Tenure" value={disbursedEntry.tenure ? `${disbursedEntry.tenure} months` : '—'} />
+                      <Field label="Loan Account Number" value={lan || '—'} />
+                      {rcType && <Field label="RC Type" value={rcType} />}
+                      {rcBy && <Field label="RC Collected By" value={rcBy} />}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejected */}
+                {rejectedRemarks && (
+                  <div>
+                    <p className="text-xs font-bold text-red-600 mb-2 uppercase tracking-wide">Rejected Stage</p>
+                    <div className="grid grid-cols-1 gap-4">
+                      <Field label="Rejection Remarks" value={rejectedRemarks} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Cancelled */}
+                {cancelledRemarks && (
+                  <div>
+                    <p className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Cancelled Stage</p>
+                    <div className="grid grid-cols-1 gap-4">
+                      <Field label="Cancellation Remarks" value={cancelledRemarks} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </Section>
+
         <Section title="Important Dates" icon={<Building2 size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-1 gap-y-1">
             <Field label="Login Date" value={(loan as any).login_date ? new Date((loan as any).login_date).toLocaleDateString('en-IN') : '—'} />
             <Field label="Approval Date" value={(loan as any).approval_date ? new Date((loan as any).approval_date).toLocaleDateString('en-IN') : '—'} />
             <Field label="Sourcing Person" value={(loan as any).sourcing_person_name || '—'} />

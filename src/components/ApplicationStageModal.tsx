@@ -43,6 +43,11 @@ export default function ApplicationStageModal({
   };
 
   const handleSubmit = async () => {
+    if (selectedStage === 'LOGIN' && (!formData.appScore || !formData.creditScore)) {
+      toast.error('App Score and Credit Score are required for Login stage');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const stageData: ApplicationStageData = {
@@ -113,44 +118,73 @@ export default function ApplicationStageModal({
         return (
           <div className="space-y-4">
             <div>
-              <label className={labelClass}>App Score</label>
+              <label className={labelClass}>App Score (0-1000) *</label>
               <input
                 type="number"
+                min="0"
+                max="1000"
+                required
                 className={inputClass}
                 value={formData.appScore || ''}
                 onChange={e => setFormData({...formData, appScore: Number(e.target.value)})}
-                placeholder="Enter app score"
+                placeholder="Enter app score (0-1000)"
               />
             </div>
             <div>
-              <label className={labelClass}>Credit Score</label>
+              <label className={labelClass}>Credit Score (300-900) *</label>
               <input
                 type="number"
+                min="300"
+                max="900"
+                required
                 className={inputClass}
                 value={formData.creditScore || ''}
                 onChange={e => setFormData({...formData, creditScore: Number(e.target.value)})}
-                placeholder="Enter credit score"
+                placeholder="Enter credit score (300-900)"
               />
             </div>
           </div>
         );
 
-      case 'IN_PROCESS':
+      case 'IN_PROCESS': {
+        const PENDENCY_TAGS = [
+          'Bank Statement', 'Alternate Bank Statement', 'LOAN SOA',
+          'LOAN FORECLOSURE LETTER', 'NOC', 'CO-APP KYC',
+          'CO-APP BANK STATEMENT', 'VEHICLE RC', 'VEHICLE VALUATION', 'FIELD INSPECTION'
+        ];
+        const selectedTags: string[] = formData.tags || [];
+        const toggleTag = (tag: string) => {
+          const updated = selectedTags.includes(tag)
+            ? selectedTags.filter((t: string) => t !== tag)
+            : [...selectedTags, tag];
+          setFormData({ ...formData, tags: updated });
+        };
         return (
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Add Tags</label>
-              <input
-                type="text"
-                className={inputClass}
-                value={formData.tagsInput || ''}
-                onChange={e => setFormData({...formData, tagsInput: e.target.value})}
-                placeholder="Enter tags separated by commas"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Separate multiple tags with commas</p>
+          <div className="space-y-3">
+            <label className={labelClass}>Pendency Tags</label>
+            <div className="grid grid-cols-2 gap-2">
+              {PENDENCY_TAGS.map(tag => (
+                <label key={tag} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                  selectedTags.includes(tag)
+                    ? 'border-accent bg-accent/10 text-accent font-medium'
+                    : 'border-border hover:bg-muted'
+                }`}>
+                  <input
+                    type="checkbox"
+                    className="accent-accent"
+                    checked={selectedTags.includes(tag)}
+                    onChange={() => toggleTag(tag)}
+                  />
+                  <span className="text-xs">{tag}</span>
+                </label>
+              ))}
             </div>
+            {selectedTags.length > 0 && (
+              <p className="text-xs text-muted-foreground">Selected: {selectedTags.join(', ')}</p>
+            )}
           </div>
         );
+      }
 
       case 'REJECTED':
         return (

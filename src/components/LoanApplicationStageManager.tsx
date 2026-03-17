@@ -73,6 +73,10 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.stage === 'LOGIN' && (!formData.appScore || !formData.creditScore)) {
+      toast.error('App Score and Credit Score are required for Login stage');
+      return;
+    }
     updateStage.mutate(formData);
   };
 
@@ -90,9 +94,10 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">App Score (Optional)</label>
+                <label className="block text-sm font-medium mb-2">App Score (0-1000) *</label>
                 <input
                   type="number"
+                  required
                   min="0"
                   max="1000"
                   value={formData.appScore || ''}
@@ -102,9 +107,10 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Credit Score (Optional)</label>
+                <label className="block text-sm font-medium mb-2">Credit Score (300-900) *</label>
                 <input
                   type="number"
+                  required
                   min="300"
                   max="900"
                   value={formData.creditScore || ''}
@@ -117,22 +123,45 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
           </div>
         );
 
-      case 'IN_PROCESS':
+      case 'IN_PROCESS': {
+        const PENDENCY_TAGS = [
+          'Bank Statement', 'Alternate Bank Statement', 'LOAN SOA',
+          'LOAN FORECLOSURE LETTER', 'NOC', 'CO-APP KYC',
+          'CO-APP BANK STATEMENT', 'VEHICLE RC', 'VEHICLE VALUATION', 'FIELD INSPECTION'
+        ];
+        const selectedTags: string[] = formData.tags || [];
+        const toggleTag = (tag: string) => {
+          const updated = selectedTags.includes(tag)
+            ? selectedTags.filter((t: string) => t !== tag)
+            : [...selectedTags, tag];
+          setFormData((prev: any) => ({ ...prev, tags: updated }));
+        };
         return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Add Tags (Optional)</label>
-              <input
-                type="text"
-                value={formData.tags?.join(', ') || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean) }))}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent"
-                placeholder="Enter tags separated by commas"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Example: urgent, high-priority, follow-up</p>
+          <div className="space-y-3">
+            <label className="block text-sm font-medium">Pendency Tags</label>
+            <div className="grid grid-cols-2 gap-2">
+              {PENDENCY_TAGS.map(tag => (
+                <label key={tag} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                  selectedTags.includes(tag)
+                    ? 'border-accent bg-accent/10 text-accent font-medium'
+                    : 'border-border hover:bg-muted'
+                }`}>
+                  <input
+                    type="checkbox"
+                    className="accent-accent"
+                    checked={selectedTags.includes(tag)}
+                    onChange={() => toggleTag(tag)}
+                  />
+                  <span className="text-xs">{tag}</span>
+                </label>
+              ))}
             </div>
+            {selectedTags.length > 0 && (
+              <p className="text-xs text-muted-foreground">Selected: {selectedTags.join(', ')}</p>
+            )}
           </div>
         );
+      }
 
       case 'REJECTED':
         return (

@@ -85,7 +85,7 @@ export default function AuditLogPage() {
             {logs.map((log: any) => (
               <tr key={log.id} className="border-b hover:bg-muted">
                 <td className="py-3">{new Date(log.created_at).toLocaleString()}</td>
-                <td className="py-3">{log.user_id}</td>
+                <td className="py-3">{log.user_name || log.user_id}</td>
                 <td className="py-3"><span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">{log.user_role}</span></td>
                 <td className="py-3">{log.action}</td>
                 <td className="py-3">{log.table_name || '-'}</td>

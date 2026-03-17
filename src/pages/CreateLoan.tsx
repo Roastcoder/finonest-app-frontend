@@ -553,7 +553,6 @@ export default function CreateLoan() {
       currentDistrict: loan.current_district || '',
       currentState: loan.current_state || '',
       currentPincode: loan.current_pincode || '',
-      vehicleNumber: loan.vehicle_number || '',
       engineNumber: loan.engine_number || '',
       chassisNumber: loan.chassis_number || '',
       ownerName: loan.owner_name || '',
@@ -573,6 +572,27 @@ export default function CreateLoan() {
       tenure: loan.tenure ? String(loan.tenure) : '60',
       irr: loan.irr ? String(loan.irr) : '',
       incomeSource: loan.income_source || '',
+      monthlyIncome: loan.monthly_income ? String(loan.monthly_income) : loan.net_monthly_salary ? String(loan.net_monthly_salary) : '',
+      // Salaried fields
+      companyName: loan.company_name || '',
+      designation: loan.designation || '',
+      workExperience: loan.work_experience || '',
+      currentJobYears: loan.current_job_years ? String(loan.current_job_years) : '',
+      totalWorkExp: loan.total_work_exp ? String(loan.total_work_exp) : '',
+      netMonthlySalary: loan.net_monthly_salary ? String(loan.net_monthly_salary) : '',
+      salaryCreditMode: loan.salary_credit_mode || '',
+      salarySlipAvailable: loan.salary_slip_available || '',
+      // Self employed fields
+      profile: loan.profile || '',
+      itrAvailable: loan.itr_available || '',
+      annualIncomeItr: loan.annual_income_itr ? String(loan.annual_income_itr) : '',
+      businessName: loan.business_name || '',
+      businessType: loan.business_type || '',
+      businessVintage: loan.business_vintage ? String(loan.business_vintage) : '',
+      professionalSubtype: loan.professional_subtype || '',
+      practiceExperience: loan.practice_experience ? String(loan.practice_experience) : '',
+      freelancerSubtype: loan.freelancer_subtype || '',
+      otherIncomeType: loan.other_income_type || '',
       sourcingPersonName: loan.sourcing_person_name || '',
       financierName: loan.financier_name || loan.selected_financier || '',
       bouncingLast3m: loan.bouncing_3_months ? String(loan.bouncing_3_months) : '',
@@ -663,7 +683,7 @@ export default function CreateLoan() {
           current_pincode: form.currentPincode || null,
           our_branch: form.ourBranch || null,
           income_source: form.incomeSource || null,
-          monthly_income: Number(form.monthlyIncome) || null,
+          monthly_income: form.monthlyIncome ? Number(form.monthlyIncome) : null,
           company_name: form.companyName || null,
           designation: form.designation || null,
           work_experience: form.workExperience || null,
@@ -1104,6 +1124,10 @@ export default function CreateLoan() {
                   <option value="Other Income">Other Income</option>
                 </select>
                 <label className={labelClass}>Income Source</label>
+              </div>
+              <div className="floating-input-wrapper">
+                <input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " />
+                <label className={labelClass}>Monthly Income</label>
               </div>
             </div>
 
