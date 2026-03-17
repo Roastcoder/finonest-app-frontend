@@ -9,11 +9,15 @@ import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 
 const DOC_TYPES = [
+  { value: 'aadhar_front', label: 'Aadhar Front' },
+  { value: 'aadhar_back', label: 'Aadhar Back' },
+  { value: 'pan_card', label: 'PAN Card' },
   { value: 'rc_copy', label: 'RC Copy' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'income_proof', label: 'Income Proof' },
   { value: 'bank_statement', label: 'Bank Statement' },
   { value: 'nach', label: 'NACH' },
+  { value: 'photo', label: 'Photo' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -336,9 +340,9 @@ export default function LoanDetail() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Loan Amount" value={formatCurrency(Number(loan.loan_amount))} />
             <Field label="LTV" value={(loan as any).ltv ? `${(loan as any).ltv}%` : '—'} />
-            <Field label="IRR" value={(loan as any).irr ? `${(loan as any).irr}%` : `${loan.interest_rate}%`} />
+            <Field label="IRR" value={(loan as any).irr != null && (loan as any).irr !== '' ? `${(loan as any).irr}%` : loan.interest_rate != null && loan.interest_rate !== '' ? `${loan.interest_rate}%` : '—'} />
             <Field label="Tenure" value={`${loan.tenure} months`} />
-            <Field label="Monthly EMI" value={formatCurrency(Number((loan as any).emi_amount || loan.emi))} />
+            <Field label="Monthly EMI" value={(loan as any).emi_amount && Number((loan as any).emi_amount) > 0 ? formatCurrency(Number((loan as any).emi_amount)) : loan.emi && Number(loan.emi) > 0 ? formatCurrency(Number(loan.emi)) : '—'} />
             <Field label="Total Interest" value={formatCurrency(Number((loan as any).total_interest || 0))} />
             <Field label="EMI Start Date" value={(loan as any).emi_start_date ? new Date((loan as any).emi_start_date).toLocaleDateString('en-IN') : '—'} />
             <Field label="EMI End Date" value={(loan as any).emi_end_date ? new Date((loan as any).emi_end_date).toLocaleDateString('en-IN') : '—'} />
