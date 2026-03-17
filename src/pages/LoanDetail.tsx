@@ -339,7 +339,7 @@ export default function LoanDetail() {
         <Section title="Loan & EMI Details" icon={<IndianRupee size={18} />}>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Loan Amount" value={formatCurrency(Number(loan.loan_amount))} />
-            <Field label="LTV" value={(loan as any).ltv ? `${(loan as any).ltv}%` : '—'} />
+
             <Field label="IRR" value={(loan as any).irr != null && (loan as any).irr !== '' ? `${(loan as any).irr}%` : loan.interest_rate != null && loan.interest_rate !== '' ? `${loan.interest_rate}%` : '—'} />
             <Field label="Tenure" value={`${loan.tenure} months`} />
             <Field label="Monthly EMI" value={(loan as any).emi_amount && Number((loan as any).emi_amount) > 0 ? formatCurrency(Number((loan as any).emi_amount)) : loan.emi && Number(loan.emi) > 0 ? formatCurrency(Number(loan.emi)) : '—'} />
@@ -387,30 +387,32 @@ export default function LoanDetail() {
           </div>
         </Section>
 
-        <Section title="Income Details" icon={<IndianRupee size={18} />}>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Income Source" value={(loan as any).income_source || '—'} />
-            <Field label="Monthly Income" value={(loan as any).monthly_income ? formatCurrency(Number((loan as any).monthly_income)) : '—'} />
-            <Field label="Company Name" value={(loan as any).company_name || '—'} />
-            <Field label="Designation" value={(loan as any).designation || '—'} />
-            <Field label="Work Experience" value={(loan as any).work_experience || '—'} />
-            <Field label="Current Job Years" value={(loan as any).current_job_years || '—'} />
-            <Field label="Total Work Exp" value={(loan as any).total_work_exp || '—'} />
-            <Field label="Net Monthly Salary" value={(loan as any).net_monthly_salary ? formatCurrency(Number((loan as any).net_monthly_salary)) : '—'} />
-            <Field label="Salary Credit Mode" value={(loan as any).salary_credit_mode || '—'} />
-            <Field label="Salary Slip Available" value={(loan as any).salary_slip_available || '—'} />
-            <Field label="Profile" value={(loan as any).profile || '—'} />
-            <Field label="ITR Available" value={(loan as any).itr_available || '—'} />
-            <Field label="Annual Income ITR" value={(loan as any).annual_income_itr ? formatCurrency(Number((loan as any).annual_income_itr)) : '—'} />
-            <Field label="Business Name" value={(loan as any).business_name || '—'} />
-            <Field label="Business Type" value={(loan as any).business_type || '—'} />
-            <Field label="Business Vintage" value={(loan as any).business_vintage || '—'} />
-            <Field label="Professional Subtype" value={(loan as any).professional_subtype || '—'} />
-            <Field label="Practice Experience" value={(loan as any).practice_experience || '—'} />
-            <Field label="Freelancer Subtype" value={(loan as any).freelancer_subtype || '—'} />
-            <Field label="Other Income Type" value={(loan as any).other_income_type || '—'} />
-          </div>
-        </Section>
+        {(loan as any).income_source && (
+          <Section title="Income Details" icon={<IndianRupee size={18} />}>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Income Source" value={(loan as any).income_source} />
+              {(loan as any).monthly_income && <Field label="Monthly Income" value={formatCurrency(Number((loan as any).monthly_income))} />}
+              {(loan as any).net_monthly_salary && <Field label="Net Monthly Salary" value={formatCurrency(Number((loan as any).net_monthly_salary))} />}
+              {(loan as any).company_name && <Field label="Company Name" value={(loan as any).company_name} />}
+              {(loan as any).designation && <Field label="Designation" value={(loan as any).designation} />}
+              {(loan as any).work_experience && <Field label="Work Experience" value={(loan as any).work_experience} />}
+              {(loan as any).current_job_years && <Field label="Current Job Years" value={(loan as any).current_job_years} />}
+              {(loan as any).total_work_exp && <Field label="Total Work Exp" value={(loan as any).total_work_exp} />}
+              {(loan as any).salary_credit_mode && <Field label="Salary Credit Mode" value={(loan as any).salary_credit_mode} />}
+              {(loan as any).salary_slip_available && <Field label="Salary Slip Available" value={(loan as any).salary_slip_available} />}
+              {(loan as any).profile && <Field label="Profile" value={(loan as any).profile} />}
+              {(loan as any).itr_available && <Field label="ITR Available" value={(loan as any).itr_available} />}
+              {(loan as any).annual_income_itr && <Field label="Annual Income ITR" value={formatCurrency(Number((loan as any).annual_income_itr))} />}
+              {(loan as any).business_name && <Field label="Business Name" value={(loan as any).business_name} />}
+              {(loan as any).business_type && <Field label="Business Type" value={(loan as any).business_type} />}
+              {(loan as any).business_vintage && <Field label="Business Vintage" value={(loan as any).business_vintage} />}
+              {(loan as any).professional_subtype && <Field label="Professional Subtype" value={(loan as any).professional_subtype} />}
+              {(loan as any).practice_experience && <Field label="Practice Experience" value={(loan as any).practice_experience} />}
+              {(loan as any).freelancer_subtype && <Field label="Freelancer Subtype" value={(loan as any).freelancer_subtype} />}
+              {(loan as any).other_income_type && <Field label="Other Income Type" value={(loan as any).other_income_type} />}
+            </div>
+          </Section>
+        )}
 
         <Section title="Important Dates" icon={<Building2 size={18} />}>
           <div className="grid grid-cols-2 gap-4">
