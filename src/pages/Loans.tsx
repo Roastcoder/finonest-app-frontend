@@ -5,7 +5,9 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
-import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
+import { shareToCustomer, shareToWhatsAppWithPhone } from '@/lib/whatsapp-share';
+import { fetchDocumentFiles } from '@/lib/document-utils';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
@@ -261,12 +263,65 @@ export default function Loans() {
                   >
                     <Download size={14} className="text-accent" /> Save
                   </button>
-                  <button
-                    onClick={() => shareLoanPDF(loan)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors"
-                  >
-                    <MessageCircle size={14} className="text-green-500" /> Share
-                  </button>
+                  <div className="relative group">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
+                      <MessageCircle size={14} className="text-green-500" /> Share
+                      <svg className="w-2.5 h-2.5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    <div className="absolute bottom-full left-0 mb-1 w-40 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            // Fetch loan documents
+                            const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                            });
+                            const documents = docsResponse.ok ? await docsResponse.json() : [];
+                            
+                            const docFiles = await fetchDocumentFiles(documents);
+                            await shareToCustomer(loan, docFiles.map(d => d.file));
+                          } catch (error) {
+                            console.error('Share to customer error:', error);
+                            toast.error('Failed to share to customer');
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
+                      >
+                        📱 To Customer
+                        <div className="text-muted-foreground text-[10px] mt-0.5">
+                          {loan.mobile || 'No phone'}
+                        </div>
+                      </button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            // Fetch loan documents
+                            const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                            });
+                            const documents = docsResponse.ok ? await docsResponse.json() : [];
+                            
+                            const docFiles = await fetchDocumentFiles(documents);
+                            await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
+                          } catch (error) {
+                            console.error('Share with phone error:', error);
+                            toast.error('Failed to share via WhatsApp');
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
+                      >
+                        📞 Other Number
+                        <div className="text-muted-foreground text-[10px] mt-0.5">
+                          Enter phone
+                        </div>
+                      </button>
+                    </div>
+                  </div>
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(loan)}
@@ -314,6 +369,7 @@ export default function Loans() {
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Amount</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">EMI</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Application Stage</th>
+                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
                   {showUpdateColumn && (
                     <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Stage Management</th>
                   )}
@@ -337,6 +393,71 @@ export default function Loans() {
                     <td className="py-3.5 px-3 text-right font-medium text-foreground whitespace-nowrap">{formatCurrency(Number(loan.loan_amount))}</td>
                     <td className="py-3.5 px-3 text-right text-muted-foreground whitespace-nowrap">{formatCurrency(Number(loan.emi))}/mo</td>
                     <td className="py-3.5 px-3 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
+                    <td className="py-3.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => exportLoanPDF(loan)}
+                          className="p-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                          title="Export PDF"
+                        >
+                          <Printer size={12} className="text-accent" />
+                        </button>
+                        <div className="relative group">
+                          <button className="p-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via WhatsApp">
+                            <MessageCircle size={12} className="text-green-500" />
+                          </button>
+                          
+                          <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                                  });
+                                  const documents = docsResponse.ok ? await docsResponse.json() : [];
+                                  
+                                  const docFiles = await fetchDocumentFiles(documents);
+                                  await shareToCustomer(loan, docFiles.map(d => d.file));
+                                } catch (error) {
+                                  console.error('Share to customer error:', error);
+                                  toast.error('Failed to share to customer');
+                                }
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
+                            >
+                              📱 To Customer
+                              <div className="text-muted-foreground text-[10px] mt-0.5">
+                                {loan.mobile || 'No phone'}
+                              </div>
+                            </button>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                                  });
+                                  const documents = docsResponse.ok ? await docsResponse.json() : [];
+                                  
+                                  const docFiles = await fetchDocumentFiles(documents);
+                                  await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
+                                } catch (error) {
+                                  console.error('Share with phone error:', error);
+                                  toast.error('Failed to share via WhatsApp');
+                                }
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
+                            >
+                              📞 Other Number
+                              <div className="text-muted-foreground text-[10px] mt-0.5">
+                                Enter phone
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
                     {showUpdateColumn && (
                       <td className="py-3.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <button

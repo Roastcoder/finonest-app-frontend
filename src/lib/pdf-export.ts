@@ -465,21 +465,79 @@ async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: stri
 
 export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
   const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months`;
+  
   try {
-    const [hierarchy, docUrls, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs), fetchDocumentFiles(docs)]);
+    const [hierarchy, docUrls, docFileObjs] = await Promise.all([
+      fetchHierarchy(loan), 
+      fetchDocumentUrls(docs), 
+      fetchDocumentFiles(docs)
+    ]);
+    
     const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
     const pdfBlob = await generatePDFBlob(loanH);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+    
+    // All files to share (PDF + documents)
     const allFiles = [pdfFile, ...docFileObjs.map(d => d.file)];
+    
+    // Try native sharing first (mobile devices)
     if (navigator.share && navigator.canShare) {
-      const shareData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: allFiles };
-      if (navigator.canShare(shareData)) { await navigator.share(shareData); return; }
-      const pdfOnlyData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: [pdfFile] };
-      if (navigator.canShare(pdfOnlyData)) { await navigator.share(pdfOnlyData); return; }
+      const shareData: ShareData = { 
+        title: `Loan Application - ${loan.id}`, 
+        text, 
+        files: allFiles 
+      };
+      
+      if (navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+      
+      // Fallback: try sharing just the PDF if all files fail
+      const pdfOnlyData: ShareData = { 
+        title: `Loan Application - ${loan.id}`, 
+        text, 
+        files: [pdfFile] 
+      };
+      
+      if (navigator.canShare(pdfOnlyData)) {
+        await navigator.share(pdfOnlyData);
+        return;
+      }
     }
-  } catch (e) { console.error('Error generating files for sharing:', e); }
-  const waText = `*Finonest India - Loan Application*%0A%0A*ID:* ${loan.id}%0A*Applicant:* ${loan.applicant_name}%0A*Mobile:* ${loan.mobile}%0A*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}%0A*Loan Amount:* ${fmtCur(loan.loan_amount)}%0A*Status:* ${loan.status}%0A*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}%0A*Tenure:* ${loan.tenure} months`;
-  window.open(`https://wa.me/?text=${waText}`, '_blank');
+    
+    // Desktop fallback: Download all files and open WhatsApp
+    // Download PDF
+    triggerDownload(pdfBlob, `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`);
+    
+    // Download documents with delay
+    for (let i = 0; i < docFileObjs.length; i++) {
+      await new Promise(r => setTimeout(r, 300));
+      triggerDownload(docFileObjs[i].file, docFileObjs[i].name);
+    }
+    
+    // Show instruction message
+    const fileCount = allFiles.length;
+    const message = `Downloaded ${fileCount} file${fileCount > 1 ? 's' : ''} (PDF + ${docFileObjs.length} document${docFileObjs.length !== 1 ? 's' : ''}). Please attach them manually to WhatsApp.`;
+    
+    // Show toast notification if available
+    if (typeof window !== 'undefined' && (window as any).toast) {
+      (window as any).toast.success(message);
+    } else {
+      alert(message);
+    }
+    
+    // Open WhatsApp with text
+    const waText = encodeURIComponent(text + `\n\n📎 ${fileCount} files downloaded for attachment`);
+    window.open(`https://wa.me/?text=${waText}`, '_blank');
+    
+  } catch (e) {
+    console.error('Error generating files for sharing:', e);
+    
+    // Fallback: just open WhatsApp with text
+    const waText = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${waText}`, '_blank');
+  }
 }
 
 function triggerDownload(blob: Blob, fileName: string) {

@@ -6,7 +6,9 @@ import { api } from '@/lib/api';
 import { formatCurrency, LEAD_STATUSES } from '@/lib/mock-data';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, MessageCircle, Download, RefreshCw } from 'lucide-react';
-import { exportLoanPDF, shareLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
+import { shareToCustomer, shareToWhatsAppWithPhone } from '@/lib/whatsapp-share';
+import { fetchDocumentFiles } from '@/lib/document-utils';
 import { toast } from 'sonner';
 
 const DOC_TYPES = [
@@ -195,13 +197,53 @@ export default function LoanDetail() {
             <Download size={14} className="text-accent" />
             Download
           </button>
-          <button
-            onClick={() => shareLoanPDF(loan, documents as any[])}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors"
-          >
-            <MessageCircle size={14} className="text-green-500" />
-            WhatsApp
-          </button>
+          {/* WhatsApp Share Dropdown */}
+          <div className="relative group">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors">
+              <MessageCircle size={14} className="text-green-500" />
+              WhatsApp
+              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+              <button
+                onClick={async () => {
+                  try {
+                    const docFiles = await fetchDocumentFiles(documents as any[]);
+                    await shareToCustomer(loan, docFiles.map(d => d.file));
+                  } catch (error) {
+                    console.error('Share to customer error:', error);
+                    toast.error('Failed to share to customer');
+                  }
+                }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
+              >
+                📱 Send to Customer
+                <div className="text-muted-foreground text-[10px] mt-0.5">
+                  {loan.mobile || 'No phone number'}
+                </div>
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const docFiles = await fetchDocumentFiles(documents as any[]);
+                    await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
+                  } catch (error) {
+                    console.error('Share with phone error:', error);
+                    toast.error('Failed to share via WhatsApp');
+                  }
+                }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
+              >
+                📞 Send to Other Number
+                <div className="text-muted-foreground text-[10px] mt-0.5">
+                  Enter phone number
+                </div>
+              </button>
+            </div>
+          </div>
           {canEditStatus && (
             <>
               <select
