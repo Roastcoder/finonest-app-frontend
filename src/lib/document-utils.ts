@@ -1,1 +1,41 @@
-// Helper function to fetch document files from API\nexport async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {\n  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';\n  const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };\n  \n  const DOC_TYPES: Record<string, string> = {\n    aadhar_front: 'Aadhar Front',\n    aadhar_back: 'Aadhar Back', \n    pan_card: 'PAN Card',\n    rc_copy: 'RC Copy', \n    insurance: 'Insurance', \n    income_proof: 'Income Proof',\n    bank_statement: 'Bank Statement', \n    nach: 'NACH', \n    photo: 'Photo',\n    other: 'Other',\n  };\n  \n  const files: { file: File; name: string; docType: string }[] = [];\n  \n  for (const doc of docs) {\n    try {\n      const res = await fetch(`${API}/documents/${doc.id}/download`, { headers });\n      if (!res.ok) continue;\n      \n      const blob = await res.blob();\n      const docLabel = DOC_TYPES[doc.document_type] || doc.document_type || 'Document';\n      const fileName = `${docLabel}-${doc.file_name}`;\n      \n      files.push({ \n        file: new File([blob], fileName, { type: blob.type }), \n        name: fileName, \n        docType: docLabel \n      });\n    } catch (error) {\n      console.error(`Failed to fetch document ${doc.id}:`, error);\n    }\n  }\n  \n  return files;\n}
+// Helper function to fetch document files from API
+export async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
+  
+  const DOC_TYPES: Record<string, string> = {
+    aadhar_front: 'Aadhar Front',
+    aadhar_back: 'Aadhar Back', 
+    pan_card: 'PAN Card',
+    rc_copy: 'RC Copy', 
+    insurance: 'Insurance', 
+    income_proof: 'Income Proof',
+    bank_statement: 'Bank Statement', 
+    nach: 'NACH', 
+    photo: 'Photo',
+    other: 'Other',
+  };
+  
+  const files: { file: File; name: string; docType: string }[] = [];
+  
+  for (const doc of docs) {
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/download`, { headers });
+      if (!res.ok) continue;
+      
+      const blob = await res.blob();
+      const docLabel = DOC_TYPES[doc.document_type] || doc.document_type || 'Document';
+      const fileName = `${docLabel}-${doc.file_name}`;
+      
+      files.push({ 
+        file: new File([blob], fileName, { type: blob.type }), 
+        name: fileName, 
+        docType: docLabel 
+      });
+    } catch (error) {
+      console.error(`Failed to fetch document ${doc.id}:`, error);
+    }
+  }
+  
+  return files;
+}
