@@ -52,6 +52,9 @@ export default function LeadsList() {
   });
 
   const filtered = leads.filter((l: any) => {
+    // Hide converted leads for all roles
+    if (l.converted_to_loan) return false;
+
     // Branch filter
     if (filterBranch !== 'all' && l.our_branch !== filterBranch) return false;
 

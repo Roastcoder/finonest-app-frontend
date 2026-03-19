@@ -43,7 +43,9 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       case 'sales_manager':
         return { 
           branch_manager: ROLE_LABELS.branch_manager, 
-          dsa: ROLE_LABELS.dsa 
+          dsa: ROLE_LABELS.dsa,
+          team_leader: ROLE_LABELS.team_leader,
+          executive: ROLE_LABELS.executive
         };
       case 'branch_manager':
         return { 
@@ -90,7 +92,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       } else if (role === 'branch_manager' || role === 'dsa') {
         return users.filter((u: any) => u.role === 'sales_manager');
       } else if (role === 'team_leader') {
-        return users.filter((u: any) => ['branch_manager', 'dsa'].includes(u.role));
+        return users.filter((u: any) => ['branch_manager', 'dsa', 'sales_manager'].includes(u.role));
       } else if (role === 'executive') {
         return users.filter((u: any) => ['team_leader', 'branch_manager', 'dsa'].includes(u.role));
       }
@@ -261,10 +263,10 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
             </div>
           )}
 
-          {(role === 'sales_manager') && (
+          {role === 'sales_manager' && managers.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">Reporting To (Operation Team) *</label>
-              <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+              <label className="block text-sm font-medium mb-1.5">Reporting To (Operation Team)</label>
+              <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
                 <option value="">Select operation team member</option>
                 {managers.map((manager: any) => (
                   <option key={manager.id} value={manager.id}>{manager.full_name}</option>
@@ -273,11 +275,10 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
             </div>
           )}
 
-
           {(role === 'branch_manager' || role === 'dsa') && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">Reporting To (Sales Manager) *</label>
-              <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+              <label className="block text-sm font-medium mb-1.5">Reporting To (Sales Manager)</label>
+              <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
                 <option value="">Select a sales manager</option>
                 {managers.map((manager: any) => (
                   <option key={manager.id} value={manager.id}>{manager.full_name}</option>
@@ -289,15 +290,15 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
           {role === 'team_leader' && (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Reporting To (Branch Manager/DSA) *</label>
-                <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+                <label className="block text-sm font-medium mb-1.5">Reporting To (BM / DSA / Sales Manager)</label>
+                <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
                   <option value="">Select a manager</option>
                   {managers.map((manager: any) => (
-                    <option key={manager.id} value={manager.id}>{manager.full_name} ({manager.role})</option>
+                    <option key={manager.id} value={manager.id}>{manager.full_name} ({ROLE_LABELS[manager.role as keyof typeof ROLE_LABELS] || manager.role})</option>
                   ))}
                 </select>
               </div>
-              {user?.role === 'branch_manager' && (
+              {(user?.role === 'branch_manager' || user?.role === 'sales_manager') && (
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Select Branch</label>
                   <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={branchId} onChange={e => setBranchId(e.target.value)}>
@@ -324,11 +325,11 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
 
           {role === 'executive' && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">Reporting To (Team Leader) *</label>
-              <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
-                <option value="">Select a team leader</option>
+              <label className="block text-sm font-medium mb-1.5">Reporting To (Team Leader / BM / DSA)</label>
+              <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
+                <option value="">Select reporting person</option>
                 {managers.map((manager: any) => (
-                  <option key={manager.id} value={manager.id}>{manager.full_name}</option>
+                  <option key={manager.id} value={manager.id}>{manager.full_name} ({ROLE_LABELS[manager.role as keyof typeof ROLE_LABELS] || manager.role})</option>
                 ))}
               </select>
             </div>
