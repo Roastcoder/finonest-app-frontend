@@ -125,15 +125,22 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       setPhone(targetUser.phone || '');
     } else {
       setRole('executive');
-      setBranchId('');
+      setBranchId(user?.role === 'branch_manager' ? (user?.branch_id || '') : '');
       setDsaId('');
-      setReportingTo(user?.role === 'team_leader' ? user.id : '');
+      setReportingTo(user?.role === 'team_leader' ? user.id : (user?.role === 'branch_manager' ? user.id : ''));
       setFullName('');
       setEmail('');
       setPhone('');
       setPassword('');
     }
   }, [targetUser, user]);
+
+  useEffect(() => {
+    if (!targetUser && role === 'team_leader' && user?.role === 'branch_manager') {
+      setBranchId(user?.branch_id || '');
+      setReportingTo(user.id);
+    }
+  }, [role, targetUser, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,17 +308,15 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
                   ))}
                 </select>
               </div>
-              {(user?.role === 'branch_manager' || user?.role === 'sales_manager') && (
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Select Branch</label>
-                  <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={branchId} onChange={e => setBranchId(e.target.value)}>
-                    <option value="">No Branch</option>
-                    {branches.map((branch: any) => (
-                      <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Select Branch *</label>
+                <select required className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={branchId} onChange={e => setBranchId(e.target.value)}>
+                  <option value="">Select a branch</option>
+                  {branches.map((branch: any) => (
+                    <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>
+                  ))}
+                </select>
+              </div>
               {user?.role === 'dsa' && (
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Associated DSA</label>

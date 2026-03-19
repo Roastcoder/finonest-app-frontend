@@ -71,7 +71,8 @@ export default function TeamUsers() {
     phone: '',
     password: '',
     role: 'executive' as 'team_leader' | 'executive',
-    reporting_to: user?.id || null
+    reporting_to: user?.id || null,
+    branch_id: user?.role === 'branch_manager' ? user?.branch_id : null
   });
 
   const { data: teamData = [], isLoading, error } = useQuery({
@@ -117,7 +118,8 @@ export default function TeamUsers() {
         phone: '',
         password: '',
         role: 'executive',
-        reporting_to: user?.id || null
+        reporting_to: user?.id || null,
+        branch_id: user?.role === 'branch_manager' ? user?.branch_id : null
       });
     },
     onError: (error: any) => {
@@ -331,6 +333,18 @@ export default function TeamUsers() {
                 </select>
               </div>
 
+              {newUser.role === 'team_leader' && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Branch *</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={newUser.branch_id ? `Branch ID: ${newUser.branch_id}` : 'No branch assigned'}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm"
+                  />
+                </div>
+              )}
+
               <div className="flex gap-3 mt-6">
                 <button
                   type="button"
@@ -341,7 +355,7 @@ export default function TeamUsers() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createUser.isPending}
+                  disabled={createUser.isPending || (newUser.role === 'team_leader' && !newUser.branch_id)}
                   className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-accent-foreground hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
                 >
                   {createUser.isPending ? 'Creating...' : 'Create User'}
