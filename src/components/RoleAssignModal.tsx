@@ -175,7 +175,10 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
             dsa_id: dsaId || null
           }),
         });
-        if (!res.ok) throw new Error('Failed to create user');
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to create user');
+        }
         toast.success('User created successfully!');
       }
 
