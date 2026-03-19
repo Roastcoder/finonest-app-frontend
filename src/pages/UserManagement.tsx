@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { ROLE_LABELS, UserRole } from '@/lib/auth';
-import { Users, Search, Shield, Edit } from 'lucide-react';
+import { Users, Search, Shield, Edit, Trash2 } from 'lucide-react';
 import { RoleAssignModal } from '@/components/RoleAssignModal';
+import { toast } from 'sonner';
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -28,6 +29,33 @@ export default function UserManagement() {
     },
     enabled: !!user,
   });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('User deleted successfully');
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete user');
+    }
+  });
+
+  const handleDeleteUser = (u: any) => {
+    if (confirm(`Are you sure you want to delete ${u.full_name}? This action cannot be undone.`)) {
+      deleteUserMutation.mutate(u.id);
+    }
+  };
 
   const isAdmin = user?.role === 'admin';
   const validRoles = isAdmin
@@ -89,9 +117,20 @@ export default function UserManagement() {
               <td className="px-4 py-3 text-sm text-blue-600 font-medium">{u.reporting_to ? getManagerName(u.reporting_to) : '—'}</td>
               <td className="px-4 py-3 text-sm text-green-600">{u.branch_name || '—'}</td>
               <td className="px-4 py-3 text-center">
-                <button onClick={() => handleAssignRole(u)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                  <Edit size={14} />
-                </button>
+                <div className="flex items-center justify-center gap-2">
+                  <button onClick={() => handleAssignRole(u)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                    <Edit size={14} />
+                  </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => handleDeleteUser(u)} 
+                      disabled={deleteUserMutation.isPending}
+                      className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
@@ -248,8 +287,3 @@ export default function UserManagement() {
     </div>
   );
 }
-
-
-
-
-
