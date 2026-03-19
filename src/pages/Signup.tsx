@@ -207,12 +207,8 @@ export default function Signup() {
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none shadow-sm backdrop-blur-md font-medium"
                   >
-                    <option value="executive">Executive</option>
-                    <option value="team_leader">Team Leader</option>
+                    <option value="executive">DST (Finonest Employee)</option>
                     <option value="dsa">DSA</option>
-                    <option value="sales_manager">Sales Manager</option>
-                    <option value="ops_team">Ops Team</option>
-                    <option value="admin">Admin</option>
                   </select>
                 </div>
               </div>
