@@ -147,7 +147,7 @@ export default function ExpenseManagement() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!form.expense_type || !form.employee_id || !form.amount || !form.expense_date) {
+        if (!form.expense_type || !form.amount || !form.expense_date) {
             toast.error('Please fill all required fields');
             return;
         }
@@ -306,7 +306,7 @@ export default function ExpenseManagement() {
                                     <tr key={expense.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                                         <td className="py-3 px-3 text-foreground">{new Date(expense.expense_date).toLocaleDateString()}</td>
                                         <td className="py-3 px-3 text-foreground">{expense.expense_type}</td>
-                                        <td className="py-3 px-3 text-foreground">{expense.employee_name}</td>
+                                        <td className="py-3 px-3 text-foreground">{expense.employee_name || '—'}</td>
                                         <td className="py-3 px-3 text-muted-foreground">{expense.description || '—'}</td>
                                         <td className="py-3 px-3 text-right font-medium text-foreground">₹{Number(expense.amount).toLocaleString('en-IN')}</td>
                                         <td className="py-3 px-3 text-center">
@@ -386,14 +386,13 @@ export default function ExpenseManagement() {
                                 </div>
 
                                 <div>
-                                    <label className={labelClass}>Employee / Agent Name *</label>
+                                    <label className={labelClass}>Employee / Agent Name</label>
                                     <select 
-                                        required
                                         className={inputClass}
                                         value={form.employee_id}
                                         onChange={e => setForm({ ...form, employee_id: e.target.value })}
                                     >
-                                        <option value="">Select Employee</option>
+                                        <option value="">Select Employee (Optional)</option>
                                         {users.map((user: any) => (
                                             <option key={user.id} value={user.id}>
                                                 {user.name || user.full_name || user.email}

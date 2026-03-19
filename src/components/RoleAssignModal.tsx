@@ -23,6 +23,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
   const [email, setEmail] = useState(targetUser?.email || '');
   const [phone, setPhone] = useState(targetUser?.phone || '');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   // Determine allowed roles based on current user role
   const getAllowedRoles = () => {
@@ -133,6 +134,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       setPhone('');
       setPassword('');
     }
+    setError('');
   }, [targetUser, user]);
 
   useEffect(() => {
@@ -144,6 +146,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
     try {
       if (targetUser) {
@@ -161,7 +164,10 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
             dsa_id: dsaId || null
           }),
         });
-        if (!res.ok) throw new Error('Failed to update user');
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to update user');
+        }
         toast.success('User updated successfully!');
       } else {
         // Create new user
@@ -191,8 +197,10 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
 
       onSuccess();
       onClose();
-    } catch (error) {
-      toast.error(targetUser ? 'Failed to update user' : 'Failed to create user');
+    } catch (err: any) {
+      const errorMsg = err.message || (targetUser ? 'Failed to update user' : 'Failed to create user');
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -205,6 +213,12 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
           <DialogTitle>{targetUser ? `Edit ${targetUser?.full_name || targetUser?.email}` : 'Add New User'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+
           {!targetUser && (
             <>
               <div>
