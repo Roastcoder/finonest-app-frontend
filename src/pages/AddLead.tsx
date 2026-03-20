@@ -19,6 +19,17 @@ const FormSection = ({ title, children }: { title: string; children: React.React
   </div>
 );
 
+// Validation functions
+const validatePAN = (pan: string): boolean => {
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  return panRegex.test(pan);
+};
+
+const validateVehicleNumber = (vehicleNumber: string): boolean => {
+  const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/;
+  return vehicleRegex.test(vehicleNumber);
+};
+
 export default function AddLead() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -36,12 +47,14 @@ export default function AddLead() {
     vehicle_number: '',
     loan_amount_required: '',
     case_type: 'new_car_purchase',
-    lead_type: 'branch_visit',
+    lead_type: 'direct_login',
     financier_id: ''
   });
   const [documents, setDocuments] = useState<{ [key: string]: File }>({});
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeManual, setPincodeManual] = useState(false);
+  const [panError, setPanError] = useState('');
+  const [vehicleError, setVehicleError] = useState('');
 
   const { data: banks = [] } = useQuery({
     queryKey: ['banks'],
@@ -216,6 +229,38 @@ export default function AddLead() {
     },
   });
 
+  const handlePANChange = (value: string) => {
+    const upperValue = value.toUpperCase();
+    setForm({ ...form, pan_number: upperValue });
+    
+    if (upperValue.length === 10) {
+      if (!validatePAN(upperValue)) {
+        setPanError('Invalid PAN format. Format: AAAAA9999A (5 letters, 4 numbers, 1 letter)');
+      } else {
+        setPanError('');
+      }
+    } else if (upperValue.length > 0) {
+      setPanError('');
+    }
+  };
+
+  const handleVehicleNumberChange = (value: string) => {
+    const upperValue = value.toUpperCase();
+    setForm({ ...form, vehicle_number: upperValue });
+    
+    if (upperValue.length === 10) {
+      if (!validateVehicleNumber(upperValue)) {
+        setVehicleError('Invalid vehicle number format. Format: AA99AA9999 (2 letters, 2 numbers, 2 letters, 4 numbers)');
+      } else {
+        setVehicleError('');
+      }
+    } else if (upperValue.length > 0) {
+      setVehicleError('');
+    }
+  };
+
+  const isDirectLogin = form.lead_type === 'direct_login';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -228,10 +273,19 @@ export default function AddLead() {
       toast.error('Valid 10-digit mobile number is required');
       return;
     }
-    if (!form.pan_number.trim() || form.pan_number.length !== 10) {
-      toast.error('Valid PAN number is required');
-      return;
+    
+    // PAN is mandatory only for Direct Login
+    if (isDirectLogin) {
+      if (!form.pan_number.trim() || form.pan_number.length !== 10) {
+        toast.error('Valid PAN number is required for Direct Login');
+        return;
+      }
+      if (!validatePAN(form.pan_number)) {
+        toast.error('Invalid PAN format. Format: AAAAA9999A (5 letters, 4 numbers, 1 letter)');
+        return;
+      }
     }
+    
     if (!form.current_address.trim()) {
       toast.error('Current address is required');
       return;
@@ -248,8 +302,12 @@ export default function AddLead() {
       toast.error('State is required');
       return;
     }
-    if (!form.vehicle_number.trim()) {
-      toast.error('Vehicle number is required');
+    if (!form.vehicle_number.trim() || form.vehicle_number.length !== 10) {
+      toast.error('Valid vehicle number is required');
+      return;
+    }
+    if (!validateVehicleNumber(form.vehicle_number)) {
+      toast.error('Invalid vehicle number format. Format: AA99AA9999 (2 letters, 2 numbers, 2 letters, 4 numbers)');
       return;
     }
     if (!form.loan_amount_required || Number(form.loan_amount_required) <= 0) {
@@ -259,6 +317,19 @@ export default function AddLead() {
     if (user?.role !== 'executive' && !form.financier_id) {
       toast.error('Please select a financier');
       return;
+    }
+    
+    // Documents are mandatory only for Direct Login
+    if (isDirectLogin) {
+      if (Object.keys(documents).length === 0) {
+        toast.error('Documents are mandatory for Direct Login. Please upload at least 3 documents.');
+        return;
+      }
+      
+      if (Object.keys(documents).length < 3) {
+        toast.error(`Please upload 3 documents for Direct Login. Currently uploaded: ${Object.keys(documents).length}`);
+        return;
+      }
     }
     
     const submissionData = {
@@ -312,8 +383,9 @@ export default function AddLead() {
             <label className={labelClass}>Email Address</label>
           </div>
           <div className="floating-input-wrapper">
-            <input required className={inputClass} maxLength={10} value={form.pan_number} onChange={e => setForm({ ...form, pan_number: e.target.value.toUpperCase() })} placeholder=" " />
-            <label className={labelClass}>PAN Number *</label>
+            <input className={`${inputClass} ${panError ? 'border-red-500' : ''}`} maxLength={10} value={form.pan_number} onChange={e => handlePANChange(e.target.value)} placeholder=" " required={isDirectLogin} />
+            <label className={labelClass}>PAN Number {isDirectLogin ? '*' : '(Optional for Branch Visit)'}</label>
+            {panError && <p className="text-[10px] text-red-500 mt-1 font-semibold">{panError}</p>}
           </div>
         </FormSection>
 
@@ -342,8 +414,9 @@ export default function AddLead() {
 
         <FormSection title="Vehicle & Loan Details">
           <div className="floating-input-wrapper">
-            <input required className={inputClass} value={form.vehicle_number} onChange={e => setForm({ ...form, vehicle_number: e.target.value.toUpperCase() })} placeholder=" " />
+            <input required className={`${inputClass} ${vehicleError ? 'border-red-500' : ''}`} maxLength={10} value={form.vehicle_number} onChange={e => handleVehicleNumberChange(e.target.value)} placeholder=" " />
             <label className={labelClass}>Vehicle Number *</label>
+            {vehicleError && <p className="text-[10px] text-red-500 mt-1 font-semibold">{vehicleError}</p>}
           </div>
           <div className="floating-input-wrapper">
             <input required type="number" className={inputClass} value={form.loan_amount_required} onChange={e => setForm({ ...form, loan_amount_required: e.target.value })} placeholder=" " />
@@ -361,8 +434,8 @@ export default function AddLead() {
           </div>
           <div className="floating-input-wrapper">
             <select required className={inputClass} value={form.lead_type} onChange={e => setForm({ ...form, lead_type: e.target.value })}>
-              <option value="branch_visit">Branch Visit</option>
               <option value="direct_login">Direct Login</option>
+              <option value="branch_visit">Branch Visit</option>
             </select>
             <label className={labelClass}>Lead Source *</label>
           </div>
@@ -383,10 +456,21 @@ export default function AddLead() {
         <div className="mt-10 pt-8 border-t border-border/50">
           <div className="flex items-center gap-3 mb-6">
             <span className="w-1.5 h-6 bg-purple-500 rounded-full"></span>
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Required Documents</h3>
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+              {isDirectLogin ? 'Required Documents (3) *' : 'Documents (Optional)'}
+            </h3>
           </div>
           <div className="bg-muted/30 p-6 rounded-2xl border border-border/50">
             <LeadDocumentUpload onDocumentsChange={setDocuments} />
+            {isDirectLogin ? (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-3 font-semibold">
+                ⚠️ All 3 documents are mandatory for Direct Login. Currently uploaded: {Object.keys(documents).length}/3
+              </p>
+            ) : (
+              <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-3 font-semibold">
+                ℹ️ Documents are optional for Branch Visit leads. Currently uploaded: {Object.keys(documents).length}
+              </p>
+            )}
           </div>
         </div>
 

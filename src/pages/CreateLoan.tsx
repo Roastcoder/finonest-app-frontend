@@ -994,7 +994,7 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input required className={inputClass} value={form.mobile} onChange={e => update('mobile', e.target.value)} maxLength={10} placeholder=" " /><label className={labelClass}>Mobile No *</label></div>
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.sourcingPersonName} onChange={e => update('sourcingPersonName', e.target.value)} placeholder=" " /><label className={labelClass}>Sourcing Person</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.loginDate} onChange={e => update('loginDate', e.target.value)} placeholder=" " /><label className={labelClass}>Login Date</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.ourBranch} onChange={e => update('ourBranch', e.target.value)} placeholder=" " /><label className={labelClass}>Our Branch</label></div>
+                <div className="floating-input-wrapper"><input className={inputClass} value={form.financierName} onChange={e => update('financierName', e.target.value)} placeholder=" " /><label className={labelClass}>Financier Name</label></div>
                 
                 {/* Co-Applicant Section */}
                 <div className="col-span-2 md:col-span-3 mt-4">
@@ -1040,6 +1040,7 @@ export default function CreateLoan() {
             </div>
 
           {/* Existing Loan & EMI Details */}
+          {form.financeStatus === 'Financed' && (
           <div>
             <h2 className="text-base font-bold text-foreground mb-3">Existing Loan & EMI Details</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1064,6 +1065,7 @@ export default function CreateLoan() {
               )}
             </div>
           </div>
+          )}
 
           {/* Vehicle & Loan */}
           <div>
@@ -1106,7 +1108,17 @@ export default function CreateLoan() {
                 <div className="floating-input-wrapper"><input className={inputClass} value={form.insuranceCompany} onChange={e => update('insuranceCompany', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Company</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.insuranceValidUpto} onChange={e => update('insuranceValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>Insurance Valid Upto</label></div>
                 <div className="floating-input-wrapper"><input type="date" className={inputClass} value={form.puccValidUpto} onChange={e => update('puccValidUpto', e.target.value)} placeholder=" " /><label className={labelClass}>PUCC Valid Upto</label></div>
-                <div className="floating-input-wrapper"><input className={inputClass} value={form.caseType} onChange={e => update('caseType', e.target.value)} placeholder=" " /><label className={labelClass}>Case Type</label></div>
+                <div className="floating-input-wrapper">
+                  <select className={inputClass} value={form.caseType} onChange={e => update('caseType', e.target.value)}>
+                    <option value="">Select Case Type</option>
+                    <option value="new_car_purchase">New Car - Purchase</option>
+                    <option value="used_car_purchase">Used Car - Purchase</option>
+                    <option value="used_car_refinance">Used Car - Refinance</option>
+                    <option value="used_car_topup">Used Car - Top-up</option>
+                    <option value="used_car_bt">Used Car - BT</option>
+                  </select>
+                  <label className={labelClass}>Case Type *</label>
+                </div>
               </div>
             </div>
 
