@@ -23,6 +23,7 @@ export default function Loans() {
   const [statusFilter, setStatusFilter] = useState<ApplicationStageFilter>('all');
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [showStageManager, setShowStageManager] = useState(false);
+  const [openWhatsAppId, setOpenWhatsAppId] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   const { data: loans = [], isLoading } = useQuery({
@@ -71,12 +72,11 @@ export default function Loans() {
     }
   };
 
-  const canEditStatus = user?.role === 'admin' || user?.role === 'manager';
+  const canEditStatus = true; // all roles can change stage
   const isTeamLeader = user?.role === 'team_leader';
   const canDelete = user?.role === 'admin';
   
-  // Team leaders should not see update functionality
-  const showUpdateColumn = !isTeamLeader && canEditStatus;
+  const showUpdateColumn = true;
 
   const handleExport = () => {
     if (filtered.length === 0) { toast.error('No data to export'); return; }
@@ -263,64 +263,59 @@ export default function Loans() {
                   >
                     <Download size={14} className="text-accent" /> Save
                   </button>
-                  <div className="relative group">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
+                  <div className="relative" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setOpenWhatsAppId(openWhatsAppId === `m-${loan.id}` ? null : `m-${loan.id}`)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
                       <MessageCircle size={14} className="text-green-500" /> Share
                       <svg className="w-2.5 h-2.5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
-                    
-                    <div className="absolute bottom-full left-0 mb-1 w-40 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            // Fetch loan documents
-                            const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                            });
-                            const documents = docsResponse.ok ? await docsResponse.json() : [];
-                            
-                            const docFiles = await fetchDocumentFiles(documents);
-                            await shareToCustomer(loan, docFiles.map(d => d.file));
-                          } catch (error) {
-                            console.error('Share to customer error:', error);
-                            toast.error('Failed to share to customer');
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
-                      >
-                        📱 To Customer
-                        <div className="text-muted-foreground text-[10px] mt-0.5">
-                          {loan.mobile || 'No phone'}
-                        </div>
-                      </button>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            // Fetch loan documents
-                            const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                            });
-                            const documents = docsResponse.ok ? await docsResponse.json() : [];
-                            
-                            const docFiles = await fetchDocumentFiles(documents);
-                            await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
-                          } catch (error) {
-                            console.error('Share with phone error:', error);
-                            toast.error('Failed to share via WhatsApp');
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
-                      >
-                        📞 Other Number
-                        <div className="text-muted-foreground text-[10px] mt-0.5">
-                          Enter phone
-                        </div>
-                      </button>
-                    </div>
+                    {openWhatsAppId === `m-${loan.id}` && (
+                      <div className="absolute bottom-full left-0 mb-1 w-40 bg-card border border-border rounded-lg shadow-lg z-20">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setOpenWhatsAppId(null);
+                            try {
+                              const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                              });
+                              const documents = docsResponse.ok ? await docsResponse.json() : [];
+                              const docFiles = await fetchDocumentFiles(documents);
+                              await shareToCustomer(loan, docFiles.map(d => d.file));
+                            } catch (error) {
+                              toast.error('Failed to share to customer');
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
+                        >
+                          📱 To Customer
+                          <div className="text-muted-foreground text-[10px] mt-0.5">{loan.mobile || 'No phone'}</div>
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setOpenWhatsAppId(null);
+                            try {
+                              const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                              });
+                              const documents = docsResponse.ok ? await docsResponse.json() : [];
+                              const docFiles = await fetchDocumentFiles(documents);
+                              await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
+                            } catch (error) {
+                              toast.error('Failed to share via WhatsApp');
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
+                        >
+                          📞 Other Number
+                          <div className="text-muted-foreground text-[10px] mt-0.5">Enter phone</div>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {canDelete && (
                     <button
@@ -339,11 +334,6 @@ export default function Loans() {
                   >
                     <Settings size={14} /> Update Stage
                   </button>
-                )}
-                {isTeamLeader && (
-                  <div className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-xs font-medium text-muted-foreground text-center">
-                    Contact manager to update status
-                  </div>
                 )}
               </div>
             </div>
@@ -402,59 +392,56 @@ export default function Loans() {
                         >
                           <Printer size={12} className="text-accent" />
                         </button>
-                        <div className="relative group">
-                          <button className="p-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via WhatsApp">
+                        <div className="relative" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => setOpenWhatsAppId(openWhatsAppId === `d-${loan.id}` ? null : `d-${loan.id}`)}
+                            className="p-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via WhatsApp">
                             <MessageCircle size={12} className="text-green-500" />
                           </button>
-                          
-                          <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                                  });
-                                  const documents = docsResponse.ok ? await docsResponse.json() : [];
-                                  
-                                  const docFiles = await fetchDocumentFiles(documents);
-                                  await shareToCustomer(loan, docFiles.map(d => d.file));
-                                } catch (error) {
-                                  console.error('Share to customer error:', error);
-                                  toast.error('Failed to share to customer');
-                                }
-                              }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
-                            >
-                              📱 To Customer
-                              <div className="text-muted-foreground text-[10px] mt-0.5">
-                                {loan.mobile || 'No phone'}
-                              </div>
-                            </button>
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                                  });
-                                  const documents = docsResponse.ok ? await docsResponse.json() : [];
-                                  
-                                  const docFiles = await fetchDocumentFiles(documents);
-                                  await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
-                                } catch (error) {
-                                  console.error('Share with phone error:', error);
-                                  toast.error('Failed to share via WhatsApp');
-                                }
-                              }}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
-                            >
-                              📞 Other Number
-                              <div className="text-muted-foreground text-[10px] mt-0.5">
-                                Enter phone
-                              </div>
-                            </button>
-                          </div>
+                          {openWhatsAppId === `d-${loan.id}` && (
+                            <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-lg shadow-lg z-20">
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setOpenWhatsAppId(null);
+                                  try {
+                                    const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                                      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                                    });
+                                    const documents = docsResponse.ok ? await docsResponse.json() : [];
+                                    const docFiles = await fetchDocumentFiles(documents);
+                                    await shareToCustomer(loan, docFiles.map(d => d.file));
+                                  } catch (error) {
+                                    toast.error('Failed to share to customer');
+                                  }
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
+                              >
+                                📱 To Customer
+                                <div className="text-muted-foreground text-[10px] mt-0.5">{loan.mobile || 'No phone'}</div>
+                              </button>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setOpenWhatsAppId(null);
+                                  try {
+                                    const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
+                                      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                                    });
+                                    const documents = docsResponse.ok ? await docsResponse.json() : [];
+                                    const docFiles = await fetchDocumentFiles(documents);
+                                    await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
+                                  } catch (error) {
+                                    toast.error('Failed to share via WhatsApp');
+                                  }
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
+                              >
+                                📞 Other Number
+                                <div className="text-muted-foreground text-[10px] mt-0.5">Enter phone</div>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>

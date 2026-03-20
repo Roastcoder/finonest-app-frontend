@@ -71,9 +71,9 @@ export default function LeadsList() {
   });
 
   const stats = {
-    total: leads.length,
-    pending: leads.filter((l: any) => !['DISBURSED', 'REJECTED', 'CANCELLED'].includes(l.application_stage)).length,
-    converted: leads.filter((l: any) => l.converted_to_loan).length
+    total: filtered.length,
+    pending: filtered.filter((l: any) => !['DISBURSED', 'REJECTED', 'CANCELLED'].includes(l.application_stage)).length,
+    converted: filtered.filter((l: any) => l.converted_to_loan).length
   };
 
   const branches = Array.from(new Set(leads.map((l: any) => l.our_branch).filter(Boolean))) as string[];

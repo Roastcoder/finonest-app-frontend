@@ -1,13 +1,69 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatCurrency } from '@/lib/mock-data';
-import { Building2, Search, Plus, TrendingUp, FileText, Edit } from 'lucide-react';
+import { Building2, Search, Plus, TrendingUp, FileText, Edit, ChevronDown, ChevronUp, MapPin, Phone, User } from 'lucide-react';
 import { BankFormModal } from '@/components/BankFormModal';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const authHeader = () => ({ 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` });
+
+function BankBranches({ bankId }: { bankId: number }) {
+  const { data: branches = [], isLoading } = useQuery({
+    queryKey: ['bank-branches', bankId],
+    queryFn: async () => {
+      const res = await fetch(`${API}/banks/${bankId}/branches`, { headers: authHeader() });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (isLoading) return <p className="text-xs text-muted-foreground py-2">Loading branches…</p>;
+  if (!branches.length) return <p className="text-xs text-muted-foreground py-2">No branches added yet.</p>;
+
+  return (
+    <div className="space-y-2 mt-3">
+      {branches.map((b: any) => (
+        <div key={b.id} className="rounded-lg border border-border bg-muted/30 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-foreground">{b.branch_name}</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ b.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'}`}>{b.status}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+            {b.location && <span className="flex items-center gap-1"><MapPin size={10} />{b.location}</span>}
+            {b.geo_limit && <span>Geo: {b.geo_limit} km</span>}
+            {b.product && <span className="col-span-2">Product: {b.product}</span>}
+            {b.sales_manager_name && (
+              <span className="flex items-center gap-1 col-span-2">
+                <User size={10} /> SM: {b.sales_manager_name}
+                {b.sales_manager_mobile && <span className="flex items-center gap-1 ml-2"><Phone size={10} />{b.sales_manager_mobile}</span>}
+              </span>
+            )}
+            {b.area_sales_manager_name && (
+              <span className="flex items-center gap-1 col-span-2">
+                <User size={10} /> AM: {b.area_sales_manager_name}
+                {b.area_sales_manager_mobile && <span className="flex items-center gap-1 ml-2"><Phone size={10} />{b.area_sales_manager_mobile}</span>}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function BankManagement() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editBank, setEditBank] = useState<any>(null);
+  const [expandedBanks, setExpandedBanks] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (id: number) => {
+    setExpandedBanks(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const { data: banks = [], isLoading, refetch } = useQuery({
     queryKey: ['banks'],
@@ -101,7 +157,6 @@ export default function BankManagement() {
                     )}
                     <div className="flex-1">
                       <h3 className="font-semibold text-foreground">{bank.name}</h3>
-                      <p className="text-xs text-muted-foreground">{bank.location || 'No location'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -113,21 +168,21 @@ export default function BankManagement() {
                     </button>
                   </div>
                 </div>
-                <div className="space-y-2 text-xs mb-3 pb-3 border-b border-border">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div><span className="text-muted-foreground">Location:</span> <span className="font-medium">{bank.location || '—'}</span></div>
-                    <div><span className="text-muted-foreground">Geo Limit:</span> <span className="font-medium">{bank.geo_limit ? `${bank.geo_limit} km` : '—'}</span></div>
-                    <div><span className="text-muted-foreground">Product:</span> <span className="font-medium">{bank.product || '—'}</span></div>
-                    <div><span className="text-muted-foreground">Sales Manager:</span> <span className="font-medium">{bank.sales_manager_name || '—'}</span></div>
-                    <div><span className="text-muted-foreground">SM Mobile:</span> <span className="font-medium">{bank.sales_manager_mobile || '—'}</span></div>
-                    <div><span className="text-muted-foreground">Area Manager:</span> <span className="font-medium">{bank.area_sales_manager_name || '—'}</span></div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="grid grid-cols-3 gap-3 text-center mb-3">
                   <div><p className="text-lg font-bold text-foreground">{bankLoans.length}</p><p className="text-[10px] text-muted-foreground">Cases</p></div>
                   <div><p className="text-lg font-bold text-foreground">{disbursed}</p><p className="text-[10px] text-muted-foreground">Disbursed</p></div>
                   <div><p className="text-lg font-bold text-accent">—</p><p className="text-[10px] text-muted-foreground">Status</p></div>
                 </div>
+                {/* Branches toggle */}
+                <button
+                  type="button"
+                  onClick={() => toggleExpand(bank.id)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors text-xs font-semibold text-foreground"
+                >
+                  <span>Branches</span>
+                  {expandedBanks.has(bank.id) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {expandedBanks.has(bank.id) && <BankBranches bankId={bank.id} />}
               </div>
             );
           })}

@@ -101,8 +101,13 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                   min="0"
                   max="1000"
                   value={formData.appScore || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, appScore: e.target.value ? Number(e.target.value) : undefined }))}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent"
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    if (e.target.value === '' || (val >= 0 && val <= 1000))
+                      setFormData(prev => ({ ...prev, appScore: e.target.value ? val : undefined }));
+                  }}
+                  onInput={e => { const t = e.target as HTMLInputElement; if(Number(t.value) > 1000) t.value = '1000'; }}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent bg-background text-foreground"
                   placeholder="Enter app score (0-1000)"
                 />
               </div>
@@ -114,8 +119,13 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                   min="300"
                   max="900"
                   value={formData.creditScore || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, creditScore: e.target.value ? Number(e.target.value) : undefined }))}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent"
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    if (e.target.value === '' || val <= 900)
+                      setFormData(prev => ({ ...prev, creditScore: e.target.value ? val : undefined }));
+                  }}
+                  onInput={e => { const t = e.target as HTMLInputElement; if(Number(t.value) > 900) t.value = '900'; }}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent bg-background text-foreground"
                   placeholder="Enter credit score (300-900)"
                 />
               </div>
@@ -416,7 +426,7 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
             <h2 className="text-xl font-semibold">Update Application Stage</h2>
@@ -438,12 +448,23 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
               onChange={(e) => setFormData(prev => ({ ...prev, stage: e.target.value as ApplicationStage }))}
               className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent"
             >
-              {APPLICATION_STAGES.map(stage => (
-                <option key={stage.value} value={stage.value}>
-                  {stage.label}
-                </option>
-              ))}
+              {APPLICATION_STAGES.map(stage => {
+                // Block stages beyond LOGIN if login data (appScore + creditScore) not filled
+                const loginFilled = !!(loan?.app_score && loan?.credit_score) || !!(formData.appScore && formData.creditScore);
+                const loginIndex = APPLICATION_STAGES.findIndex(s => s.value === 'LOGIN');
+                const stageIndex = APPLICATION_STAGES.findIndex(s => s.value === stage.value);
+                const currentIndex = APPLICATION_STAGES.findIndex(s => s.value === (loan?.application_stage || 'SUBMITTED'));
+                const isBlocked = stageIndex > loginIndex && !loginFilled;
+                return (
+                  <option key={stage.value} value={stage.value} disabled={isBlocked}>
+                    {stage.label}{isBlocked ? ' (Fill Login first)' : ''}
+                  </option>
+                );
+              })}
             </select>
+            {!((loan?.app_score && loan?.credit_score) || (formData.appScore && formData.creditScore)) && (
+              <p className="text-xs text-amber-600 mt-1">⚠️ Fill Login stage (App Score & Credit Score) to unlock further stages</p>
+            )}
           </div>
 
           {renderStageFields()}

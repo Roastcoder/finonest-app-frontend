@@ -5,7 +5,7 @@ import { supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { CAR_MAKES, calculateEMI, formatCurrency } from '@/lib/mock-data';
 import { FINANCIERS } from '@/lib/financiers';
-import { ArrowLeft, Calculator, Search, X, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Calculator, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
 import '@/styles/floating-labels.css';
@@ -83,89 +83,42 @@ export default function CreateLoan() {
   });
 
   const LEDGER_OPTIONS = [
-    'APM Finvest',
-    'AU Small Finance Bank',
-    'Axis Bank',
-    'Bajaj Finance',
-    'Bajaj Finserv Ltd',
-    'Bandhan Bank',
-    'Bank of Baroda',
-    'Bank of India',
-    'Bank of Maharashtra',
-    'CARS 24',
-    'Canara Bank',
-    'Capital First',
-    'Central Bank of India',
-    'Cholamandalam Finance',
-    'Cholamandalam Investment & Finance',
-    'City Union Bank',
-    'Dhanlaxmi Bank',
-    'ESAF Small Finance Bank',
-    'Equitas Small Finance Bank',
-    'Federal Bank',
-    'Ford Credit India',
-    'Fortune Finance',
-    'Fullerton India',
-    'HDB Financial Services',
     'HDFC Bank',
-    'Hero FinCorp',
-    'Hinduja Leyland Finance',
+    'Axis Bank',
     'ICICI Bank',
-    'IDBI Bank',
-    'IDFC First Bank',
-    'IIFL Finance',
-    'IKF Finance',
-    'Indian Bank',
-    'Indostar',
-    'Indostar Capital Finance',
-    'IndusInd Bank',
-    'Jammu & Kashmir Bank',
-    'Karnataka Bank',
-    'Karur Vysya Bank',
-    'Kogta Financial India Limited',
-    'Kotak Mahindra Bank',
-    'Kotak Mahindra Prime',
-    'L&T Finance',
-    'Lakshmi Vilas Bank',
-    'Magma Fincorp',
     'Mahindra Finance',
-    'Manappuram Finance',
-    'Maruti Suzuki Finance',
-    'Muthoot Capital Services',
-    'Muthoot Finance',
-    'Oriental Bank of Commerce',
-    'Piramal',
-    'Poonawalla Fincorp Limited',
-    'Punjab National Bank',
-    'RBL Bank',
-    'Reliance Commercial Finance',
-    'Renault Finance',
-    'Shriram Finance Limited',
-    'Shriram Transport Finance',
-    'Sk Finance',
-    'Skoda Finance',
-    'South Indian Bank',
-    'State Bank of Bikaner & Jaipur',
-    'State Bank of Hyderabad',
-    'State Bank of India',
-    'State Bank of Mysore',
-    'State Bank of Patiala',
-    'State Bank of Travancore',
-    'Sundaram Finance',
-    'Syndicate Bank',
-    'TVS Credit Services',
-    'Tamilnad Mercantile Bank',
-    'Tata Capital',
-    'Toyota Financial Services',
+    'Equitas Small Finance Bank',
     'Toyota Financial Services India Limited',
-    'UCO Bank',
-    'Union Bank of India',
-    'United Bank of India',
+    'Kotak Mahindra Prime',
+    'Jana Bank',
+    'Federal Bank',
+    'Tata Capital',
+    'Bandhan Bank',
+    'Loans24',
+    'Saraswat Bank',
+    'Muthoot Capital',
+    'Poonawalla Fincorp Limited',
+    'Suryoday Bank',
+    'Indostar',
+    'ESAF Small Finance Bank',
     'Vastu Finserve',
-    'Vijaya Bank',
-    'Volkswagen Finance',
+    'HDB Financial Services',
+    'IDFC First Bank',
+    'Cholamandalam Finance',
+    'Hero Fincorp',
+    'Bajaj Finserv Ltd',
     'Yes Bank',
-    'dugar finance',
+    'TVS Credit Services',
+    'Fortune Finance',
+    'Piramal',
+    'AU Small Finance Bank',
+    'IndusInd Bank',
+    'RBL Bank',
+    'Manappuram Finance Limited',
+    'Nissan Renault Financial Services',
+    'IKF Finance',
+    'Kogta Financial India Limited',
+    'Sundaram Finance',
     'Others'
   ];
 
@@ -247,10 +200,63 @@ export default function CreateLoan() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [assignmentForm, setAssignmentForm] = useState({
     ledgerSelection: '',
+    selectedBankId: '',
+    selectedBranchId: '',
+    selectedBranchName: '',
+    salesManagerName: '',
+    salesManagerMobile: '',
+    areaManagerName: '',
+    areaManagerMobile: '',
     assignedTo: '',
     assignedToRole: '',
     remarks: ''
   });
+  const [branchOptions, setBranchOptions] = useState<any[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+
+  // When lender is selected, find matching bank and fetch its branches
+  const handleLenderChange = async (lenderName: string) => {
+    setAssignmentForm(f => ({
+      ...f,
+      ledgerSelection: lenderName,
+      selectedBankId: '',
+      selectedBranchId: '',
+      selectedBranchName: '',
+      salesManagerName: '',
+      salesManagerMobile: '',
+      areaManagerName: '',
+      areaManagerMobile: '',
+    }));
+    setBranchOptions([]);
+    if (!lenderName || lenderName === 'Others') return;
+    const matchedBank = (banks as any[]).find(b => b.name.toLowerCase() === lenderName.toLowerCase());
+    if (!matchedBank) return;
+    setLoadingBranches(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/banks/${matchedBank.id}/branches`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBranchOptions(data);
+        setAssignmentForm(f => ({ ...f, selectedBankId: String(matchedBank.id) }));
+      }
+    } catch { /* ignore */ }
+    finally { setLoadingBranches(false); }
+  };
+
+  const handleBranchChange = (branchId: string) => {
+    const branch = branchOptions.find(b => String(b.id) === branchId);
+    setAssignmentForm(f => ({
+      ...f,
+      selectedBranchId: branchId,
+      selectedBranchName: branch?.branch_name || '',
+      salesManagerName: branch?.sales_manager_name || '',
+      salesManagerMobile: branch?.sales_manager_mobile || '',
+      areaManagerName: branch?.area_sales_manager_name || '',
+      areaManagerMobile: branch?.area_sales_manager_mobile || '',
+    }));
+  };
 
   const [fetchingVehicleData, setFetchingVehicleData] = useState(false);
   const [fetchingDocuments, setFetchingDocuments] = useState(false);
@@ -365,7 +371,6 @@ export default function CreateLoan() {
     }
     
     setFetchingVehicleData(true);
-    const TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NjM5ODg5MiwianRpIjoiMjdiNjdiNWEtZjkyZC00YTZmLTk2NmMtMDhhZjc4ZjAwNmI2IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LmZpbm9uZXN0aW5kaWFAc3VyZXBhc3MuaW8iLCJuYmYiOjE3NjYzOTg4OTIsImV4cCI6MjM5NzExODg5MiwiZW1haWwiOiJmaW5vbmVzdGluZGlhQHN1cmVwYXNzLmlvIiwidGVuYW50X2lkIjoibWFpbiIsInVzZXJfY2xhaW1zIjp7InNjb3BlcyI6WyJ1c2VyIl19fQ.dl1S5S3OxNs3hwxkwtLhcTAN6CmIlYa_hg4yOl5ASlg';
 
     const applyRCData = (rc: any) => {
       const convertDate = (dateStr: string) => {
@@ -398,46 +403,29 @@ export default function CreateLoan() {
         puccValidUpto: rc.pucc_upto || '',
         financer: rc.financer || '',
         financeStatus: rc.financed ? 'Financed' : 'Not Financed',
+        ...(rc.financed ? { loanStatus: 'Active' } : {}),
         ownershipType: rc.owner_number === '1' ? 'First Owner' : rc.owner_number === '2' ? 'Second Owner' : rc.owner_number === '3' ? 'Third Owner' : rc.owner_number === '4' ? 'Fourth Owner' : '',
       }));
     };
 
     try {
       toast.info('Fetching vehicle details...');
-
-      // Try rc-full API first
-      try {
-        const res = await fetch('https://kyc-api.surepass.io/api/v1/rc/rc-full', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': TOKEN },
-          body: JSON.stringify({ id_number: rcNumber }),
-        });
-        const data = await res.json();
-        if (data.success && data.data) {
-          applyRCData(data.data);
-          toast.success('Vehicle details fetched successfully!');
-          return;
-        }
-        console.warn('rc-full failed, falling back to rc-v2:', data.message);
-      } catch (e) {
-        console.warn('rc-full error, falling back to rc-v2:', e);
-      }
-
-      // Fallback to rc-v2
-      const res2 = await fetch('https://kyc-api.surepass.app/api/v1/rc/rc-v2', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/rc-verification/verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': TOKEN },
-        body: JSON.stringify({ id_number: rcNumber }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify({ rc_number: rcNumber }),
       });
-      const data2 = await res2.json();
-      if (data2.success && data2.data) {
-        applyRCData(data2.data);
-        toast.success('Vehicle details fetched successfully!');
+      const data = await res.json();
+      if (data.success && data.data?.rc_details) {
+        applyRCData(data.data.rc_details);
+        toast.success(data.from_cache ? 'Vehicle details loaded from database!' : 'Vehicle details fetched successfully!');
       } else {
-        toast.error(data2.message || 'Could not fetch vehicle details');
+        toast.error(data.error || 'Could not fetch vehicle details');
       }
     } catch (error: any) {
-      console.error('Error fetching vehicle details:', error);
       toast.error(error.message || 'Failed to fetch vehicle details');
     } finally {
       setFetchingVehicleData(false);
@@ -461,7 +449,7 @@ export default function CreateLoan() {
     companyName: '', designation: '', workExperience: '', currentJobYears: '', totalWorkExp: '',
     netMonthlySalary: '', salaryCreditMode: '', salarySlipAvailable: '',
     // Self Employed Details
-    profile: '', itrAvailable: '', annualIncomeItr: '', businessName: '', businessType: '', businessVintage: '', professionalSubtype: '', practiceExperience: '',
+    profile: '',  businessName: '', businessType: '', businessVintage: '', professionalSubtype: '', practiceExperience: '',itrAvailable: '', annualIncomeItr: '',
     // Freelancer/Agent Details
     freelancerSubtype: '',
     // Other Income Details
@@ -497,10 +485,20 @@ export default function CreateLoan() {
     guarantorRcFront: null, guarantorRcBack: null, guarantorPhoto: null,
   });
 
-  const update = (key: string, val: string | File | null) => setForm(f => ({ ...f, [key]: val }));
+  const update = (key: string, val: string | File | null) => {
+    setForm(f => {
+      const newForm = { ...f, [key]: val };
+      if (key === 'totalWorkExp' && val && !f.salaryCreditMode) {
+        newForm.salaryCreditMode = 'Account Transfer';
+      }
+      if (key === 'financeStatus' && val === 'Financed') {
+        newForm.loanStatus = 'Active';
+      }
+      return newForm;
+    });
+  };
 
   const handleLeadSelect = (lead: any) => {
-    console.log('Lead case_type received:', lead.case_type); // Debug log
     setForm(f => ({
       ...f,
       customerId: lead.customer_id || '',
@@ -759,6 +757,11 @@ export default function CreateLoan() {
           remark: form.remark || null,
           status: (form.fileStatus === 'draft' ? 'submitted' : form.fileStatus) || 'submitted',
           financier_name: assignmentForm.ledgerSelection || (form.financierName === 'Others' ? form.otherFinancierName : form.financierName) || null,
+          financier_branch_name: assignmentForm.selectedBranchName || null,
+          financier_executive_name: assignmentForm.salesManagerName || null,
+          financier_executive_mobile: assignmentForm.salesManagerMobile || null,
+          financier_area_manager_name: assignmentForm.areaManagerName || null,
+          financier_area_manager_mobile: assignmentForm.areaManagerMobile || null,
           case_type: form.caseType === 'new_car_purchase' ? 'Purchase' : 
                      form.caseType === 'used_car_purchase' ? 'Purchase' :
                      form.caseType === 'used_car_refinance' ? 'Refinance' : 
@@ -813,30 +816,67 @@ export default function CreateLoan() {
       {/* Assignment Modal */}
       {showAssignmentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4">
+          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-foreground mb-4">Assignment Details</h3>
             
             <div className="space-y-4">
+              {/* Lender */}
               <div>
                 <label className={labelClass}>Select Lender *</label>
                 <select 
                   className={inputClass}
                   value={assignmentForm.ledgerSelection}
-                  onChange={e => setAssignmentForm(f => ({ ...f, ledgerSelection: e.target.value }))}
+                  onChange={e => handleLenderChange(e.target.value)}
                   required
                 >
                   <option value="">Choose lender</option>
                   {LEDGER_OPTIONS.map((ledger) => (
-                    <option key={ledger} value={ledger}>
-                      {ledger}
-                    </option>
+                    <option key={ledger} value={ledger}>{ledger}</option>
                   ))}
                 </select>
               </div>
+
+              {/* Branch dropdown — shown when branches exist */}
+              {assignmentForm.ledgerSelection && assignmentForm.ledgerSelection !== 'Others' && (
+                <div>
+                  <label className={labelClass}>Select Branch {loadingBranches && <span className="text-muted-foreground">(loading...)</span>} {branchOptions.length > 0 && <span className="text-red-500">*</span>}</label>
+                  <select
+                    className={inputClass}
+                    value={assignmentForm.selectedBranchId}
+                    onChange={e => handleBranchChange(e.target.value)}
+                    disabled={loadingBranches || branchOptions.length === 0}
+                    required={branchOptions.length > 0}
+                  >
+                    <option value="">{branchOptions.length === 0 ? '— No branches added —' : '— Select branch —'}</option>
+                    {branchOptions.map((b: any) => (
+                      <option key={b.id} value={String(b.id)}>{b.branch_name}{b.location ? ` (${b.location})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Auto-filled SM / AM details */}
+              {assignmentForm.selectedBranchId && (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Branch Details</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Sales Manager</p>
+                      <p className="text-xs font-semibold text-foreground">{assignmentForm.salesManagerName || '—'}</p>
+                      <p className="text-[10px] text-accent">{assignmentForm.salesManagerMobile || ''}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Area Manager</p>
+                      <p className="text-xs font-semibold text-foreground">{assignmentForm.areaManagerName || '—'}</p>
+                      <p className="text-[10px] text-accent">{assignmentForm.areaManagerMobile || ''}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {user?.role === 'admin' && (
                 <div>
-                  <label className={labelClass}>Assign To *</label>
+                  <label className={labelClass}>Assign To</label>
                   <select 
                     className={inputClass}
                     value={assignmentForm.assignedTo}
@@ -848,7 +888,6 @@ export default function CreateLoan() {
                         assignedToRole: selectedUser?.role || ''
                       }));
                     }}
-                    required
                   >
                     <option value="">Select Branch Manager, DSA, or Executive</option>
                     {assignableUsers.map((user: any) => (
@@ -864,7 +903,7 @@ export default function CreateLoan() {
                 <label className={labelClass}>Remarks (Optional)</label>
                 <textarea 
                   className={inputClass}
-                  rows={3}
+                  rows={2}
                   value={assignmentForm.remarks}
                   onChange={e => setAssignmentForm(f => ({ ...f, remarks: e.target.value }))}
                   placeholder="Add any additional remarks..."
@@ -881,29 +920,9 @@ export default function CreateLoan() {
                 Cancel
               </button>
               <button 
-                type="button"
-                onClick={() => {
-                  const assignedUser = assignableUsers.find((u: any) => u.id === Number(assignmentForm.assignedTo));
-                  const message = `*Loan Application Details*\n\n` +
-                    `Customer: ${form.customerName}\n` +
-                    `Mobile: ${form.mobile}\n` +
-                    `Loan Amount: ₹${form.loanAmount}\n` +
-                    `Vehicle: ${form.makerName} ${form.makerModel}\n` +
-                    `Vehicle No: ${form.vehicleNumber}\n` +
-                    `Ledger: ${assignmentForm.ledgerSelection}\n` +
-                    `${user?.role === 'admin' && assignedUser ? `Assigned To: ${assignedUser.full_name} (${assignedUser.role})\n` : ''}` +
-                    `Login Date: ${form.loginDate}`;
-                  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                }}
-                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white bg-gradient-to-r from-green-600 to-green-500 hover:shadow-md hover:scale-105 transition-all duration-300 border border-green-700/30 shadow-sm"
-              >
-                <MessageCircle size={16} />
-                <span>WhatsApp</span>
-              </button>
-              <button 
                 type="button" 
                 onClick={handleCreateApplication}
-                disabled={!assignmentForm.ledgerSelection || createLoan.isPending}
+                disabled={!assignmentForm.ledgerSelection || (branchOptions.length > 0 && !assignmentForm.selectedBranchId) || createLoan.isPending}
                 className="flex items-center justify-center gap-2 px-8 py-2.5 rounded-full text-sm font-bold text-secondary bg-primary hover:shadow-md hover:scale-105 transition-all duration-300 border border-primary/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {createLoan.isPending ? (
@@ -1054,14 +1073,22 @@ export default function CreateLoan() {
                 <label className={labelClass}>Loan Status</label>
               </div>
               {form.loanStatus === 'Active' && (
-                <>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " /><label className={labelClass}>Loan Amount</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " /><label className={labelClass}>Tenure (Months)</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " /><label className={labelClass}>EMI Amount</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " /><label className={labelClass}>No of EMI Paid</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 3M</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " /><label className={labelClass}>Bouncing in Last 6M</label></div>
-                </>
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " max="9999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 7) t.value = t.value.slice(0,7); }} /><label className={labelClass}>Loan Amount</label></div>
+              )}
+              {form.existingLoanAmount && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " max="360" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 3) t.value = t.value.slice(0,3); }} /><label className={labelClass}>Tenure (Months)</label></div>
+              )}
+              {form.existingTenure && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " max="999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 6) t.value = t.value.slice(0,6); }} /><label className={labelClass}>EMI Amount</label></div>
+              )}
+              {form.existingEmi && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " max="360" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 3) t.value = t.value.slice(0,3); }} /><label className={labelClass}>No of EMI Paid</label></div>
+              )}
+              {form.noOfEmiPaid && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " max="9" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 1) t.value = t.value.slice(0,1); }} /><label className={labelClass}>Bouncing in Last 3M</label></div>
+              )}
+              {form.bouncingLast3m && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " max="9" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 1) t.value = t.value.slice(0,1); }} /><label className={labelClass}>Bouncing in Last 6M</label></div>
               )}
             </div>
           </div>
@@ -1131,15 +1158,8 @@ export default function CreateLoan() {
                   <option value="">Select Income Source</option>
                   <option value="Salaried">Salaried</option>
                   <option value="Self Employed">Self Employed</option>
-                  <option value="Farmer">Farmer</option>
-                  <option value="Freelancer/Agent">Freelancer/Agent</option>
-                  <option value="Other Income">Other Income</option>
                 </select>
                 <label className={labelClass}>Income Source</label>
-              </div>
-              <div className="floating-input-wrapper">
-                <input type="number" className={inputClass} value={form.monthlyIncome} onChange={e => update('monthlyIncome', e.target.value)} placeholder=" " />
-                <label className={labelClass}>Monthly Income</label>
               </div>
             </div>
 
@@ -1148,28 +1168,69 @@ export default function CreateLoan() {
               <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
                 <h3 className="text-sm font-semibold text-foreground mb-3">Salaried Details</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="floating-input-wrapper"><input className={inputClass} value={form.companyName} onChange={e => update('companyName', e.target.value)} placeholder=" " /><label className={labelClass}>Company Name</label></div>
-                  <div className="floating-input-wrapper"><input className={inputClass} value={form.designation} onChange={e => update('designation', e.target.value)} placeholder=" " /><label className={labelClass}>Designation</label></div>
-                  <div className="floating-input-wrapper"><input className={inputClass} value={form.workExperience} onChange={e => update('workExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Work Experience</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.currentJobYears} onChange={e => update('currentJobYears', e.target.value)} placeholder=" " /><label className={labelClass}>Current Job (In Yrs)</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.totalWorkExp} onChange={e => update('totalWorkExp', e.target.value)} placeholder=" " /><label className={labelClass}>Total Work Exp. (In Yrs)</label></div>
-                  <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.netMonthlySalary} onChange={e => update('netMonthlySalary', e.target.value)} placeholder=" " /><label className={labelClass}>Net Monthly Salary</label></div>
                   <div className="floating-input-wrapper">
-                    <select className={inputClass} value={form.salaryCreditMode} onChange={e => update('salaryCreditMode', e.target.value)}>
-                      <option value="">Select Mode</option>
-                      <option value="Account Transfer">Account Transfer</option>
-                      <option value="Cash">Cash</option>
-                    </select>
-                    <label className={labelClass}>Salary Credit Mode</label>
+                    <input className={inputClass} value={form.companyName} onChange={e => update('companyName', e.target.value)} placeholder=" " />
+                    <label className={labelClass}>Company Name</label>
                   </div>
-                  <div className="floating-input-wrapper">
-                    <select className={inputClass} value={form.salarySlipAvailable} onChange={e => update('salarySlipAvailable', e.target.value)}>
-                      <option value="">Select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    <label className={labelClass}>Salary Slip Available</label>
-                  </div>
+                  {form.companyName && (
+                    <div className="floating-input-wrapper">
+                      <input className={inputClass} value={form.designation} onChange={e => update('designation', e.target.value)} placeholder=" " />
+                      <label className={labelClass}>Designation</label>
+                    </div>
+                  )}
+                  {form.designation && (
+                    <div className="floating-input-wrapper">
+                      <input type="number" className={inputClass} value={form.netMonthlySalary} onChange={e => update('netMonthlySalary', e.target.value)} placeholder=" " max="99999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 5) t.value = t.value.slice(0,5); }} />
+                      <label className={labelClass}>Net Monthly Salary</label>
+                    </div>
+                  )}
+                  {form.netMonthlySalary && (
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.salarySlipAvailable} onChange={e => update('salarySlipAvailable', e.target.value)}>
+                        <option value="">Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      <label className={labelClass}>Salary Slip Available</label>
+                    </div>
+                  )}
+                  {form.salarySlipAvailable && (
+                    <div className="floating-input-wrapper">
+                      <input type="number" className={inputClass} value={form.currentJobYears} onChange={e => update('currentJobYears', e.target.value)} placeholder=" " max="99" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 2) t.value = t.value.slice(0,2); }} />
+                      <label className={labelClass}>Current Job (In Yrs)</label>
+                    </div>
+                  )}
+                  {form.currentJobYears && (
+                    <div className="floating-input-wrapper">
+                      <input type="number" className={inputClass} value={form.totalWorkExp} onChange={e => update('totalWorkExp', e.target.value)} placeholder=" " max="99" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 2) t.value = t.value.slice(0,2); }} />
+                      <label className={labelClass}>Total Work Exp. (In Yrs)</label>
+                    </div>
+                  )}
+                  {form.totalWorkExp && (
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.salaryCreditMode || 'Account Transfer'} onChange={e => update('salaryCreditMode', e.target.value)}>
+                        <option value="Account Transfer">Account Transfer</option>
+                        <option value="Cash">Cash</option>
+                      </select>
+                      <label className={labelClass}>Salary Credit Mode</label>
+                    </div>
+                  )}
+                  {(form.salaryCreditMode || form.totalWorkExp) && (
+                    <div className="floating-input-wrapper">
+                      <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
+                        <option value="">Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      <label className={labelClass}>ITR Available</label>
+                    </div>
+                  )}
+                  {form.itrAvailable === 'Yes' && (
+                    <div className="floating-input-wrapper">
+                      <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " max="999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 6) t.value = t.value.slice(0,6); }} />
+                      <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1192,97 +1253,76 @@ export default function CreateLoan() {
                   </div>
 
                   {form.profile && (
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
-                        <option value="">Select</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                      <label className={labelClass}>ITR Available</label>
-                    </div>
-                  )}
-
-                  {form.itrAvailable === 'Yes' && (
-                    <div className="floating-input-wrapper">
-                      <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
-                      <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
-                    </div>
-                  )}
-
-                  {form.profile === 'Business' && (
                     <>
-                      <div className="floating-input-wrapper"><input className={inputClass} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder=" " /><label className={labelClass}>Business Name</label></div>
-                      <div className="floating-input-wrapper"><input className={inputClass} value={form.businessType} onChange={e => update('businessType', e.target.value)} placeholder=" " /><label className={labelClass}>Business Type</label></div>
-                      <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.businessVintage} onChange={e => update('businessVintage', e.target.value)} placeholder=" " /><label className={labelClass}>Business Vintage (Years)</label></div>
-                    </>
-                  )}
+                      {form.profile === 'Business' && (
+                        <>
+                          <div className="floating-input-wrapper"><input className={inputClass} value={form.businessName} onChange={e => update('businessName', e.target.value)} placeholder=" " /><label className={labelClass}>Business Name</label></div>
+                          {form.businessName && <div className="floating-input-wrapper"><input className={inputClass} value={form.businessType} onChange={e => update('businessType', e.target.value)} placeholder=" " /><label className={labelClass}>Business Type</label></div>}
+                          {form.businessType && <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.businessVintage} onChange={e => update('businessVintage', e.target.value)} placeholder=" " max="99" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 2) t.value = t.value.slice(0,2); }} /><label className={labelClass}>Business Vintage (Years)</label></div>}
+                        </>
+                      )}
 
-                  {form.profile === 'Professional' && (
-                    <>
+                      {form.profile === 'Professional' && (
+                        <>
+                          <div className="floating-input-wrapper">
+                            <select className={inputClass} value={form.professionalSubtype} onChange={e => update('professionalSubtype', e.target.value)}>
+                              <option value="">Select Subtype</option>
+                              <option value="CA">CA</option>
+                              <option value="Doctor">Doctor</option>
+                              <option value="MBBD">MBBD</option>
+                              <option value="MD/MS">MD/MS</option>
+                              <option value="BDS/MDS (Dentist)">BDS/MDS (Dentist)</option>
+                              <option value="Engineer">Engineer</option>
+                              <option value="Architect">Architect</option>
+                            </select>
+                            <label className={labelClass}>Professional Subtype</label>
+                          </div>
+                          {form.professionalSubtype && <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.practiceExperience} onChange={e => update('practiceExperience', e.target.value)} placeholder=" " max="99" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 2) t.value = t.value.slice(0,2); }} /><label className={labelClass}>Practice Experience (In Yrs)</label></div>}
+                        </>
+                      )}
+
+                      {form.profile === 'Freelancer/Agent' && (
+                        <div className="floating-input-wrapper">
+                          <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
+                            <option value="">Select Subtype</option>
+                            <option value="IT Freelancer">IT Freelancer</option>
+                            <option value="LIC Agent">LIC Agent</option>
+                            <option value="Property Broker">Property Broker</option>
+                            <option value="Gig Worker">Gig Worker</option>
+                            <option value="Other Commission Agent">Other Commission Agent</option>
+                          </select>
+                          <label className={labelClass}>Subtype</label>
+                        </div>
+                      )}
+
+                      {form.profile === 'Other Income' && (
+                        <div className="floating-input-wrapper">
+                          <input className={inputClass} value={form.otherIncomeType} onChange={e => update('otherIncomeType', e.target.value)} placeholder=" " />
+                          <label className={labelClass}>Profession</label>
+                        </div>
+                      )}
+
+                      {/* ITR always last */}
                       <div className="floating-input-wrapper">
-                        <select className={inputClass} value={form.professionalSubtype} onChange={e => update('professionalSubtype', e.target.value)}>
-                          <option value="">Select Subtype</option>
-                          <option value="CA">CA</option>
-                          <option value="Doctor">Doctor</option>
-                          <option value="MBBD">MBBD</option>
-                          <option value="MD/MS">MD/MS</option>
-                          <option value="BDS/MDS (Dentist)">BDS/MDS (Dentist)</option>
-                          <option value="Engineer">Engineer</option>
-                          <option value="Architect">Architect</option>
+                        <select className={inputClass} value={form.itrAvailable} onChange={e => update('itrAvailable', e.target.value)}>
+                          <option value="">Select</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
                         </select>
-                        <label className={labelClass}>Professional Subtype</label>
+                        <label className={labelClass}>ITR Available</label>
                       </div>
-                      <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.practiceExperience} onChange={e => update('practiceExperience', e.target.value)} placeholder=" " /><label className={labelClass}>Practice Experience (In Yrs)</label></div>
+                      {form.itrAvailable === 'Yes' && (
+                        <div className="floating-input-wrapper">
+                          <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " max="999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 6) t.value = t.value.slice(0,6); }} />
+                          <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
+                        </div>
+                      )}
                     </>
                   )}
-
-                  {form.profile === 'Freelancer/Agent' && (
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
-                        <option value="">Select Subtype</option>
-                        <option value="IT Freelancer">IT Freelancer</option>
-                        <option value="LIC Agent">LIC Agent</option>
-                        <option value="Property Broker">Property Broker</option>
-                        <option value="Gig Worker">Gig Worker</option>
-                        <option value="Other Commission Agent">Other Commission Agent</option>
-                      </select>
-                      <label className={labelClass}>Subtype</label>
-                    </div>
-                  )}
-
-                  {form.profile === 'Other Income' && (
-                    <div className="floating-input-wrapper">
-                      <select className={inputClass} value={form.otherIncomeType} onChange={e => update('otherIncomeType', e.target.value)}>
-                        <option value="">Select Type</option>
-                        <option value="Dairy">Dairy</option>
-                        <option value="Rental">Rental</option>
-                      </select>
-                      <label className={labelClass}>Other Income Type</label>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
 
-            {/* Freelancer/Agent Fields */}
-            {form.incomeSource === 'Freelancer/Agent' && (
-              <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Freelancer/Agent Details</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="floating-input-wrapper">
-                    <select className={inputClass} value={form.freelancerSubtype} onChange={e => update('freelancerSubtype', e.target.value)}>
-                      <option value="">Select Subtype</option>
-                      <option value="IT Freelancer">IT Freelancer</option>
-                      <option value="LIC Agent">LIC Agent</option>
-                      <option value="Property Broker">Property Broker</option>
-                      <option value="Gig Worker">Gig Worker</option>
-                      <option value="Other Commission Agent">Other Commission Agent</option>
-                    </select>
-                    <label className={labelClass}>Subtype</label>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
 

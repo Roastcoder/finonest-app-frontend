@@ -123,8 +123,8 @@ function buildLoanHTML(loan: LoanData): string {
   ${row4('Financier Name', fmt(loan.rto_financier_name || loan.financer), '', '', '', '', '', '')}
 
   ${sectionTitle('&#127974;', 'Lender Details')}
-  ${row4('Assigned Lender', fmt(loan.financier_name || loan.selected_financier || loan.banks?.name), 'Location', fmt(loan.financier_location), 'SM Name', fmt(loan.financier_executive_name), 'Loan Amount Req', fmtCur(loan.loan_amount))}
-  ${row4('Program', fmt(loan.case_type), 'Insurance Company', fmt(loan.insurance_company_name), '', '', '', '')}
+  ${row4('Lender', fmt(loan.financier_name || loan.selected_financier || loan.bank_name), 'Branch', fmt(loan.financier_branch_name), 'Sales Manager', fmt(loan.financier_executive_name), 'SM Mobile', fmt(loan.financier_executive_mobile))}
+  ${row4('Area Manager', fmt(loan.financier_area_manager_name), 'AM Mobile', fmt(loan.financier_area_manager_mobile), 'Loan Amount', fmtCur(loan.loan_amount), 'Case Type', fmt(loan.case_type))}
 
   ${loan.application_stage === 'APPROVED' || loan.application_stage === 'DISBURSED' || loan.application_stage === 'CANCELLED' || loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'cancelled' ? `
   ${sectionTitle('&#128203;', 'Deductions & Disbursement')}
@@ -380,8 +380,8 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   ]);
 
   drawSection('LENDER DETAILS', [
-    ['Assigned Lender', fmt(loan.bank_name || loan.financier_name || loan.selected_financier)], ['Location', fmt(loan.financier_location)], ['SM Name', fmt(loan.financier_executive_name || loan.sourcing_person_name)], ['Loan Amount Req', fmtCur(loan.loan_amount)],
-    ['Program', fmt(loan.case_type)], ['Insurance Company', fmt(loan.insurance_company_name)], ['', ''], ['', ''],
+    ['Lender', fmt(loan.financier_name || loan.selected_financier || loan.bank_name)], ['Branch', fmt(loan.financier_branch_name)], ['Sales Manager', fmt(loan.financier_executive_name)], ['SM Mobile', fmt(loan.financier_executive_mobile)],
+    ['Area Manager', fmt(loan.financier_area_manager_name)], ['AM Mobile', fmt(loan.financier_area_manager_mobile)], ['Loan Amount', fmtCur(loan.loan_amount)], ['Case Type', fmt(loan.case_type)],
   ]);
 
   // Only show Deductions & Disbursement section for approved/disbursed/cancelled loans
