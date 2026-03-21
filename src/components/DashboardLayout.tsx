@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 ${collapsed ? 'w-20 overflow-visible' : 'w-60 overflow-hidden'} glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:m-4 lg:mr-2 rounded-xl lg:h-[calc(100vh-2rem)]`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 ${collapsed ? 'w-16 overflow-visible' : 'w-52 overflow-hidden'} glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:m-4 lg:mr-2 rounded-xl lg:h-[calc(100vh-2rem)]`}>
         {/* Logo */}
         <div className={`flex items-center h-24 border-b border-white/20 dark:border-white/5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}>
           {collapsed ? (
@@ -171,7 +171,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <>
                       {/* backdrop to close */}
                       <div className="fixed inset-0 z-40" onClick={() => setFlyoutGroup(null)} />
-                      <div className="fixed left-[88px] z-50 w-52 glass-panel border border-white/30 dark:border-white/10 rounded-2xl shadow-2xl p-2 backdrop-blur-2xl" style={{ top: '80px' }}>
+                      <div className="fixed left-[72px] z-50 w-52 glass-panel border border-white/30 dark:border-white/10 rounded-2xl shadow-2xl p-2 backdrop-blur-2xl" style={{ top: '80px' }}>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 pb-1.5">{item.label}</p>
                         {item.children.map(child => {
                           const childActive = location.pathname === child.path;
@@ -352,7 +352,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page */}
-        <main className="flex-1 overflow-y-auto px-2 py-4 lg:p-6 pb-20 lg:pb-6">
+        <main className="flex-1 overflow-y-auto scroll-smooth px-2 py-4 lg:p-6 pb-20 lg:pb-6">
           <div className="animate-fade-in w-full">
             {children}
           </div>

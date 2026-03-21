@@ -131,14 +131,6 @@ function buildLoanHTML(loan: LoanData): string {
   ${row4('File Charge', fmtCur(loan.file_charge), 'Loan Suraksha', fmtCur(loan.loan_suraksha), 'Stamping', fmtCur(loan.stamping), 'Processing Fee', fmtCur(loan.processing_fee))}
   ${row4('Total Deduction', fmtCur(loan.total_deduction), 'Net Disbursement', fmtCur(loan.net_disbursement_amount), 'Payment Recd.', formatDate(loan.payment_received_date), 'Disburse Date', formatDate(loan.financier_disburse_date))}
   ` : ''}
-
-  ${sectionTitle('&#128197;', 'Important Dates')}
-  ${row4('Login Date', formatDate(loan.login_date), 'Approval Date', formatDate(loan.approval_date), 'Disburse Date', formatDate(loan.financier_disburse_date), 'TAT', loan.tat ? loan.tat + ' days' : '—')}
-  ${row4('Agreement Date', formatDate(loan.agreement_date), 'File Stage', fmt(loan.file_stage), 'Created', formatDate(loan.created_at), 'Last Updated', formatDate(loan.updated_at))}
-
-  ${sectionTitle('&#128196;', 'RTO Details')}
-  ${row4('RC Owner', fmt(loan.rc_owner_name), 'RC Mfg Date', fmt(loan.rc_mfg_date), 'HPN at Login', fmt(loan.hpn_at_login), 'New Financier', fmt(loan.new_financier))}
-  ${row4('RTO Agent', fmt(loan.rto_agent_name), 'Agent Mobile', fmt(loan.agent_mobile_no), 'DTO Location', fmt(loan.dto_location), 'Challan', fmt(loan.challan))}
 </table>
 
 <div style="margin-top: 20px;">
@@ -167,19 +159,6 @@ function buildLoanHTML(loan: LoanData): string {
     <td style="text-align:right">This is a system-generated document</td>
   </tr>
 </table>
-
-${loan._docUrls && loan._docUrls.length > 0 ? `
-<div style="margin-top:16px;">
-  <h3 style="font-size:11px;font-weight:bold;color:#1a3a6b;margin-bottom:8px;">UPLOADED DOCUMENTS</h3>
-  <table style="width:100%;border-collapse:collapse;">
-    ${loan._docUrls.map((d: any, i: number) => `
-    <tr style="background:${i % 2 === 0 ? '#f8f9fb' : '#fff'};">
-      <td style="padding:4px 8px;border:1px solid #e0e4ea;font-size:9px;font-weight:600;color:#1a3a6b;width:20%;">${d.type}</td>
-      <td style="padding:4px 8px;border:1px solid #e0e4ea;font-size:9px;color:#333;width:30%;">${d.name}</td>
-      <td style="padding:4px 8px;border:1px solid #e0e4ea;font-size:9px;"><a href="${d.url}" style="color:#1a3a6b;">${d.url}</a></td>
-    </tr>`).join('')}
-  </table>
-</div>` : ''}
 
 </body></html>`;
 }
@@ -231,30 +210,50 @@ async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designati
   }
 }
 
-const DOC_TYPES: Record<string, string> = {
-  rc_copy: 'RC Copy', insurance: 'Insurance', income_proof: 'Income Proof',
-  bank_statement: 'Bank Statement', nach: 'NACH', other: 'Other',
-};
-
-async function fetchDocumentUrls(docs: any[]): Promise<{ name: string; type: string; url: string }[]> {
-  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const token = localStorage.getItem('auth_token');
-  return docs.map(doc => ({
-    name: doc.file_name,
-    type: DOC_TYPES[doc.document_type] || doc.document_type || 'Other',
-    url: `${API}/documents/${doc.id}/download?token=${token}`,
-  }));
-}
-
 export function exportLoanPDF(loan: LoanData, docs: any[] = []) {
   const win = window.open('', '_blank');
   if (!win) return;
-  Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs)]).then(([hierarchy, docUrls]) => {
-    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
+  Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]).then(async ([hierarchy, docFileObjs]) => {
+    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
     const html = buildLoanHTML(loanWithHierarchy);
     win.document.write(html);
     win.document.close();
-    setTimeout(() => win.print(), 500);
+
+    // Append document images inline in the print window
+    if (docFileObjs.length > 0) {
+      const container = win.document.createElement('div');
+      container.style.cssText = 'margin-top:20px;';
+      const heading = win.document.createElement('h3');
+      heading.style.cssText = 'font-size:12px;font-weight:bold;color:#1a3a6b;margin-bottom:10px;';
+      heading.textContent = 'UPLOADED DOCUMENTS';
+      container.appendChild(heading);
+
+      for (const docFile of docFileObjs) {
+        const wrapper = win.document.createElement('div');
+        wrapper.style.cssText = 'page-break-inside:avoid;margin-bottom:16px;border:1px solid #e0e4ea;border-radius:4px;overflow:hidden;';
+
+        const label = win.document.createElement('div');
+        label.style.cssText = 'background:#1a3a6b;color:#fff;padding:4px 10px;font-size:10px;font-weight:bold;';
+        label.textContent = docFile.docType;
+        wrapper.appendChild(label);
+
+        if (docFile.file.type.startsWith('image/')) {
+          const url = URL.createObjectURL(docFile.file);
+          const img = win.document.createElement('img');
+          img.src = url;
+          img.style.cssText = 'max-width:100%;display:block;';
+          wrapper.appendChild(img);
+        } else {
+          const note = win.document.createElement('p');
+          note.style.cssText = 'padding:8px;font-size:9px;color:#666;';
+          note.textContent = `${docFile.name} (PDF - see downloaded file)`;
+          wrapper.appendChild(note);
+        }
+        container.appendChild(wrapper);
+      }
+      win.document.body.appendChild(container);
+    }
+    setTimeout(() => win.print(), 800);
   });
 }
 
@@ -280,12 +279,12 @@ function loadImageAsBase64(src: string): Promise<string> {
   });
 }
 
-function generatePDFBlob(loan: LoanData): Promise<Blob> {
+function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; docType: string }[] = []): Promise<Blob> {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      const pw = 190; // printable width (A4 210 - 10*2 margins)
-      const lm = 10; // left margin
+      const pw = 190;
+      const lm = 10;
       let y = 12;
 
       const colors = { primary: [26, 58, 107] as [number, number, number], dark: [26, 26, 46] as [number, number, number], gray: [136, 136, 136] as [number, number, number], light: [232, 236, 241] as [number, number, number], white: [255, 255, 255] as [number, number, number] };
@@ -399,16 +398,6 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
     ]);
   }
 
-  drawSection('IMPORTANT DATES', [
-    ['Login Date', formatDate(loan.login_date)], ['Approval Date', formatDate(loan.approval_date || loan.sanction_date)], ['Disburse Date', formatDate(loan.disbursement_date || loan.financier_disburse_date)], ['TAT', loan.tat ? loan.tat + ' days' : '—'],
-    ['Agreement Date', formatDate(loan.agreement_date)], ['File Stage', fmt(loan.application_stage_label || loan.file_stage)], ['Created', formatDate(loan.created_at)], ['Last Updated', formatDate(loan.updated_at)],
-  ]);
-
-  drawSection('RTO DETAILS', [
-    ['RC Owner', fmt(loan.rc_owner_name)], ['RC Mfg Date', fmt(loan.rc_mfg_date)], ['HPN at Login', fmt(loan.hpn_at_login)], ['New Financier', fmt(loan.new_financier)],
-    ['RTO Agent', fmt(loan.rto_agent_name || loan.rto_agent_name_rc)], ['Agent Mobile', fmt(loan.agent_mobile_no || loan.rto_agent_mobile)], ['DTO Location', fmt(loan.dto_location)], ['Challan', fmt(loan.challan)],
-  ]);
-
   // Signature area - References section
   if (y + 35 > 280) { doc.addPage(); y = 12; }
   y += 8;
@@ -439,12 +428,83 @@ function generatePDFBlob(loan: LoanData): Promise<Blob> {
   doc.text(`Generated on ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, y + 4);
   doc.text('This is a system-generated document', lm + pw, y + 4, { align: 'right' });
 
+  // Embed documents as pages
+  if (docFiles.length > 0) {
+    for (const docFile of docFiles) {
+      try {
+        const fileType = docFile.file.type;
+
+        if (fileType === 'application/pdf') {
+          doc.addPage();
+          doc.setFillColor(248, 249, 251);
+          doc.rect(0, 0, 210, 297, 'F');
+          doc.setFillColor(...colors.primary);
+          doc.rect(0, 0, 210, 14, 'F');
+          doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+          doc.text(docFile.docType, 105, 9, { align: 'center' });
+          doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
+          doc.text(docFile.name, 105, 150, { align: 'center' });
+          doc.setFontSize(8);
+          doc.text('(PDF document attached separately)', 105, 160, { align: 'center' });
+        } else if (fileType.startsWith('image/')) {
+          doc.addPage();
+          doc.setFillColor(...colors.primary);
+          doc.rect(0, 0, 210, 14, 'F');
+          doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+          doc.text(docFile.docType, 105, 9, { align: 'center' });
+
+          const imgFormat = fileType === 'image/png' ? 'PNG' : 'JPEG';
+          // Safe base64 conversion for large files
+          const arrayBuffer = await docFile.file.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuffer);
+          let binary = '';
+          const chunkSize = 8192;
+          for (let c = 0; c < uint8.length; c += chunkSize) {
+            binary += String.fromCharCode(...uint8.subarray(c, c + chunkSize));
+          }
+          const imgData = `data:${fileType};base64,${btoa(binary)}`;
+
+          const imgEl = await new Promise<HTMLImageElement>((res) => {
+            const i = new Image();
+            i.onload = () => res(i);
+            i.src = imgData;
+          });
+          const maxW = 190; const maxH = 265;
+          let imgW = imgEl.naturalWidth; let imgH = imgEl.naturalHeight;
+          const ratio = Math.min(maxW / imgW, maxH / imgH);
+          imgW = imgW * ratio; imgH = imgH * ratio;
+          doc.addImage(imgData, imgFormat, (210 - imgW) / 2, 18, imgW, imgH);
+          doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
+          doc.text(docFile.name, 105, 18 + imgH + 5, { align: 'center' });
+        }
+      } catch (e) {
+        console.warn(`Could not embed document ${docFile.name}:`, e);
+      }
+    }
+  }
+
   resolve(doc.output('blob'));
     } catch (error) {
       reject(error);
     }
   });
 }
+
+const PDF_DOC_LABELS: Record<string, string> = {
+  aadhar_front: 'Aadhar Front', aadhar_back: 'Aadhar Back', pan_card: 'PAN Card',
+  rc_front: 'RC Front', rc_back: 'RC Back', rc_copy: 'RC Copy',
+  driving_licence: 'Driving Licence', driving_license: 'Driving Licence',
+  light_bill: 'Light Bill', bank_statement: 'Bank Statement', loan_statement: 'Loan Statement',
+  cheque: 'Cheque', income_proof: 'Income Proof', rent_agreement: 'Rent Agreement',
+  customer_photo: 'Customer Photo', photo: 'Photo', disbursement_memo: 'Disbursement Memo',
+  insurance: 'Insurance', customer_ledger: 'Customer Ledger',
+  co_aadhar_front: 'Co-Applicant Aadhar Front', co_aadhar_back: 'Co-Applicant Aadhar Back',
+  co_pan_card: 'Co-Applicant PAN Card', co_photo: 'Co-Applicant Photo',
+  guarantor_aadhar_front: 'Guarantor Aadhar Front', guarantor_aadhar_back: 'Guarantor Aadhar Back',
+  guarantor_pan_card: 'Guarantor PAN Card', guarantor_rc_front: 'Guarantor RC Front',
+  guarantor_rc_back: 'Guarantor RC Back', guarantor_photo: 'Guarantor Photo',
+  nach: 'NACH', other: 'Other',
+};
 
 async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -455,7 +515,7 @@ async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: stri
       const res = await fetch(`${API}/documents/${doc.id}/download`, { headers });
       if (!res.ok) continue;
       const blob = await res.blob();
-      const docLabel = DOC_TYPES[doc.document_type] || doc.document_type || 'Document';
+      const docLabel = PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
       const fileName = `${docLabel}-${doc.file_name}`;
       files.push({ file: new File([blob], fileName, { type: blob.type }), name: fileName, docType: docLabel });
     } catch {}
@@ -467,74 +527,24 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
   const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months`;
   
   try {
-    const [hierarchy, docUrls, docFileObjs] = await Promise.all([
-      fetchHierarchy(loan), 
-      fetchDocumentUrls(docs), 
-      fetchDocumentFiles(docs)
-    ]);
-    
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
-    const pdfBlob = await generatePDFBlob(loanH);
+    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+    const pdfBlob = await generatePDFBlob(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
     
-    // All files to share (PDF + documents)
-    const allFiles = [pdfFile, ...docFileObjs.map(d => d.file)];
-    
-    // Try native sharing first (mobile devices)
     if (navigator.share && navigator.canShare) {
-      const shareData: ShareData = { 
-        title: `Loan Application - ${loan.id}`, 
-        text, 
-        files: allFiles 
-      };
-      
+      const shareData: ShareData = { title: `Loan Application - ${loan.id}`, text, files: [pdfFile] };
       if (navigator.canShare(shareData)) {
         await navigator.share(shareData);
         return;
       }
-      
-      // Fallback: try sharing just the PDF if all files fail
-      const pdfOnlyData: ShareData = { 
-        title: `Loan Application - ${loan.id}`, 
-        text, 
-        files: [pdfFile] 
-      };
-      
-      if (navigator.canShare(pdfOnlyData)) {
-        await navigator.share(pdfOnlyData);
-        return;
-      }
     }
     
-    // Desktop fallback: Download all files and open WhatsApp
-    // Download PDF
     triggerDownload(pdfBlob, `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`);
-    
-    // Download documents with delay
-    for (let i = 0; i < docFileObjs.length; i++) {
-      await new Promise(r => setTimeout(r, 300));
-      triggerDownload(docFileObjs[i].file, docFileObjs[i].name);
-    }
-    
-    // Show instruction message
-    const fileCount = allFiles.length;
-    const message = `Downloaded ${fileCount} file${fileCount > 1 ? 's' : ''} (PDF + ${docFileObjs.length} document${docFileObjs.length !== 1 ? 's' : ''}). Please attach them manually to WhatsApp.`;
-    
-    // Show toast notification if available
-    if (typeof window !== 'undefined' && (window as any).toast) {
-      (window as any).toast.success(message);
-    } else {
-      alert(message);
-    }
-    
-    // Open WhatsApp with text
-    const waText = encodeURIComponent(text + `\n\n📎 ${fileCount} files downloaded for attachment`);
+    const waText = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${waText}`, '_blank');
-    
   } catch (e) {
     console.error('Error generating files for sharing:', e);
-    
-    // Fallback: just open WhatsApp with text
     const waText = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${waText}`, '_blank');
   }
@@ -553,18 +563,10 @@ function triggerDownload(blob: Blob, fileName: string) {
 
 export async function downloadLoanPDF(loan: LoanData, docs: any[] = []) {
   try {
-    const [hierarchy, docUrls] = await Promise.all([fetchHierarchy(loan), fetchDocumentUrls(docs)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _docUrls: docUrls };
-    const [pdfBlob, docFileObjs] = await Promise.all([generatePDFBlob(loanH), fetchDocumentFiles(docs)]);
-
-    // Download PDF
+    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+    const pdfBlob = await generatePDFBlob(loanH, docFileObjs);
     triggerDownload(pdfBlob, `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`);
-
-    // Download each document with a small delay to avoid browser blocking
-    for (let i = 0; i < docFileObjs.length; i++) {
-      await new Promise(r => setTimeout(r, 400));
-      triggerDownload(docFileObjs[i].file, docFileObjs[i].name);
-    }
   } catch (error) {
     console.error('Error generating PDF for download:', error);
     alert('Error generating PDF. Please try again.');

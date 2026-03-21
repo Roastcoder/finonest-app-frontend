@@ -93,7 +93,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       } else if (role === 'branch_manager' || role === 'dsa') {
         return users.filter((u: any) => u.role === 'sales_manager');
       } else if (role === 'team_leader') {
-        return users.filter((u: any) => ['branch_manager', 'dsa', 'sales_manager'].includes(u.role));
+        return users.filter((u: any) => ['branch_manager', 'dsa'].includes(u.role));
       } else if (role === 'executive') {
         return users.filter((u: any) => ['team_leader', 'branch_manager', 'dsa'].includes(u.role));
       }
@@ -314,7 +314,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
           {role === 'team_leader' && (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Reporting To (BM / DSA / Sales Manager)</label>
+                <label className="block text-sm font-medium mb-1.5">Reporting To (Branch Manager / DSA) *</label>
                 <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
                   <option value="">Select a manager</option>
                   {managers.map((manager: any) => (

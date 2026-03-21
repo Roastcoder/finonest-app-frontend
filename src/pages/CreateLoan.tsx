@@ -774,10 +774,41 @@ export default function CreateLoan() {
       if (!res.ok) throw new Error('Failed to create loan');
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Upload documents linked to the new loan
+      const docFieldMap: { [key: string]: string } = {
+        aadharFront: 'aadhar_front', aadharBack: 'aadhar_back', panCard: 'pan_card',
+        rcFront: 'rc_front', rcBack: 'rc_back', drivingLicence: 'driving_licence',
+        lightBill: 'light_bill', bankStatement: 'bank_statement', cheque: 'cheque',
+        incomeProof: 'income_proof', rentAgreement: 'rent_agreement', customerPhoto: 'customer_photo',
+        disbursementMemo: 'disbursement_memo', insurance: 'insurance', customerLedger: 'customer_ledger',
+        coAadharFront: 'co_aadhar_front', coAadharBack: 'co_aadhar_back', coPanCard: 'co_pan_card',
+        coPhoto: 'co_photo', guarantorAadharFront: 'guarantor_aadhar_front',
+        guarantorAadharBack: 'guarantor_aadhar_back', guarantorPanCard: 'guarantor_pan_card',
+        guarantorRcFront: 'guarantor_rc_front', guarantorRcBack: 'guarantor_rc_back', guarantorPhoto: 'guarantor_photo',
+      };
+      const loanId = data.id;
+      const leadId = selectedLeadId;
+      const uploadPromises = Object.entries(docFieldMap)
+        .filter(([field]) => (form as any)[field])
+        .map(([field, docType]) => {
+          const formData = new FormData();
+          formData.append('document', (form as any)[field]);
+          formData.append('document_type', docType);
+          if (leadId) formData.append('lead_id', String(leadId));
+          if (loanId) formData.append('loan_id', String(loanId));
+          return fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+            body: formData,
+          });
+        });
+      if (uploadPromises.length > 0) {
+        await Promise.allSettled(uploadPromises);
+      }
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['leads'] }); // Refresh leads list
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success('Loan application created successfully!');
       navigate('/loans');
     },

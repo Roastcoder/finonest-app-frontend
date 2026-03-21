@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
@@ -161,93 +162,58 @@ export default function LeadDetail() {
 
   return (
     <>
-      {/* Reapply Modal */}
-      {showReapplyModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Reapply with New Financier</h3>
-              <button 
-                onClick={() => setShowReapplyModal(false)}
-                className="p-1 rounded hover:bg-muted transition-colors"
-              >
-                <X size={16} className="text-muted-foreground" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className={labelClass}>Select New Financier</label>
-                <select 
-                  className={inputClass}
-                  value={selectedFinancier}
-                  onChange={e => setSelectedFinancier(e.target.value)}
-                >
-                  <option value="">Choose Financier</option>
-                  {FINANCIERS.map((financier) => (
-                    <option key={financier} value={financier}>
-                      {financier}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="bg-muted/20 p-3 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Current Financier</p>
-                <p className="text-sm font-medium text-foreground">{lead?.financier_name || 'Not specified'}</p>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <button 
-                type="button" 
-                onClick={() => setShowReapplyModal(false)}
-                className="px-4 py-2 rounded-lg border border-border font-medium hover:bg-muted transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleConfirmReapply}
-                disabled={!selectedFinancier || cloneMutation.isPending}
-                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
-              >
-                {cloneMutation.isPending ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Creating...
-                  </span>
-                ) : 'Reapply'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+     
 
     <div className="max-w-5xl mx-auto pb-24">
-      <div className="sticky top-0 z-40 lg:hidden -mx-4 px-4 py-4 bg-background border-b border-border mb-6 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/leads-list')} className="p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
-            <ArrowLeft size={18} className="text-primary" />
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground tracking-tight leading-none">{lead.customer_name}</h1>
-            <p className="text-xs font-medium text-muted-foreground mt-1">{lead.customer_id}</p>
-          </div>
-        </div>
-        <span className={`text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
-          lead.application_stage 
-            ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
-            : 'bg-primary/10 text-primary border-primary/20'
-        }`}>
-          {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
-        </span>
-      </div>
 
-      {/* Desktop Header Actions */}
+      {/* Mobile sticky header + actions — portaled to escape overflow container */}
+      {createPortal(
+        <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm rounded-b-2xl">
+          {/* Row 1: back + name + stage */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+            <div className="flex items-center gap-2 min-w-0">
+              <button onClick={() => navigate('/leads-list')} className="p-1.5 bg-muted/50 rounded-lg shrink-0">
+                <ArrowLeft size={16} className="text-primary" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-foreground truncate leading-tight">{lead.customer_name}</p>
+                <p className="text-[10px] text-muted-foreground">{lead.customer_id}</p>
+              </div>
+            </div>
+            <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold border ${
+              lead.application_stage ? STAGE_COLORS[lead.application_stage as ApplicationStage] : 'bg-primary/10 text-primary border-primary/20'
+            }`}>
+              {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+            </span>
+          </div>
+          {/* Row 2: action buttons */}
+          <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide">
+            <a href={`tel:${lead.phone}`} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-primary text-white rounded-xl text-xs font-bold whitespace-nowrap">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              Call
+            </a>
+            <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noreferrer" className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              WhatsApp
+            </a>
+            <button onClick={handleReapply} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+              Reapply
+            </button>
+            <button onClick={() => navigate('/add-lead')} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-accent text-accent-foreground rounded-xl text-xs font-bold whitespace-nowrap">
+              New Lead
+            </button>
+            {user?.role === 'executive' && (
+              <span className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted/50 text-muted-foreground rounded-xl text-xs font-medium whitespace-nowrap border border-border">
+                Contact manager to update status
+              </span>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Spacer for sticky header height on mobile */}
+      <div className="lg:hidden h-[88px]" />
       <div className="hidden lg:flex items-center justify-between mb-8">
         <button 
           onClick={() => navigate('/leads-list')} 
@@ -272,7 +238,7 @@ export default function LeadDetail() {
       </div>
 
       {/* Mobile Quick Action Bar */}
-      <div className="lg:hidden flex gap-2 mb-4 py-1">
+      <div className="lg:hidden flex gap-2 mb-3">
         <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl shadow-sm active:scale-95 transition-all text-xs font-bold">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
           Call
@@ -296,13 +262,14 @@ export default function LeadDetail() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Customer Name" value={lead.customer_name} icon={User} />
-            <Field label="Phone Number" value={lead.phone || lead.phone_no} icon={User} />
+            <Field label="Phone Number" value={lead.phone} icon={User} />
             <Field label="PAN Number" value={lead.pan_number} icon={FileText} />
-            <Field label="City" value={lead.city || lead.district} icon={Car} />
-            <Field label="State" value={lead.state} icon={Car} />
-            <Field label="Pin Code" value={lead.pincode} icon={FileText} />
-            <div className="col-span-2"><Field label="Email" value={lead.email} icon={FileText} /></div>
+            <Field label="Email" value={lead.email} icon={FileText} />
             <div className="col-span-2"><Field label="Current Address" value={lead.current_address} icon={FileText} /></div>
+            <Field label="Landmark" value={lead.current_landmark} icon={FileText} />
+            <Field label="Pincode" value={lead.pincode} icon={FileText} />
+            <Field label="City" value={lead.city} icon={Car} />
+            <Field label="State" value={lead.state} icon={Car} />
           </div>
         </div>
 
@@ -316,8 +283,8 @@ export default function LeadDetail() {
               <p className="text-xs text-muted-foreground font-medium">Asset Details</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            <Field label="Vehicle Number" value={lead.vehicle_number || lead.vehicle_no} icon={Car} />
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Vehicle Number" value={lead.vehicle_number} icon={Car} />
             <Field label="Case Type" value={lead.case_type?.replace(/_/g, ' ')} icon={Car} />
             <Field label="Lead Type" value={lead.lead_type?.replace(/_/g, ' ')} icon={Car} />
           </div>
@@ -333,9 +300,9 @@ export default function LeadDetail() {
               <p className="text-xs text-muted-foreground font-medium">Requirement & Banker</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            <Field label="Loan Amount Requested" value={lead.loan_amount_required ? formatCurrency(Number(lead.loan_amount_required)) : '—'} icon={IndianRupee} />
-            <Field label="Proposed Financier" value={lead.financier_name} icon={FileText} />
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Loan Amount Required" value={lead.loan_amount_required ? formatCurrency(Number(lead.loan_amount_required)) : '—'} icon={IndianRupee} />
+            <Field label="Preferred Financier" value={lead.financier_name || lead.bank_name} icon={FileText} />
           </div>
         </div>
 
@@ -371,12 +338,12 @@ export default function LeadDetail() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Field label="Branch" value={lead.our_branch} icon={FileText} />
-            <Field label="Lead Source" value={lead.source} icon={FileText} />
+            <Field label="Lead Source" value={lead.lead_type?.replace(/_/g, ' ')} icon={FileText} />
             <Field label="Assigned Rep" value={lead.assigned_to_name} icon={User} />
             <Field label="Follow Up" value={lead.follow_up_date ? new Date(lead.follow_up_date).toLocaleDateString('en-IN') : 'None'} icon={FileText} />
-            <Field label="Created On" value={new Date(lead.created_at).toLocaleDateString('en-IN')} icon={FileText} />
-            <Field label="Last Updated" value={new Date(lead.updated_at).toLocaleDateString('en-IN')} icon={FileText} />
-            <div className="md:col-span-2"><Field label="Processing Notes" value={lead.notes} icon={FileText} /></div>
+            <Field label="Created On" value={lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-IN') : '—'} icon={FileText} />
+            <Field label="Last Updated" value={lead.updated_at ? new Date(lead.updated_at).toLocaleDateString('en-IN') : '—'} icon={FileText} />
+            <div className="md:col-span-2"><Field label="Notes" value={lead.notes} icon={FileText} /></div>
           </div>
         </div>
       </div>

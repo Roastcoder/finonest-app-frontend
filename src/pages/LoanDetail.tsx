@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,18 +12,46 @@ import { shareToCustomer, shareToWhatsAppWithPhone } from '@/lib/whatsapp-share'
 import { fetchDocumentFiles } from '@/lib/document-utils';
 import { toast } from 'sonner';
 
-const DOC_TYPES = [
+const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'aadhar_front', label: 'Aadhar Front' },
   { value: 'aadhar_back', label: 'Aadhar Back' },
   { value: 'pan_card', label: 'PAN Card' },
+  { value: 'rc_front', label: 'RC Front' },
+  { value: 'rc_back', label: 'RC Back' },
   { value: 'rc_copy', label: 'RC Copy' },
-  { value: 'insurance', label: 'Insurance' },
-  { value: 'income_proof', label: 'Income Proof' },
+  { value: 'driving_licence', label: 'Driving Licence' },
+  { value: 'driving_license', label: 'Driving Licence' },
+  { value: 'light_bill', label: 'Light Bill' },
   { value: 'bank_statement', label: 'Bank Statement' },
-  { value: 'nach', label: 'NACH' },
+  { value: 'loan_statement', label: 'Loan Statement' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'income_proof', label: 'Income Proof' },
+  { value: 'rent_agreement', label: 'Rent Agreement' },
+  { value: 'customer_photo', label: 'Customer Photo' },
   { value: 'photo', label: 'Photo' },
+  { value: 'disbursement_memo', label: 'Disbursement Memo' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'customer_ledger', label: 'Customer Ledger' },
+  { value: 'co_aadhar_front', label: 'Co-Applicant Aadhar Front' },
+  { value: 'co_aadhar_back', label: 'Co-Applicant Aadhar Back' },
+  { value: 'co_pan_card', label: 'Co-Applicant PAN Card' },
+  { value: 'co_photo', label: 'Co-Applicant Photo' },
+  { value: 'guarantor_aadhar_front', label: 'Guarantor Aadhar Front' },
+  { value: 'guarantor_aadhar_back', label: 'Guarantor Aadhar Back' },
+  { value: 'guarantor_pan_card', label: 'Guarantor PAN Card' },
+  { value: 'guarantor_rc_front', label: 'Guarantor RC Front' },
+  { value: 'guarantor_rc_back', label: 'Guarantor RC Back' },
+  { value: 'guarantor_photo', label: 'Guarantor Photo' },
+  { value: 'nach', label: 'NACH' },
   { value: 'other', label: 'Other' },
 ];
+
+const getDocLabel = (docType: string) => {
+  const found = DOC_TYPES.find(d => d.value === docType);
+  if (found) return found.label;
+  // fallback: convert snake_case to Title Case
+  return docType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+};
 
 export default function LoanDetail() {
   const { id } = useParams();
@@ -142,9 +171,95 @@ export default function LoanDetail() {
 
   return (
     <div>
-      <button onClick={() => navigate('/loans')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
+      <button onClick={() => navigate('/loans')} className="lg:flex hidden items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
         <ArrowLeft size={16} /> Back to Applications
       </button>
+
+      {/* Mobile sticky header + actions via portal */}
+      {createPortal(
+        <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm rounded-b-2xl">
+          {/* Row 1: back + name + stage */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+            <div className="flex items-center gap-2 min-w-0">
+              <button onClick={() => navigate('/loans')} className="p-1.5 bg-muted/50 rounded-lg shrink-0">
+                <ArrowLeft size={16} className="text-primary" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-foreground truncate leading-tight">{loan.id}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{loan.applicant_name} • {(loan as any).maker_name || loan.car_make}</p>
+              </div>
+            </div>
+            <LoanStatusBadge status={loan.status as any} />
+          </div>
+          {/* Row 2: action buttons */}
+          <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide">
+            <button onClick={() => exportLoanPDF(loan, documents as any[])} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+              <Printer size={12} className="text-accent" /> Export
+            </button>
+            <button onClick={() => setShowReapplyModal(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+              <RefreshCw size={12} className="text-orange-500" /> Reapply
+            </button>
+            <button onClick={() => downloadLoanPDF(loan, documents as any[])} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+              <Download size={12} className="text-accent" /> Download
+            </button>
+            <div className="relative group">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors">
+              <MessageCircle size={14} className="text-green-500" />
+              WhatsApp
+              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+              <button
+                onClick={async () => {
+                  try {
+                    const docFiles = await fetchDocumentFiles(documents as any[]);
+                    await shareToCustomer(loan, docFiles.map(d => d.file));
+                  } catch (error) {
+                    console.error('Share to customer error:', error);
+                    toast.error('Failed to share to customer');
+                  }
+                }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
+              >
+                📱 Send to Customer
+                <div className="text-muted-foreground text-[10px] mt-0.5">
+                  {loan.mobile || 'No phone number'}
+                </div>
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const docFiles = await fetchDocumentFiles(documents as any[]);
+                    await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
+                  } catch (error) {
+                    console.error('Share with phone error:', error);
+                    toast.error('Failed to share via WhatsApp');
+                  }
+                }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
+              >
+                📞 Send to Other Number
+                <div className="text-muted-foreground text-[10px] mt-0.5">
+                  Enter phone number
+                </div>
+              </button>
+            </div>
+          </div>
+            {canDelete && (
+              <button onClick={() => { if (confirm('Delete this loan?')) deleteLoan.mutate(); }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
+                Delete
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Mobile spacer */}
+      <div className="lg:hidden h-[88px]" />
 
       {/* Reapply Confirmation Modal */}
       {showReapplyModal && (
@@ -165,7 +280,7 @@ export default function LoanDetail() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+      <div className="hidden sm:flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">{loan.id}</h1>
@@ -242,17 +357,7 @@ export default function LoanDetail() {
               </button>
             </div>
           </div>
-          {canEditStatus && (
-            <>
-              <select
-                value={loan.status}
-                onChange={e => updateStatus.mutate(e.target.value)}
-                disabled={updateStatus.isPending}
-                className="px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent"
-              >
-                {LEAD_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-              {canDelete && (
+          {canDelete && (
                 <button
                   onClick={() => {
                     if (confirm('Are you sure you want to delete this loan application? This action cannot be undone.')) {
@@ -265,26 +370,19 @@ export default function LoanDetail() {
                   Delete
                 </button>
               )}
-            </>
-          )}
-          {isTeamLeader && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-muted text-xs font-medium text-muted-foreground">
-              Contact manager to update status
-            </div>
-          )}
         </div>
       </div>
 
       <div className="bg-card border border-border shadow-sm rounded-2xl p-5 mb-6">
         <h3 className="text-sm font-bold text-foreground mb-4">Status Pipeline</h3>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
           {APPLICATION_STAGES.map((s, i) => {
             const currentIdx = APPLICATION_STAGES.findIndex(st => st.value === (loan as any).application_stage);
             const isActive = i <= currentIdx;
             const isCurrent = s.value === (loan as any).application_stage;
             const isRejectedOrCancelled = ['REJECTED', 'CANCELLED'].includes((loan as any).application_stage);
             return (
-              <div key={s.value} className="flex items-center gap-2">
+              <div key={s.value} className="flex items-center gap-2 shrink-0">
                 <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   isCurrent
                     ? isRejectedOrCancelled
@@ -589,10 +687,9 @@ export default function LoanDetail() {
               <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40">
                 <FileText size={16} className="text-accent shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{doc.file_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {DOC_TYPES.find(d => d.value === doc.document_type)?.label} •{' '}
-                    {new Date(doc.created_at).toLocaleDateString('en-IN')}
+                  <p className="text-xs font-bold text-foreground">{getDocLabel(doc.document_type)}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {doc.file_name} • {new Date(doc.created_at).toLocaleDateString('en-IN')}
                     {doc.file_size && ` • ${(doc.file_size / 1024).toFixed(0)} KB`}
                   </p>
                 </div>

@@ -148,67 +148,75 @@ export default function Loans() {
 
   return (
     <div className="pb-24 lg:pb-0">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Loan Applications</h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} applications found</p>
+      <div className="hidden sm:flex flex-row items-center justify-between gap-2 mb-4">
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-2xl font-bold text-foreground leading-tight truncate">Loan Applications</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 whitespace-nowrap">{filtered.length} applications found</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={handleExport} className="flex items-center gap-2 bg-muted text-foreground font-medium py-2.5 px-4 rounded-xl hover:bg-muted/80 transition-opacity text-sm">
+        {/* Desktop buttons only — mobile has sticky toolbar */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
+          <button onClick={handleExport} className="flex items-center gap-2 bg-muted text-foreground font-medium py-2.5 px-4 rounded-xl hover:bg-muted/80 transition-opacity text-sm whitespace-nowrap">
             <Download size={16} /> Export
           </button>
-          <button onClick={() => importRef.current?.click()} className="flex items-center gap-2 bg-muted text-foreground font-medium py-2.5 px-4 rounded-xl hover:bg-muted/80 transition-opacity text-sm">
+          <button onClick={() => importRef.current?.click()} className="flex items-center gap-2 bg-muted text-foreground font-medium py-2.5 px-4 rounded-xl hover:bg-muted/80 transition-opacity text-sm whitespace-nowrap">
             <Upload size={16} /> Import CSV
           </button>
           <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          <Link to="/loans/new" className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm">
+          <Link to="/loans/new" className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm whitespace-nowrap">
             <Plus size={16} /> New Application
           </Link>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      {/* Desktop Filters */}
+      <div className="hidden sm:flex items-center gap-2 mb-4">
         <div className="relative flex-1 max-w-sm">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name, ID, or car..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
-          />
+          <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all" />
         </div>
-
-        {/* Mobile: compact select dropdown */}
-        <div className="sm:hidden">
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as ApplicationStageFilter)}
-            className="w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm font-medium text-foreground focus:outline-none focus:border-accent transition-all"
-          >
-            <option value="all">All Stages</option>
-            {APPLICATION_STAGES.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Desktop: pill buttons */}
-        <div className="hidden sm:flex gap-2 flex-wrap">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${statusFilter === 'all' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-          >All</button>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setStatusFilter('all')} className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${statusFilter === 'all' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>All</button>
           {APPLICATION_STAGES.map(s => (
-            <button
-              key={s.value}
-              onClick={() => setStatusFilter(s.value as ApplicationStageFilter)}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${statusFilter === s.value ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-            >{s.label}</button>
+            <button key={s.value} onClick={() => setStatusFilter(s.value as ApplicationStageFilter)}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${statusFilter === s.value ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>{s.label}</button>
           ))}
         </div>
       </div>
+
+      {/* Mobile sticky toolbar — sticks below header on scroll */}
+      <div className="sm:hidden sticky -top-4 z-40 bg-background/95 backdrop-blur-md border border-border shadow-sm px-3 pt-2 pb-2 space-y-2 -mx-2 mb-4 rounded-b-2xl -mt-4">
+          {/* Title row */}
+          <div className="flex items-center justify-between py-1">
+            <h1 className="text-base font-bold text-foreground">Loan Applications</h1>
+            <span className="text-xs text-muted-foreground">{filtered.length} found</span>
+          </div>
+          {/* Row 1: buttons */}
+          <div className="flex items-center gap-1.5">
+            <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
+              <Download size={13} /> Export
+            </button>
+            <button onClick={() => importRef.current?.click()} className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
+              <Upload size={13} /> Import CSV
+            </button>
+            <Link to="/loans/new" className="flex-1 inline-flex items-center justify-center gap-1 bg-accent text-accent-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
+              <Plus size={13} /> New Application
+            </Link>
+          </div>
+          {/* Row 2: search + filter */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all" />
+            </div>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as ApplicationStageFilter)}
+              className="shrink-0 px-2 py-2 rounded-xl border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent transition-all">
+              <option value="all">All</option>
+              {APPLICATION_STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+        </div>
 
       {/* Mobile Card View — only on screens < lg */}
       <div className="lg:hidden space-y-3">
@@ -236,8 +244,8 @@ export default function Loans() {
                   <p className="font-bold text-foreground text-base">{formatCurrency(Number(loan.loan_amount))}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">EMI</p>
-                  <p className="font-bold text-foreground text-base">{formatCurrency(Number(loan.emi))}/mo</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Bank</p>
+                  <p className="font-medium text-foreground truncate">{loan.bank_name || '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-1">Case Type</p>
@@ -357,7 +365,6 @@ export default function Loans() {
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Bank</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Sourcing Name</th>
                   <th className="text-right py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Amount</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">EMI</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Application Stage</th>
                   <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
                   {showUpdateColumn && (
@@ -381,7 +388,6 @@ export default function Loans() {
                     <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.bank_name || '—'}</td>
                     <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.sourcing_person_name || '—'}</td>
                     <td className="py-3.5 px-3 text-right font-medium text-foreground whitespace-nowrap">{formatCurrency(Number(loan.loan_amount))}</td>
-                    <td className="py-3.5 px-3 text-right text-muted-foreground whitespace-nowrap">{formatCurrency(Number(loan.emi))}/mo</td>
                     <td className="py-3.5 px-3 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
                     <td className="py-3.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">

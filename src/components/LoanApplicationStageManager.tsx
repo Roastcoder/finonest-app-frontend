@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
@@ -30,8 +30,24 @@ interface StageFormData {
 
 export default function LoanApplicationStageManager({ loan, isOpen, onClose }: LoanApplicationStageManagerProps) {
   const queryClient = useQueryClient();
+
+  const STAGE_ORDER: ApplicationStage[] = ['SUBMITTED', 'LOGIN', 'IN_PROCESS', 'APPROVED', 'DISBURSED'];
+  const currentStage: ApplicationStage = loan?.application_stage || 'SUBMITTED';
+  const currentIndex = STAGE_ORDER.indexOf(currentStage);
+  const loginFilled = !!(loan?.app_score && loan?.credit_score);
+
+  const getDefaultStage = (): ApplicationStage => {
+    const curIndex = STAGE_ORDER.indexOf(currentStage);
+    if (curIndex !== -1 && curIndex < STAGE_ORDER.length - 1) {
+      const next = STAGE_ORDER[curIndex + 1];
+      if (!loginFilled && STAGE_ORDER.indexOf(next) > STAGE_ORDER.indexOf('LOGIN')) return 'LOGIN';
+      return next;
+    }
+    return currentStage;
+  };
+
   const [formData, setFormData] = useState<StageFormData>({
-    stage: loan?.application_stage || 'SUBMITTED',
+    stage: getDefaultStage(),
     appScore: loan?.app_score || undefined,
     creditScore: loan?.credit_score || undefined,
     tags: loan?.tags || [],
@@ -47,6 +63,41 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
     bankerName: loan?.banker_name || '',
     bankerMobile: loan?.banker_mobile || ''
   });
+
+  // Reinitialize form every time modal opens with fresh loan data
+  useEffect(() => {
+    if (isOpen && loan) {
+      const filled = !!(loan.app_score && loan.credit_score);
+      const cur: ApplicationStage = loan.application_stage || 'SUBMITTED';
+      const curIndex = STAGE_ORDER.indexOf(cur);
+      // Find the next stage that hasn't been completed yet
+      let defaultStage: ApplicationStage = cur;
+      if (curIndex !== -1 && curIndex < STAGE_ORDER.length - 1) {
+        defaultStage = STAGE_ORDER[curIndex + 1];
+      }
+      // If login not filled yet, stay at LOGIN
+      if (!filled && STAGE_ORDER.indexOf(defaultStage) > STAGE_ORDER.indexOf('LOGIN')) {
+        defaultStage = 'LOGIN';
+      }
+      setFormData({
+        stage: defaultStage,
+        appScore: loan.app_score || undefined,
+        creditScore: loan.credit_score || undefined,
+        tags: loan.tags || [],
+        remarks: '',
+        loanAmount: loan.loan_amount || undefined,
+        roi: loan.roi || undefined,
+        tenure: loan.tenure || undefined,
+        loanAccountNumber: loan.loan_account_number || '',
+        rcType: loan.rc_type || 'PHYSICAL_RC',
+        collectedBy: loan.rc_collected_by || 'SELF',
+        agentName: loan.rto_agent_name_rc || '',
+        agentMobile: loan.rto_agent_mobile || '',
+        bankerName: loan.banker_name || '',
+        bankerMobile: loan.banker_mobile || ''
+      });
+    }
+  }, [isOpen, loan?.id]);
 
   const updateStage = useMutation({
     mutationFn: async (data: StageFormData) => {
@@ -422,6 +473,16 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
     }
   };
 
+  const isStageAllowed = (stageValue: ApplicationStage) => {
+    // REJECTED and CANCELLED always allowed
+    if (stageValue === 'REJECTED' || stageValue === 'CANCELLED') return true;
+    const stageIndex = STAGE_ORDER.indexOf(stageValue);
+    // Must go through LOGIN first before any stage beyond it
+    if (stageIndex > STAGE_ORDER.indexOf('LOGIN') && !loginFilled) return false;
+    // Can only move forward (or stay at current)
+    return stageIndex >= currentIndex;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -445,25 +506,31 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
             <label className="block text-sm font-medium mb-2">Application Stage</label>
             <select
               value={formData.stage}
-              onChange={(e) => setFormData(prev => ({ ...prev, stage: e.target.value as ApplicationStage }))}
+              onChange={(e) => {
+                const newStage = e.target.value as ApplicationStage;
+                setFormData(prev => ({
+                  ...prev,
+                  stage: newStage,
+                  // Autofill login scores when switching to LOGIN
+                  ...(newStage === 'LOGIN' && loginFilled ? {
+                    appScore: loan?.app_score,
+                    creditScore: loan?.credit_score
+                  } : {})
+                }));
+              }}
               className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent"
             >
               {APPLICATION_STAGES.map(stage => {
-                // Block stages beyond LOGIN if login data (appScore + creditScore) not filled
-                const loginFilled = !!(loan?.app_score && loan?.credit_score) || !!(formData.appScore && formData.creditScore);
-                const loginIndex = APPLICATION_STAGES.findIndex(s => s.value === 'LOGIN');
-                const stageIndex = APPLICATION_STAGES.findIndex(s => s.value === stage.value);
-                const currentIndex = APPLICATION_STAGES.findIndex(s => s.value === (loan?.application_stage || 'SUBMITTED'));
-                const isBlocked = stageIndex > loginIndex && !loginFilled;
+                const allowed = isStageAllowed(stage.value);
                 return (
-                  <option key={stage.value} value={stage.value} disabled={isBlocked}>
-                    {stage.label}{isBlocked ? ' (Fill Login first)' : ''}
+                  <option key={stage.value} value={stage.value} disabled={!allowed}>
+                    {stage.label}{!allowed ? (stage.value !== 'REJECTED' && stage.value !== 'CANCELLED' && !loginFilled && STAGE_ORDER.indexOf(stage.value) > STAGE_ORDER.indexOf('LOGIN') ? ' (Complete Login first)' : ' (Not available)') : ''}
                   </option>
                 );
               })}
             </select>
-            {!((loan?.app_score && loan?.credit_score) || (formData.appScore && formData.creditScore)) && (
-              <p className="text-xs text-amber-600 mt-1">⚠️ Fill Login stage (App Score & Credit Score) to unlock further stages</p>
+            {!loginFilled && (
+              <p className="text-xs text-amber-600 mt-1">⚠️ Complete Login stage (App Score & Credit Score) to unlock further stages</p>
             )}
           </div>
 
