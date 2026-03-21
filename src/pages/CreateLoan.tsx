@@ -522,6 +522,14 @@ export default function CreateLoan() {
       sourcingPersonName: lead.created_by_name || lead.sourcing_person_name || '',
     }));
     
+    // Pre-populate assignment form with lead's financier if available
+    if (lead.financier_name) {
+      setAssignmentForm(f => ({
+        ...f,
+        ledgerSelection: lead.financier_name
+      }));
+    }
+    
     // Fetch documents for this lead
     if (lead.id) {
       fetchLeadDocuments(lead.id);
