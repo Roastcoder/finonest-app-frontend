@@ -1097,41 +1097,7 @@ export default function CreateLoan() {
               </div>
             </div>
 
-          {/* Existing Loan & EMI Details */}
-          {form.financeStatus === 'Financed' && (
-          <div>
-            <h2 className="text-base font-bold text-foreground mb-3">Existing Loan & EMI Details</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="floating-input-wrapper">
-                <select className={inputClass} value={form.loanStatus} onChange={e => update('loanStatus', e.target.value)}>
-                  <option value="">Select Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Closed">Closed</option>
-                  <option value="No">No</option>
-                </select>
-                <label className={labelClass}>Loan Status</label>
-              </div>
-              {form.loanStatus === 'Active' && (
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " max="9999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 7) t.value = t.value.slice(0,7); }} /><label className={labelClass}>Loan Amount</label></div>
-              )}
-              {form.existingLoanAmount && (
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " max="360" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 3) t.value = t.value.slice(0,3); }} /><label className={labelClass}>Tenure (Months)</label></div>
-              )}
-              {form.existingTenure && (
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " max="999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 6) t.value = t.value.slice(0,6); }} /><label className={labelClass}>EMI Amount</label></div>
-              )}
-              {form.existingEmi && (
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " max="360" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 3) t.value = t.value.slice(0,3); }} /><label className={labelClass}>No of EMI Paid</label></div>
-              )}
-              {form.noOfEmiPaid && (
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " max="9" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 1) t.value = t.value.slice(0,1); }} /><label className={labelClass}>Bouncing in Last 3M</label></div>
-              )}
-              {form.bouncingLast3m && (
-                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " max="9" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 1) t.value = t.value.slice(0,1); }} /><label className={labelClass}>Bouncing in Last 6M</label></div>
-              )}
-            </div>
-          </div>
-          )}
+         
 
           {/* Vehicle & Loan */}
           <div>
@@ -1187,6 +1153,42 @@ export default function CreateLoan() {
                 </div>
               </div>
             </div>
+
+             {/* Existing Loan & EMI Details */}
+          {form.financeStatus === 'Financed' && (
+          <div>
+            <h2 className="text-base font-bold text-foreground mb-3">Existing Loan & EMI Details</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="floating-input-wrapper">
+                <select className={inputClass} value={form.loanStatus} onChange={e => update('loanStatus', e.target.value)}>
+                  <option value="">Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Closed">Closed</option>
+                  <option value="No">No</option>
+                </select>
+                <label className={labelClass}>Loan Status</label>
+              </div>
+              {form.loanStatus === 'Active' && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingLoanAmount} onChange={e => update('existingLoanAmount', e.target.value)} placeholder=" " max="9999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 7) t.value = t.value.slice(0,7); }} /><label className={labelClass}>Loan Amount</label></div>
+              )}
+              {form.existingLoanAmount && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingTenure} onChange={e => update('existingTenure', e.target.value)} placeholder=" " max="360" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 3) t.value = t.value.slice(0,3); }} /><label className={labelClass}>Tenure (Months)</label></div>
+              )}
+              {form.existingTenure && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.existingEmi} onChange={e => update('existingEmi', e.target.value)} placeholder=" " max="999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 6) t.value = t.value.slice(0,6); }} /><label className={labelClass}>EMI Amount</label></div>
+              )}
+              {form.existingEmi && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.noOfEmiPaid} onChange={e => update('noOfEmiPaid', e.target.value)} placeholder=" " max="360" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 3) t.value = t.value.slice(0,3); }} /><label className={labelClass}>No of EMI Paid</label></div>
+              )}
+              {form.noOfEmiPaid && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast3m} onChange={e => update('bouncingLast3m', e.target.value)} placeholder=" " max="9" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 1) t.value = t.value.slice(0,1); }} /><label className={labelClass}>Bouncing in Last 3M</label></div>
+              )}
+              {form.bouncingLast3m && (
+                <div className="floating-input-wrapper"><input type="number" className={inputClass} value={form.bouncingLast6m} onChange={e => update('bouncingLast6m', e.target.value)} placeholder=" " max="9" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 1) t.value = t.value.slice(0,1); }} /><label className={labelClass}>Bouncing in Last 6M</label></div>
+              )}
+            </div>
+          </div>
+          )}
 
           {/* Income Details */}
           <div>

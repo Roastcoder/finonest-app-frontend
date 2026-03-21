@@ -7,6 +7,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { calculateEMI, formatCurrency } from '@/lib/mock-data';
 import '@/styles/floating-labels.css';
 
+// Validation functions
+const validateVehicleNumber = (vehicleNumber: string): boolean => {
+  // Vehicle number format: AA99AA9999 or AA99A9999 or AA99AA999
+  const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{3,4}$/;
+  return vehicleRegex.test(vehicleNumber);
+};
+
 export default function EditLead() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,6 +30,8 @@ export default function EditLead() {
     irr: '',
     tenure: '60',
   });
+
+  const [vehicleError, setVehicleError] = useState('');
 
   useEffect(() => {
     if (user?.role === 'team_leader') {
@@ -45,6 +54,70 @@ export default function EditLead() {
 
   const update = (key: string, val: string) => setForm(f => ({ ...f, [key]: val }));
 
+  const handleVehicleNumberChange = (value: string) => {
+    const cleanValue = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    
+    let validatedValue = '';
+    let error = '';
+    
+    // Validate character by character based on position
+    // Format: AA99AA9999 or AA99A9999 (flexible)
+    for (let i = 0; i < cleanValue.length && i < 10; i++) {
+      const char = cleanValue[i];
+      
+      if (i < 2) {
+        // First 2 positions: only letters allowed (State code)
+        if (/[A-Z]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'First 2 characters must be letters (State code)';
+          break;
+        }
+      } else if (i >= 2 && i < 4) {
+        // Positions 3-4: only digits allowed (District code)
+        if (/[0-9]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Characters 3-4 must be digits (District code)';
+          break;
+        }
+      } else if (i >= 4 && i < 6) {
+        // Positions 5-6: only letters allowed (Series)
+        if (/[A-Z]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Characters 5-6 must be letters (Series)';
+          break;
+        }
+      } else if (i >= 6) {
+        // Positions 7-10: only digits allowed (Registration number)
+        if (/[0-9]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Last 4 characters must be digits (Registration number)';
+          break;
+        }
+      }
+    }
+    
+    update('vehicleNumber', validatedValue);
+    
+    // Set error messages
+    if (error) {
+      setVehicleError(error);
+    } else if (validatedValue.length > 0 && validatedValue.length < 9) {
+      setVehicleError(`Vehicle number must be 9-10 characters (${validatedValue.length}/10)`);
+    } else if (validatedValue.length >= 9) {
+      if (validateVehicleNumber(validatedValue)) {
+        setVehicleError('');
+      } else {
+        setVehicleError('Invalid vehicle number format');
+      }
+    } else {
+      setVehicleError('');
+    }
+  };
+
   const emi = useMemo(() => {
     const p = Number(form.loanAmount);
     const r = Number(form.irr);
@@ -58,6 +131,12 @@ export default function EditLead() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate vehicle number if provided
+    if (form.vehicleNumber && !validateVehicleNumber(form.vehicleNumber)) {
+      toast.error('Invalid vehicle number format');
+      return;
+    }
     
     const stored = localStorage.getItem('team_leader_dummy_lead');
     const existingLead = stored ? JSON.parse(stored) : {};
@@ -125,8 +204,9 @@ export default function EditLead() {
             <h2 className="text-base font-bold text-foreground mb-3">Vehicle & Loan Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="floating-input-wrapper">
-                <input className={inputClass} value={form.vehicleNumber} onChange={e => update('vehicleNumber', e.target.value.toUpperCase())} placeholder=" " />
+                <input className={`${inputClass} ${vehicleError ? 'border-red-500' : ''}`} value={form.vehicleNumber} onChange={e => handleVehicleNumberChange(e.target.value)} placeholder=" " />
                 <label className={labelClass}>Vehicle Reg. No</label>
+                {vehicleError && <p className="text-[10px] text-red-500 mt-1 font-semibold">{vehicleError}</p>}
               </div>
               <div className="floating-input-wrapper">
                 <input className={inputClass} value={form.makerName} onChange={e => update('makerName', e.target.value)} placeholder=" " />

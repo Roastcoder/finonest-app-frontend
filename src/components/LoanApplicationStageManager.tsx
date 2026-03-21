@@ -37,12 +37,6 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
   const loginFilled = !!(loan?.app_score && loan?.credit_score);
 
   const getDefaultStage = (): ApplicationStage => {
-    const curIndex = STAGE_ORDER.indexOf(currentStage);
-    if (curIndex !== -1 && curIndex < STAGE_ORDER.length - 1) {
-      const next = STAGE_ORDER[curIndex + 1];
-      if (!loginFilled && STAGE_ORDER.indexOf(next) > STAGE_ORDER.indexOf('LOGIN')) return 'LOGIN';
-      return next;
-    }
     return currentStage;
   };
 
@@ -67,20 +61,9 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
   // Reinitialize form every time modal opens with fresh loan data
   useEffect(() => {
     if (isOpen && loan) {
-      const filled = !!(loan.app_score && loan.credit_score);
       const cur: ApplicationStage = loan.application_stage || 'SUBMITTED';
-      const curIndex = STAGE_ORDER.indexOf(cur);
-      // Find the next stage that hasn't been completed yet
-      let defaultStage: ApplicationStage = cur;
-      if (curIndex !== -1 && curIndex < STAGE_ORDER.length - 1) {
-        defaultStage = STAGE_ORDER[curIndex + 1];
-      }
-      // If login not filled yet, stay at LOGIN
-      if (!filled && STAGE_ORDER.indexOf(defaultStage) > STAGE_ORDER.indexOf('LOGIN')) {
-        defaultStage = 'LOGIN';
-      }
       setFormData({
-        stage: defaultStage,
+        stage: cur,
         appScore: loan.app_score || undefined,
         creditScore: loan.credit_score || undefined,
         tags: loan.tags || [],

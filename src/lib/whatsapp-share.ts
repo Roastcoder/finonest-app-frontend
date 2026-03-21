@@ -60,51 +60,7 @@ export async function shareViaWhatsAppAPI(options: ShareToWhatsAppOptions): Prom
 
 // Enhanced share function with phone number input
 export async function shareToWhatsAppWithPhone(loanData: any, documents: File[] = []) {
-  const phoneNumber = prompt('Enter WhatsApp number (with country code, e.g., +919876543210):');
-  
-  if (!phoneNumber) {
-    toast.error('Phone number is required');
-    return;
-  }
-
-  // Validate phone number format
-  const phoneRegex = /^\+[1-9]\d{1,14}$/;
-  if (!phoneRegex.test(phoneNumber)) {
-    toast.error('Please enter a valid phone number with country code (e.g., +919876543210)');
-    return;
-  }
-
-  const message = `*Finonest India - Loan Application*
-
-*ID:* ${loanData.id}
-*Applicant:* ${loanData.applicant_name}
-*Mobile:* ${loanData.mobile}
-*Vehicle:* ${loanData.maker_name || loanData.car_make || ''} ${loanData.model_variant_name || loanData.car_model || ''}
-*Loan Amount:* ₹${Number(loanData.loan_amount).toLocaleString()}
-*Status:* ${loanData.status}
-*EMI:* ₹${Number(loanData.emi_amount || loanData.emi || 0).toLocaleString()}
-*Tenure:* ${loanData.tenure} months
-
-${documents.length > 0 ? `📎 ${documents.length} document(s) attached` : ''}`;
-
-  // Try WhatsApp API first
-  const apiSuccess = await shareViaWhatsAppAPI({
-    phoneNumber,
-    message,
-    documents,
-    loanId: loanData.id
-  });
-
-  if (!apiSuccess) {
-    // Fallback to web sharing
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phoneNumber.replace('+', '')}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-    
-    if (documents.length > 0) {
-      toast.info('Documents will need to be attached manually in WhatsApp');
-    }
-  }
+  window.open('https://web.whatsapp.com/', '_blank');
 }
 
 // Share to customer's registered phone number

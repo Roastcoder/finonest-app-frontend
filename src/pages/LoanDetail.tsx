@@ -6,11 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { formatCurrency, APPLICATION_STAGES, LEAD_STATUSES } from '@/lib/mock-data';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
-import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, MessageCircle, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, MessageCircle, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
 import { exportLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
-import { shareToCustomer, shareToWhatsAppWithPhone } from '@/lib/whatsapp-share';
-import { fetchDocumentFiles } from '@/lib/document-utils';
 import { toast } from 'sonner';
+import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 
 const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'aadhar_front', label: 'Aadhar Front' },
@@ -106,6 +105,7 @@ export default function LoanDetail() {
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [showReapplyModal, setShowReapplyModal] = useState(false);
+  const [showStageManager, setShowStageManager] = useState(false);
 
   const handleReapply = () => {
     if (!loan) return;
@@ -193,61 +193,20 @@ export default function LoanDetail() {
           </div>
           {/* Row 2: action buttons */}
           <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide">
-            <button onClick={() => exportLoanPDF(loan, documents as any[])} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
-              <Printer size={12} className="text-accent" /> Export
-            </button>
             <button onClick={() => setShowReapplyModal(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
               <RefreshCw size={12} className="text-orange-500" /> Reapply
             </button>
-            <button onClick={() => downloadLoanPDF(loan, documents as any[])} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
-              <Download size={12} className="text-accent" /> Download
-            </button>
-            <div className="relative group">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors">
-              <MessageCircle size={14} className="text-green-500" />
-              WhatsApp
-              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-              <button
-                onClick={async () => {
-                  try {
-                    const docFiles = await fetchDocumentFiles(documents as any[]);
-                    await shareToCustomer(loan, docFiles.map(d => d.file));
-                  } catch (error) {
-                    console.error('Share to customer error:', error);
-                    toast.error('Failed to share to customer');
-                  }
-                }}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
-              >
-                📱 Send to Customer
-                <div className="text-muted-foreground text-[10px] mt-0.5">
-                  {loan.mobile || 'No phone number'}
-                </div>
+            {user?.role !== 'executive' && (
+              <button onClick={() => navigate(`/loans/edit/${loan.id}`)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+                <Edit2 size={12} className="text-blue-500" /> Edit
               </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const docFiles = await fetchDocumentFiles(documents as any[]);
-                    await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
-                  } catch (error) {
-                    console.error('Share with phone error:', error);
-                    toast.error('Failed to share via WhatsApp');
-                  }
-                }}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
-              >
-                📞 Send to Other Number
-                <div className="text-muted-foreground text-[10px] mt-0.5">
-                  Enter phone number
-                </div>
-              </button>
-            </div>
-          </div>
+            )}
+            <button onClick={() => setShowStageManager(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+              <Settings size={12} className="text-purple-500" /> Stage
+            </button>
+            <button onClick={() => window.open('https://web.whatsapp.com/', '_blank')} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+              <MessageCircle size={12} className="text-green-500" /> WhatsApp
+            </button>
             {canDelete && (
               <button onClick={() => { if (confirm('Delete this loan?')) deleteLoan.mutate(); }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
                 Delete
@@ -310,53 +269,29 @@ export default function LoanDetail() {
             <Download size={14} className="text-accent" />
             Download
           </button>
-          {/* WhatsApp Share Dropdown */}
-          <div className="relative group">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors">
-              <MessageCircle size={14} className="text-green-500" />
-              WhatsApp
-              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+          {user?.role !== 'executive' && (
+            <button
+              onClick={() => navigate(`/loans/edit/${loan.id}`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
+            >
+              <Edit2 size={14} className="text-blue-500" />
+              Edit
             </button>
-            
-            <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-              <button
-                onClick={async () => {
-                  try {
-                    const docFiles = await fetchDocumentFiles(documents as any[]);
-                    await shareToCustomer(loan, docFiles.map(d => d.file));
-                  } catch (error) {
-                    console.error('Share to customer error:', error);
-                    toast.error('Failed to share to customer');
-                  }
-                }}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
-              >
-                📱 Send to Customer
-                <div className="text-muted-foreground text-[10px] mt-0.5">
-                  {loan.mobile || 'No phone number'}
-                </div>
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const docFiles = await fetchDocumentFiles(documents as any[]);
-                    await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
-                  } catch (error) {
-                    console.error('Share with phone error:', error);
-                    toast.error('Failed to share via WhatsApp');
-                  }
-                }}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
-              >
-                📞 Send to Other Number
-                <div className="text-muted-foreground text-[10px] mt-0.5">
-                  Enter phone number
-                </div>
-              </button>
-            </div>
-          </div>
+          )}
+          <button
+            onClick={() => setShowStageManager(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-purple-500/10 hover:border-purple-500 transition-colors"
+          >
+            <Settings size={14} className="text-purple-500" />
+            Update Stage
+          </button>
+          <button
+            onClick={() => window.open('https://web.whatsapp.com/', '_blank')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors"
+          >
+            <MessageCircle size={14} className="text-green-500" />
+            WhatsApp
+          </button>
           {canDelete && (
                 <button
                   onClick={() => {
@@ -688,10 +623,6 @@ export default function LoanDetail() {
                 <FileText size={16} className="text-accent shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-foreground">{getDocLabel(doc.document_type)}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {doc.file_name} • {new Date(doc.created_at).toLocaleDateString('en-IN')}
-                    {doc.file_size && ` • ${(doc.file_size / 1024).toFixed(0)} KB`}
-                  </p>
                 </div>
                 <button
                   onClick={() => previewDocument(doc)}
@@ -709,6 +640,13 @@ export default function LoanDetail() {
           <p className="text-sm text-muted-foreground text-center py-4">No documents available.</p>
         )}
       </div>
+
+      {/* Loan Application Stage Manager Modal */}
+      <LoanApplicationStageManager
+        loan={loan}
+        isOpen={showStageManager}
+        onClose={() => setShowStageManager(false)}
+      />
     </div>
   );
 }

@@ -21,12 +21,15 @@ const FormSection = ({ title, children }: { title: string; children: React.React
 
 // Validation functions
 const validatePAN = (pan: string): boolean => {
+  // PAN format: AAAAA9999A (5 letters, 4 numbers, 1 letter)
   const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
   return panRegex.test(pan);
 };
 
 const validateVehicleNumber = (vehicleNumber: string): boolean => {
-  const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/;
+  // Vehicle number format: AA99AA9999 or AA99A9999 or AA99AA999
+  // Supports: 2 letters, 2 numbers, 1-2 letters, 3-4 numbers
+  const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{3,4}$/;
   return vehicleRegex.test(vehicleNumber);
 };
 
@@ -230,31 +233,122 @@ export default function AddLead() {
   });
 
   const handlePANChange = (value: string) => {
-    const upperValue = value.toUpperCase();
-    setForm({ ...form, pan_number: upperValue });
+    // Remove all non-alphanumeric characters and convert to uppercase
+    const cleanValue = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     
-    if (upperValue.length === 10) {
-      if (!validatePAN(upperValue)) {
-        setPanError('Invalid PAN format. Format: AAAAA9999A (5 letters, 4 numbers, 1 letter)');
-      } else {
-        setPanError('');
+    let validatedValue = '';
+    let error = '';
+    
+    // Validate character by character based on position
+    for (let i = 0; i < cleanValue.length && i < 10; i++) {
+      const char = cleanValue[i];
+      
+      if (i < 5) {
+        // First 5 positions: only letters allowed
+        if (/[A-Z]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'First 5 characters must be letters only';
+          break;
+        }
+      } else if (i >= 5 && i < 9) {
+        // Positions 6-9: only digits allowed
+        if (/[0-9]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Characters 6-9 must be digits only';
+          break;
+        }
+      } else if (i === 9) {
+        // Position 10: only letter allowed
+        if (/[A-Z]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Last character must be a letter';
+          break;
+        }
       }
-    } else if (upperValue.length > 0) {
+    }
+    
+    setForm({ ...form, pan_number: validatedValue });
+    
+    // Set error messages
+    if (error) {
+      setPanError(error);
+    } else if (validatedValue.length > 0 && validatedValue.length < 10) {
+      setPanError(`PAN must be 10 characters (${validatedValue.length}/10)`);
+    } else if (validatedValue.length === 10) {
+      if (validatePAN(validatedValue)) {
+        setPanError('');
+      } else {
+        setPanError('Invalid PAN format');
+      }
+    } else {
       setPanError('');
     }
   };
 
   const handleVehicleNumberChange = (value: string) => {
-    const upperValue = value.toUpperCase();
-    setForm({ ...form, vehicle_number: upperValue });
+    // Remove all non-alphanumeric characters and convert to uppercase
+    const cleanValue = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     
-    if (upperValue.length === 10) {
-      if (!validateVehicleNumber(upperValue)) {
-        setVehicleError('Invalid vehicle number format. Format: AA99AA9999 (2 letters, 2 numbers, 2 letters, 4 numbers)');
-      } else {
-        setVehicleError('');
+    let validatedValue = '';
+    let error = '';
+    
+    // Validate character by character based on position
+    // Format: AA99AA9999 or AA99A9999 (flexible)
+    for (let i = 0; i < cleanValue.length && i < 10; i++) {
+      const char = cleanValue[i];
+      
+      if (i < 2) {
+        // First 2 positions: only letters allowed (State code)
+        if (/[A-Z]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'First 2 characters must be letters (State code)';
+          break;
+        }
+      } else if (i >= 2 && i < 4) {
+        // Positions 3-4: only digits allowed (District code)
+        if (/[0-9]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Characters 3-4 must be digits (District code)';
+          break;
+        }
+      } else if (i >= 4 && i < 6) {
+        // Positions 5-6: only letters allowed (Series)
+        if (/[A-Z]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Characters 5-6 must be letters (Series)';
+          break;
+        }
+      } else if (i >= 6) {
+        // Positions 7-10: only digits allowed (Registration number)
+        if (/[0-9]/.test(char)) {
+          validatedValue += char;
+        } else {
+          error = 'Last 4 characters must be digits (Registration number)';
+          break;
+        }
       }
-    } else if (upperValue.length > 0) {
+    }
+    
+    setForm({ ...form, vehicle_number: validatedValue });
+    
+    // Set error messages
+    if (error) {
+      setVehicleError(error);
+    } else if (validatedValue.length > 0 && validatedValue.length < 9) {
+      setVehicleError(`Vehicle number must be 9-10 characters (${validatedValue.length}/10)`);
+    } else if (validatedValue.length >= 9) {
+      if (validateVehicleNumber(validatedValue)) {
+        setVehicleError('');
+      } else {
+        setVehicleError('Invalid vehicle number format');
+      }
+    } else {
       setVehicleError('');
     }
   };
@@ -302,12 +396,12 @@ export default function AddLead() {
       toast.error('State is required');
       return;
     }
-    if (!form.vehicle_number.trim() || form.vehicle_number.length !== 10) {
-      toast.error('Valid vehicle number is required');
+    if (!form.vehicle_number.trim() || form.vehicle_number.length < 9 || form.vehicle_number.length > 10) {
+      toast.error('Valid vehicle number is required (9-10 characters)');
       return;
     }
     if (!validateVehicleNumber(form.vehicle_number)) {
-      toast.error('Invalid vehicle number format. Format: AA99AA9999 (2 letters, 2 numbers, 2 letters, 4 numbers)');
+      toast.error('Invalid vehicle number format. Must be: AA99AA9999 (2 letters, 2 digits, 1-2 letters, 3-4 digits)');
       return;
     }
     if (!form.loan_amount_required || Number(form.loan_amount_required) <= 0) {

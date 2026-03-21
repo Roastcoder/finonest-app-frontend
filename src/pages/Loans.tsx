@@ -6,8 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
 import { exportLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
-import { shareToCustomer, shareToWhatsAppWithPhone } from '@/lib/whatsapp-share';
-import { fetchDocumentFiles } from '@/lib/document-utils';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
@@ -23,7 +21,6 @@ export default function Loans() {
   const [statusFilter, setStatusFilter] = useState<ApplicationStageFilter>('all');
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [showStageManager, setShowStageManager] = useState(false);
-  const [openWhatsAppId, setOpenWhatsAppId] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   const { data: loans = [], isLoading } = useQuery({
@@ -259,72 +256,19 @@ export default function Loans() {
               <div className="mt-4 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                 {/* Action buttons row */}
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => exportLoanPDF(loan)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                  >
-                    <Printer size={14} className="text-accent" /> PDF
-                  </button>
-                  <button
-                    onClick={() => downloadLoanPDF(loan)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                  >
-                    <Download size={14} className="text-accent" /> Save
-                  </button>
-                  <div className="relative" onClick={e => e.stopPropagation()}>
+                  {user?.role !== 'executive' && (
                     <button
-                      onClick={() => setOpenWhatsAppId(openWhatsAppId === `m-${loan.id}` ? null : `m-${loan.id}`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
-                      <MessageCircle size={14} className="text-green-500" /> Share
-                      <svg className="w-2.5 h-2.5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      onClick={() => navigate(`/loans/edit/${loan.id}`)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-blue-500/10 transition-colors"
+                    >
+                      <Edit2 size={14} className="text-blue-500" /> Edit
                     </button>
-                    {openWhatsAppId === `m-${loan.id}` && (
-                      <div className="absolute bottom-full left-0 mb-1 w-40 bg-card border border-border rounded-lg shadow-lg z-20">
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            setOpenWhatsAppId(null);
-                            try {
-                              const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                              });
-                              const documents = docsResponse.ok ? await docsResponse.json() : [];
-                              const docFiles = await fetchDocumentFiles(documents);
-                              await shareToCustomer(loan, docFiles.map(d => d.file));
-                            } catch (error) {
-                              toast.error('Failed to share to customer');
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
-                        >
-                          📱 To Customer
-                          <div className="text-muted-foreground text-[10px] mt-0.5">{loan.mobile || 'No phone'}</div>
-                        </button>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            setOpenWhatsAppId(null);
-                            try {
-                              const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                              });
-                              const documents = docsResponse.ok ? await docsResponse.json() : [];
-                              const docFiles = await fetchDocumentFiles(documents);
-                              await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
-                            } catch (error) {
-                              toast.error('Failed to share via WhatsApp');
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
-                        >
-                          📞 Other Number
-                          <div className="text-muted-foreground text-[10px] mt-0.5">Enter phone</div>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  )}
+                  <button
+                    onClick={() => window.open('https://web.whatsapp.com/', '_blank')}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
+                    <MessageCircle size={14} className="text-green-500" /> Share
+                  </button>
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(loan)}
@@ -350,114 +294,75 @@ export default function Loans() {
       </div>
 
       {/* Desktop Table View — only on lg+ screens */}
-      <div className="stat-card overflow-x-auto max-lg:hidden">
+      <div className="stat-card max-lg:hidden" style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', overflowX: 'auto' }}>
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground text-sm">Loading applications…</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div>
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 bg-card z-10">
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Loan ID</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Applicant</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Vehicle</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Case Type</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Bank</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Sourcing Name</th>
-                  <th className="text-right py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Amount</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Application Stage</th>
-                  <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Loan ID</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Applicant</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Vehicle</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Case Type</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Bank</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Sourcing</th>
+                  <th className="text-right py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Amount</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Stage</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Actions</th>
                   {showUpdateColumn && (
-                    <th className="text-left py-3 px-3 font-medium text-muted-foreground whitespace-nowrap">Stage Management</th>
+                    <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Update</th>
                   )}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((loan: any) => (
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
-                    <td className="py-3.5 px-3 font-mono text-sm text-primary font-semibold whitespace-nowrap">{loan.loan_number || loan.id}</td>
-                    <td className="py-3.5 px-3 whitespace-nowrap">
-                      <p className="font-medium text-foreground">{loan.applicant_name}</p>
-                      <p className="text-xs text-muted-foreground">{loan.mobile}</p>
+                    <td className="py-2 px-2 font-mono text-xs text-primary font-semibold whitespace-nowrap">{loan.loan_number || loan.id}</td>
+                    <td className="py-2 px-2 whitespace-nowrap">
+                      <p className="font-medium text-foreground text-xs">{loan.applicant_name}</p>
+                      <p className="text-[10px] text-muted-foreground">{loan.mobile}</p>
                     </td>
-                    <td className="py-3.5 px-3 whitespace-nowrap">
-                      <p className="text-foreground">{loan.maker_name || loan.car_make} {loan.model_variant_name || loan.car_model}</p>
-                      <p className="text-xs text-muted-foreground">{loan.vehicle_number || loan.car_variant}</p>
+                    <td className="py-2 px-2 whitespace-nowrap">
+                      <p className="text-foreground text-xs">{loan.maker_name || loan.car_make} {loan.model_variant_name || loan.car_model}</p>
+                      <p className="text-[10px] text-muted-foreground">{loan.vehicle_number || loan.car_variant}</p>
                     </td>
-                    <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.case_type || '—'}</td>
-                    <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.bank_name || '—'}</td>
-                    <td className="py-3.5 px-3 text-muted-foreground whitespace-nowrap">{loan.sourcing_person_name || '—'}</td>
-                    <td className="py-3.5 px-3 text-right font-medium text-foreground whitespace-nowrap">{formatCurrency(Number(loan.loan_amount))}</td>
-                    <td className="py-3.5 px-3 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
-                    <td className="py-3.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.case_type || '—'}</td>
+                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.bank_name || '—'}</td>
+                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.sourcing_person_name || '—'}</td>
+                    <td className="py-2 px-2 text-right font-medium text-foreground whitespace-nowrap text-xs">{formatCurrency(Number(loan.loan_amount))}</td>
+                    <td className="py-2 px-2 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
+                    <td className="py-2 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => exportLoanPDF(loan)}
-                          className="p-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
                           title="Export PDF"
                         >
-                          <Printer size={12} className="text-accent" />
+                          <Printer size={11} className="text-accent" />
                         </button>
-                        <div className="relative" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => window.open('https://web.whatsapp.com/', '_blank')}
+                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via WhatsApp">
+                          <MessageCircle size={11} className="text-green-500" />
+                        </button>
+                        {user?.role !== 'executive' && (
                           <button
-                            onClick={() => setOpenWhatsAppId(openWhatsAppId === `d-${loan.id}` ? null : `d-${loan.id}`)}
-                            className="p-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via WhatsApp">
-                            <MessageCircle size={12} className="text-green-500" />
+                            onClick={() => navigate(`/loans/edit/${loan.id}`)}
+                            className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 transition-colors" title="Edit Loan">
+                            <Edit2 size={11} className="text-blue-500" />
                           </button>
-                          {openWhatsAppId === `d-${loan.id}` && (
-                            <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-lg shadow-lg z-20">
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setOpenWhatsAppId(null);
-                                  try {
-                                    const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                                      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                                    });
-                                    const documents = docsResponse.ok ? await docsResponse.json() : [];
-                                    const docFiles = await fetchDocumentFiles(documents);
-                                    await shareToCustomer(loan, docFiles.map(d => d.file));
-                                  } catch (error) {
-                                    toast.error('Failed to share to customer');
-                                  }
-                                }}
-                                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors border-b border-border"
-                              >
-                                📱 To Customer
-                                <div className="text-muted-foreground text-[10px] mt-0.5">{loan.mobile || 'No phone'}</div>
-                              </button>
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setOpenWhatsAppId(null);
-                                  try {
-                                    const docsResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/documents`, {
-                                      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-                                    });
-                                    const documents = docsResponse.ok ? await docsResponse.json() : [];
-                                    const docFiles = await fetchDocumentFiles(documents);
-                                    await shareToWhatsAppWithPhone(loan, docFiles.map(d => d.file));
-                                  } catch (error) {
-                                    toast.error('Failed to share via WhatsApp');
-                                  }
-                                }}
-                                className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 transition-colors"
-                              >
-                                📞 Other Number
-                                <div className="text-muted-foreground text-[10px] mt-0.5">Enter phone</div>
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </td>
                     {showUpdateColumn && (
-                      <td className="py-3.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-2 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleStageUpdate(loan)}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 rounded-md border border-border bg-card text-[10px] font-medium text-foreground hover:bg-accent/10 transition-colors"
                         >
-                          <Settings size={14} /> Update
+                          <Settings size={11} /> Update
                         </button>
                       </td>
                     )}
