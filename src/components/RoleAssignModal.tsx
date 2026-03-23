@@ -147,6 +147,19 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Validate phone number if provided
+    if (phone && phone.length !== 10) {
+      setError('Phone number must be exactly 10 digits');
+      return;
+    }
+    
+    // Validate phone number contains only digits
+    if (phone && !/^\d{10}$/.test(phone)) {
+      setError('Phone number must contain only digits');
+      return;
+    }
+    
     setLoading(true);
     try {
       if (targetUser) {
@@ -247,11 +260,41 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
                 <label className="block text-sm font-medium mb-1.5">Phone</label>
                 <input
                   type="tel"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                  className={`w-full px-3 py-2 rounded-lg border bg-background ${
+                    phone && phone.length > 0 
+                      ? phone.length === 10 && /^\d{10}$/.test(phone)
+                        ? 'border-green-500 focus:border-green-500'
+                        : 'border-red-500 focus:border-red-500'
+                      : 'border-border'
+                  }`}
                   value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="Enter phone number"
+                  onChange={e => {
+                    const value = e.target.value;
+                    // Only allow numbers and limit to 10 digits
+                    if (/^\d{0,10}$/.test(value)) {
+                      setPhone(value);
+                    }
+                  }}
+                  onKeyPress={e => {
+                    // Prevent non-numeric characters
+                    if (!/\d/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="Enter 10-digit phone number"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  title="Please enter a valid 10-digit phone number"
                 />
+                {phone && phone.length > 0 && (
+                  <div className="mt-1 text-xs">
+                    {phone.length === 10 && /^\d{10}$/.test(phone) ? (
+                      <span className="text-green-600">✓ Valid phone number</span>
+                    ) : (
+                      <span className="text-red-600">⚠ Phone number must be exactly 10 digits</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">Password *</label>

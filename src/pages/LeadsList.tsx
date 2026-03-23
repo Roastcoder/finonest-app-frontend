@@ -8,6 +8,37 @@ import { toast } from 'sonner';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
 
+// Loan application stage colors and labels
+const LOAN_STAGE_COLORS: { [key: string]: string } = {
+  'submitted': 'bg-blue-100 text-blue-700 border-blue-200',
+  'under_review': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'approved': 'bg-green-100 text-green-700 border-green-200',
+  'rejected': 'bg-red-100 text-red-700 border-red-200',
+  'disbursed': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'cancelled': 'bg-gray-100 text-gray-700 border-gray-200',
+  'pending_documents': 'bg-orange-100 text-orange-700 border-orange-200',
+  'verification': 'bg-purple-100 text-purple-700 border-purple-200',
+};
+
+const LOAN_STAGE_LABELS: { [key: string]: string } = {
+  'submitted': 'Submitted',
+  'under_review': 'Under Review',
+  'approved': 'Approved',
+  'rejected': 'Rejected',
+  'disbursed': 'Disbursed',
+  'cancelled': 'Cancelled',
+  'pending_documents': 'Pending Docs',
+  'verification': 'Verification',
+};
+
+const getLoanStageColor = (stage: string) => {
+  return LOAN_STAGE_COLORS[stage] || 'bg-gray-100 text-gray-700 border-gray-200';
+};
+
+const getLoanStageLabel = (stage: string) => {
+  return LOAN_STAGE_LABELS[stage] || stage.charAt(0).toUpperCase() + stage.slice(1);
+};
+
 export default function LeadsList() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -47,7 +78,39 @@ export default function LeadsList() {
 
   const { data: leads = [], isLoading, error: leadsError } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => api.get('/leads'),
+    queryFn: async () => {
+      const leadsData = await api.get('/leads');
+      
+      // Fetch loan data for each lead to get loan application stage
+      const leadsWithLoanStage = await Promise.all(
+        leadsData.map(async (lead: any) => {
+          if (lead.converted_to_loan) {
+            try {
+              // Fetch loan data for this lead
+              const loanResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans?lead_id=${lead.id}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+              });
+              if (loanResponse.ok) {
+                const loans = await loanResponse.json();
+                const loan = loans.find((l: any) => l.lead_id === lead.id);
+                if (loan) {
+                  return {
+                    ...lead,
+                    loan_application_stage: loan.status || loan.app_stage || 'submitted',
+                    loan_id: loan.id
+                  };
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching loan data for lead:', lead.id, error);
+            }
+          }
+          return lead;
+        })
+      );
+      
+      return leadsWithLoanStage;
+    },
     enabled: !!user,
   });
 
@@ -243,8 +306,12 @@ export default function LeadsList() {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {lead.converted_to_loan ? (
-                      <span className="shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
-                        Converted
+                      <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
+                        lead.loan_application_stage 
+                          ? getLoanStageColor(lead.loan_application_stage)
+                          : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                      }`}>
+                        {lead.loan_application_stage ? getLoanStageLabel(lead.loan_application_stage) : 'Converted'}
                       </span>
                     ) : (
                       <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
@@ -366,8 +433,12 @@ export default function LeadsList() {
                     </td>
                     <td className="py-4 px-4 text-center">
                       {lead.converted_to_loan ? (
-                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
-                          Converted
+                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
+                          lead.loan_application_stage 
+                            ? getLoanStageColor(lead.loan_application_stage)
+                            : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                        }`}>
+                          {lead.loan_application_stage ? getLoanStageLabel(lead.loan_application_stage) : 'Converted'}
                         </span>
                       ) : (
                         <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${

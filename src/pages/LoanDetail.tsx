@@ -475,116 +475,50 @@ export default function LoanDetail() {
               history.find((h: any) => h.stage === stage);
 
             const loginEntry = fromHistory('LOGIN');
-            const inProcessEntry = fromHistory('IN_PROCESS');
-            const approvedEntry = fromHistory('APPROVED');
-            const disbursedEntry = fromHistory('DISBURSED');
-            const rejectedEntry = fromHistory('REJECTED');
-            const cancelledEntry = fromHistory('CANCELLED');
+            const currentStage = l.application_stage || l.app_stage || loan.status || 'submitted';
 
             // Resolve values: prefer DB columns, fallback to history
             const appScore = l.app_score || loginEntry?.appScore;
             const creditScore = l.credit_score || loginEntry?.creditScore;
-            const tags = l.tags || inProcessEntry?.tags;
-            const approvedAmount = approvedEntry?.loanAmount;
-            const approvedRoi = approvedEntry?.roi;
-            const approvedTenure = approvedEntry?.tenure;
-            const disbursedAmount = disbursedEntry?.loanAmount;
-            const disbursedRoi = disbursedEntry?.roi;
-            const disbursedTenure = disbursedEntry?.tenure;
-            const lan = l.loan_account_number || disbursedEntry?.loanAccountNumber;
-            const rcType = l.rc_type || disbursedEntry?.rcType;
-            const rcBy = l.rc_collected_by || disbursedEntry?.collectedBy;
-            const rejectedRemarks = l.rejection_remarks || rejectedEntry?.remarks;
-            const cancelledRemarks = l.cancellation_remarks || cancelledEntry?.remarks;
 
             return (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-1">
-                  <Field label="Current Stage" value={l.application_stage || l.app_stage || loan.status || '—'} />
-                  <Field label="Stage Changed At" value={l.stage_changed_at ? new Date(l.stage_changed_at).toLocaleDateString('en-IN') : '—'} />
+                {/* Current Stage */}
+                <div>
+                  <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wide">Current Status</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Field label="Current Stage" value={currentStage} />
+                    <Field label="Stage Changed At" value={l.stage_changed_at ? new Date(l.stage_changed_at).toLocaleDateString('en-IN') : '—'} />
+                  </div>
                 </div>
 
-                {/* Login */}
+                {/* Login Stage - Only show if data exists */}
                 {(appScore || creditScore) && (
                   <div>
                     <p className="text-xs font-bold text-blue-600 mb-2 uppercase tracking-wide">Login Stage</p>
                     <div className="grid grid-cols-2 gap-1">
-                      <Field label="App Score" value={appScore?.toString() || '—'} />
-                      <Field label="Credit Score" value={creditScore?.toString() || '—'} />
+                      {appScore && <Field label="App Score" value={appScore.toString()} />}
+                      {creditScore && <Field label="Credit Score" value={creditScore.toString()} />}
                     </div>
                   </div>
                 )}
 
-                {/* In Process */}
-                {tags && (Array.isArray(tags) ? tags.length > 0 : true) && (
-                  <div>
-                    <p className="text-xs font-bold text-yellow-600 mb-2 uppercase tracking-wide">In Process Stage</p>
-                    <div className="grid grid-cols-1 gap-4">
-                      <Field label="Pendency Tags" value={Array.isArray(tags) ? tags.join(', ') : tags} />
-                    </div>
+                {/* Submitted Stage Info */}
+                <div>
+                  <p className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide">Submitted Stage</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Field label="Login Date" value={(loan as any).login_date ? new Date((loan as any).login_date).toLocaleDateString('en-IN') : '—'} />
+                    <Field label="Sourcing Person" value={(loan as any).sourcing_person_name || '—'} />
                   </div>
-                )}
-
-                {/* Approved */}
-                {approvedEntry && (
-                  <div>
-                    <p className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide">Approved Stage</p>
-                    <div className="grid grid-cols-2 gap-1">
-                      <Field label="Approved Loan Amount" value={approvedEntry.loanAmount ? formatCurrency(Number(approvedEntry.loanAmount)) : '—'} />
-                      <Field label="Approved ROI" value={approvedEntry.roi ? `${approvedEntry.roi}%` : '—'} />
-                      <Field label="Approved Tenure" value={approvedEntry.tenure ? `${approvedEntry.tenure} months` : '—'} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Disbursed */}
-                {disbursedEntry && (
-                  <div>
-                    <p className="text-xs font-bold text-emerald-600 mb-2 uppercase tracking-wide">Disbursed Stage</p>
-                    <div className="grid grid-cols-2 gap-1">
-                      <Field label="Disbursed Loan Amount" value={disbursedEntry.loanAmount ? formatCurrency(Number(disbursedEntry.loanAmount)) : '—'} />
-                      <Field label="Disbursed ROI" value={disbursedEntry.roi ? `${disbursedEntry.roi}%` : '—'} />
-                      <Field label="Disbursed Tenure" value={disbursedEntry.tenure ? `${disbursedEntry.tenure} months` : '—'} />
-                      <Field label="Loan Account Number" value={lan || '—'} />
-                      {rcType && <Field label="RC Type" value={rcType} />}
-                      {rcBy && <Field label="RC Collected By" value={rcBy} />}
-                      {(l.rto_agent_name_rc || disbursedEntry.agentName) && <Field label="Agent Name" value={l.rto_agent_name_rc || disbursedEntry.agentName} />}
-                      {(l.rto_agent_mobile || disbursedEntry.agentMobile) && <Field label="Agent Mobile" value={l.rto_agent_mobile || disbursedEntry.agentMobile} />}
-                      {(l.banker_name || disbursedEntry.bankerName) && <Field label="Banker Name" value={l.banker_name || disbursedEntry.bankerName} />}
-                      {(l.banker_mobile || disbursedEntry.bankerMobile) && <Field label="Banker Mobile" value={l.banker_mobile || disbursedEntry.bankerMobile} />}
-                    </div>
-                  </div>
-                )}
-
-                {/* Rejected */}
-                {rejectedRemarks && (
-                  <div>
-                    <p className="text-xs font-bold text-red-600 mb-2 uppercase tracking-wide">Rejected Stage</p>
-                    <div className="grid grid-cols-1 gap-4">
-                      <Field label="Rejection Remarks" value={rejectedRemarks} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Cancelled */}
-                {cancelledRemarks && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Cancelled Stage</p>
-                    <div className="grid grid-cols-1 gap-4">
-                      <Field label="Cancellation Remarks" value={cancelledRemarks} />
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             );
           })()}
         </Section>
 
-        <Section title="Important Dates" icon={<Building2 size={18} />}>
-          <div className="grid grid-cols-2 gap-1">
-            <Field label="Login Date" value={(loan as any).login_date ? new Date((loan as any).login_date).toLocaleDateString('en-IN') : '—'} />
-            <Field label="Sourcing Person" value={(loan as any).sourcing_person_name || '—'} />
-            <div className="col-span-2"><Field label="Remark" value={(loan as any).remark || '—'} /></div>
+        <Section title="Other Details" icon={<Building2 size={18} />}>
+          <div className="grid grid-cols-1 gap-1">
+            <div className="col-span-1"><Field label="Remark" value={(loan as any).remark || '—'} /></div>
           </div>
         </Section>
       </div>

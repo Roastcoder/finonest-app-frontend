@@ -15,22 +15,14 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('executive');
   const [reportingTo, setReportingTo] = useState('');
+  const [referCode, setReferCode] = useState('');
   const [branch, setBranch] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users-signup'],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`);
-        if (!response.ok) return [];
-        return await response.json();
-      } catch {
-        return [];
-      }
-    },
-  });
+  // Disable team leaders query since we don't need it for signup
+  // Backend will handle refer code validation
+  const teamLeaders: any[] = [];
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,8 +42,11 @@ export default function Signup() {
           password,
           role,
           reporting_to: reportingTo || null,
+          refer_code: referCode || null,
           branch: branch || null,
-          joining_date: new Date().toISOString().split('T')[0]
+          joining_date: new Date().toISOString().split('T')[0],
+          // Executive without refer code needs admin approval
+          status: (role === 'executive' && !referCode) ? 'pending_approval' : 'active'
         })
       });
 
@@ -64,7 +59,14 @@ export default function Signup() {
       }
 
       setLoading(false);
-      toast.success('Account created! Please login.');
+      
+      // Different success messages based on approval status
+      if (role === 'executive' && !referCode) {
+        toast.success('Account created! Waiting for admin approval to login.');
+      } else {
+        toast.success('Account created! Please login.');
+      }
+      
       navigate('/login');
     } catch (err: any) {
       setLoading(false);
@@ -170,7 +172,7 @@ export default function Signup() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
                     placeholder="you@example.com"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
                   />
@@ -204,47 +206,46 @@ export default function Signup() {
                   <Shield size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
+                    onChange={(e) => {
+                      setRole(e.target.value);
+                      setReferCode(''); // Clear refer code when role changes
+                      setReportingTo(''); // Clear reporting to when role changes
+                    }}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none shadow-sm backdrop-blur-md font-medium"
                   >
-                    <option value="executive">DST (Finonest Employee)</option>
+                    <option value="executive">Executive</option>
                     <option value="dsa">DSA</option>
                   </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Reporting To (Optional)</label>
-                <div className="relative">
-                  <UserCircle size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                  <select
-                    value={reportingTo}
-                    onChange={(e) => setReportingTo(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none shadow-sm backdrop-blur-md font-medium"
-                  >
-                    <option value="">Select manager</option>
-                    {users.map((user: any) => (
-                      <option key={user.id} value={user.id} className="text-gray-900 bg-white dark:bg-slate-800 dark:text-white">
-                        {user.name} ({user.role})
-                      </option>
-                    ))}
-                  </select>
+              {/* Refer Code for Executive */}
+              {role === 'executive' && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">
+                    Refer Code
+                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <UserCircle size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                    <input
+                      type="text"
+                      value={referCode}
+                      onChange={(e) => setReferCode(e.target.value.toUpperCase())}
+                      placeholder="Enter BM/DSA refer code"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {referCode 
+                      ? "Enter refer code of Branch Manager or DSA to join their team" 
+                      : "Without refer code, your account will need admin approval before you can login"
+                    }
+                  </p>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Branch (Optional)</label>
-                <div className="relative">
-                  <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                  <input
-                    type="text"
-                    value={branch}
-                    onChange={(e) => setBranch(e.target.value)}
-                    placeholder="Enter branch name"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
-                  />
-                </div>
-              </div>
+             
 
               <button
                 type="submit"

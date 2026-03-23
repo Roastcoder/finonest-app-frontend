@@ -82,45 +82,25 @@ export default function CreateLoan() {
     },
   });
 
-  const LEDGER_OPTIONS = [
-    'HDFC Bank',
-    'Axis Bank',
-    'ICICI Bank',
-    'Mahindra Finance',
-    'Equitas Small Finance Bank',
-    'Toyota Financial Services India Limited',
-    'Kotak Mahindra Prime',
-    'Jana Bank',
-    'Federal Bank',
-    'Tata Capital',
-    'Bandhan Bank',
-    'Loans24',
-    'Saraswat Bank',
-    'Muthoot Capital',
-    'Poonawalla Fincorp Limited',
-    'Suryoday Bank',
-    'Indostar',
-    'ESAF Small Finance Bank',
-    'Vastu Finserve',
-    'HDB Financial Services',
-    'IDFC First Bank',
-    'Cholamandalam Finance',
-    'Hero Fincorp',
-    'Bajaj Finserv Ltd',
-    'Yes Bank',
-    'TVS Credit Services',
-    'Fortune Finance',
-    'Piramal',
-    'AU Small Finance Bank',
-    'IndusInd Bank',
-    'RBL Bank',
-    'Manappuram Finance Limited',
-    'Nissan Renault Financial Services',
-    'IKF Finance',
-    'Kogta Financial India Limited',
-    'Sundaram Finance',
-    'Others'
-  ];
+  const { data: lenders = [] } = useQuery({
+    queryKey: ['lenders-from-banks'],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/banks`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) {
+          return ['Others']; // Fallback
+        }
+        const banksData = await response.json();
+        // Extract bank names and add 'Others' option
+        const bankNames = banksData.map((bank: any) => bank.name).filter(Boolean);
+        return [...bankNames, 'Others'];
+      } catch {
+        return ['Others']; // Fallback if fetch fails
+      }
+    },
+  });
 
   const { data: assignableUsers = [] } = useQuery({
     queryKey: ['assignable-users'],
@@ -371,8 +351,10 @@ export default function CreateLoan() {
     }
     
     setFetchingVehicleData(true);
+    console.log('Fetching vehicle details for:', rcNumber); // Debug log
 
     const applyRCData = (rc: any) => {
+      console.log('Applying RC data:', rc); // Debug log
       const convertDate = (dateStr: string) => {
         if (!dateStr) return '';
         if (dateStr.includes('/') && dateStr.split('/').length === 2) {
@@ -410,7 +392,10 @@ export default function CreateLoan() {
 
     try {
       toast.info('Fetching vehicle details...');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/rc-verification/verify`, {
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/rc-verification/verify`;
+      console.log('API URL:', apiUrl); // Debug log
+      
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -418,14 +403,20 @@ export default function CreateLoan() {
         },
         body: JSON.stringify({ rc_number: rcNumber }),
       });
+      
+      console.log('Response status:', res.status); // Debug log
       const data = await res.json();
+      console.log('Response data:', data); // Debug log
+      
       if (data.success && data.data?.rc_details) {
         applyRCData(data.data.rc_details);
         toast.success(data.from_cache ? 'Vehicle details loaded from database!' : 'Vehicle details fetched successfully!');
       } else {
+        console.error('API Error:', data);
         toast.error(data.error || 'Could not fetch vehicle details');
       }
     } catch (error: any) {
+      console.error('Fetch Error:', error);
       toast.error(error.message || 'Failed to fetch vehicle details');
     } finally {
       setFetchingVehicleData(false);
@@ -869,8 +860,8 @@ export default function CreateLoan() {
                   required
                 >
                   <option value="">Choose lender</option>
-                  {LEDGER_OPTIONS.map((ledger) => (
-                    <option key={ledger} value={ledger}>{ledger}</option>
+                  {lenders.map((lender) => (
+                    <option key={lender} value={lender}>{lender}</option>
                   ))}
                 </select>
               </div>
@@ -1116,9 +1107,13 @@ export default function CreateLoan() {
                   <label className={labelClass}>Vehicle Reg. No</label>
                   <button
                     type="button"
-                    onClick={() => fetchVehicleDetails(form.vehicleNumber)}
+                    onClick={() => {
+                      console.log('Search button clicked, vehicle number:', form.vehicleNumber); // Debug log
+                      fetchVehicleDetails(form.vehicleNumber);
+                    }}
                     disabled={!form.vehicleNumber || form.vehicleNumber.length < 8 || fetchingVehicleData}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    title={!form.vehicleNumber || form.vehicleNumber.length < 8 ? 'Enter at least 8 characters' : 'Fetch vehicle details'}
                   >
                     {fetchingVehicleData ? (
                       <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
