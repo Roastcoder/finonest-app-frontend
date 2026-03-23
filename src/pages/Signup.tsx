@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import { ArrowRight, Mail, Lock, User, Building2, Shield, BarChart3, Users as UsersIcon, Zap, Download, Eye, EyeOff, UserCircle, CreditCard, FileText, CheckCircle, ArrowLeft } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { toast } from 'sonner';
@@ -124,29 +125,10 @@ export default function Signup() {
     setLoading(true);
     try {
       // First check if PAN already exists in our system
-      const checkResponse = await fetch('http://localhost:5000/api/auth/check-pan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pan_number: panNumber })
-      });
-      
-      const checkData = await checkResponse.json();
-      
-      if (!checkResponse.ok) {
-        if (checkData.errorType === 'PAN_EXISTS') {
-          toast.error(checkData.error);
-          return;
-        }
-      }
+      const checkData = await api.post('/auth/check-pan', { pan_number: panNumber });
       
       // If PAN doesn't exist, proceed with KYC verification
-      const response = await fetch('http://localhost:5000/api/kyc/verify-pan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pan_number: panNumber })
-      });
-      
-      const data = await response.json();
+      const data = await api.post('/kyc/verify-pan', { pan_number: panNumber });
       
       if (data.success) {
         setPanData(data.data);
@@ -157,8 +139,12 @@ export default function Signup() {
       } else {
         toast.error('PAN verification failed. Please check your PAN number.');
       }
-    } catch (error) {
-      toast.error('PAN verification failed. Please try again.');
+    } catch (error: any) {
+      if (error.message.includes('already registered')) {
+        toast.error(error.message);
+      } else {
+        toast.error('PAN verification failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -174,29 +160,10 @@ export default function Signup() {
     setLoading(true);
     try {
       // First check if Aadhaar already exists in our system
-      const checkResponse = await fetch('http://localhost:5000/api/auth/check-aadhaar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aadhaar_number: aadhaarNumber })
-      });
-      
-      const checkData = await checkResponse.json();
-      
-      if (!checkResponse.ok) {
-        if (checkData.errorType === 'AADHAAR_EXISTS') {
-          toast.error(checkData.error);
-          return;
-        }
-      }
+      const checkData = await api.post('/auth/check-aadhaar', { aadhaar_number: aadhaarNumber });
       
       // If Aadhaar doesn't exist, proceed with OTP
-      const response = await fetch('http://localhost:5000/api/kyc/send-aadhaar-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aadhaar_number: aadhaarNumber })
-      });
-      
-      const data = await response.json();
+      const data = await api.post('/kyc/send-aadhaar-otp', { aadhaar_number: aadhaarNumber });
       
       if (data.success) {
         setClientId(data.client_id);
@@ -205,8 +172,12 @@ export default function Signup() {
       } else {
         toast.error('Failed to send OTP. Please check your Aadhaar number.');
       }
-    } catch (error) {
-      toast.error('Failed to send OTP. Please try again.');
+    } catch (error: any) {
+      if (error.message.includes('already registered')) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to send OTP. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -221,16 +192,10 @@ export default function Signup() {
     
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/kyc/verify-aadhaar-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          client_id: clientId,
-          otp: aadhaarOtp 
-        })
+      const data = await api.post('/kyc/verify-aadhaar-otp', { 
+        client_id: clientId,
+        otp: aadhaarOtp 
       });
-      
-      const data = await response.json();
       
       if (data.success) {
         setAadhaarData(data.data);
