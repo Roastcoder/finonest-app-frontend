@@ -8,35 +8,52 @@ import { toast } from 'sonner';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
 
+// Lead stage colors and labels (simplified)
+const LEAD_STAGE_COLORS: { [key: string]: string } = {
+  'SUBMITTED': 'bg-blue-100 text-blue-700 border-blue-200',
+  'CONVERTED': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+};
+
+const LEAD_STAGE_LABELS: { [key: string]: string } = {
+  'SUBMITTED': 'Submitted',
+  'CONVERTED': 'Converted',
+};
+
 // Loan application stage colors and labels
 const LOAN_STAGE_COLORS: { [key: string]: string } = {
-  'submitted': 'bg-blue-100 text-blue-700 border-blue-200',
-  'under_review': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  'approved': 'bg-green-100 text-green-700 border-green-200',
-  'rejected': 'bg-red-100 text-red-700 border-red-200',
-  'disbursed': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  'cancelled': 'bg-gray-100 text-gray-700 border-gray-200',
-  'pending_documents': 'bg-orange-100 text-orange-700 border-orange-200',
-  'verification': 'bg-purple-100 text-purple-700 border-purple-200',
+  'SUBMITTED': 'bg-blue-100 text-blue-700 border-blue-200',
+  'LOGIN': 'bg-purple-100 text-purple-700 border-purple-200',
+  'IN_PROCESS': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'APPROVED': 'bg-green-100 text-green-700 border-green-200',
+  'REJECTED': 'bg-red-100 text-red-700 border-red-200',
+  'DISBURSED': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'CANCELLED': 'bg-gray-100 text-gray-700 border-gray-200',
 };
 
 const LOAN_STAGE_LABELS: { [key: string]: string } = {
-  'submitted': 'Submitted',
-  'under_review': 'Under Review',
-  'approved': 'Approved',
-  'rejected': 'Rejected',
-  'disbursed': 'Disbursed',
-  'cancelled': 'Cancelled',
-  'pending_documents': 'Pending Docs',
-  'verification': 'Verification',
+  'SUBMITTED': 'Submitted',
+  'LOGIN': 'Login',
+  'IN_PROCESS': 'In Process',
+  'APPROVED': 'Approved',
+  'REJECTED': 'Rejected',
+  'DISBURSED': 'Disbursed',
+  'CANCELLED': 'Cancelled',
+};
+
+const getLeadStageColor = (stage: string) => {
+  return LEAD_STAGE_COLORS[stage] || 'bg-blue-100 text-blue-700 border-blue-200';
+};
+
+const getLeadStageLabel = (stage: string) => {
+  return LEAD_STAGE_LABELS[stage] || 'Submitted';
 };
 
 const getLoanStageColor = (stage: string) => {
-  return LOAN_STAGE_COLORS[stage] || 'bg-gray-100 text-gray-700 border-gray-200';
+  return LOAN_STAGE_COLORS[stage?.toUpperCase()] || 'bg-gray-100 text-gray-700 border-gray-200';
 };
 
 const getLoanStageLabel = (stage: string) => {
-  return LOAN_STAGE_LABELS[stage] || stage.charAt(0).toUpperCase() + stage.slice(1);
+  return LOAN_STAGE_LABELS[stage?.toUpperCase()] || stage;
 };
 
 export default function LeadsList() {
@@ -96,7 +113,7 @@ export default function LeadsList() {
                 if (loan) {
                   return {
                     ...lead,
-                    loan_application_stage: loan.status || loan.app_stage || 'submitted',
+                    loan_application_stage: loan.application_stage || 'SUBMITTED',
                     loan_id: loan.id
                   };
                 }
@@ -115,9 +132,6 @@ export default function LeadsList() {
   });
 
   const filtered = leads.filter((l: any) => {
-    // Hide converted leads for all roles
-    if (l.converted_to_loan) return false;
-
     // Branch filter
     if (filterBranch !== 'all' && l.our_branch !== filterBranch) return false;
 
@@ -305,21 +319,20 @@ export default function LeadsList() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    {lead.converted_to_loan ? (
+                    <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
+                      lead.converted_to_loan 
+                        ? getLeadStageColor('CONVERTED')
+                        : getLeadStageColor('SUBMITTED')
+                    }`}>
+                      {lead.converted_to_loan ? getLeadStageLabel('CONVERTED') : getLeadStageLabel('SUBMITTED')}
+                    </span>
+                    {lead.converted_to_loan && (
                       <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
                         lead.loan_application_stage 
                           ? getLoanStageColor(lead.loan_application_stage)
-                          : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                          : 'bg-blue-100 text-blue-700 border-blue-200'
                       }`}>
-                        {lead.loan_application_stage ? getLoanStageLabel(lead.loan_application_stage) : 'Converted'}
-                      </span>
-                    ) : (
-                      <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
-                        lead.application_stage 
-                          ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
-                          : 'bg-primary/10 text-primary border-primary/20'
-                      }`}>
-                        {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+                        {lead.loan_application_stage ? getLoanStageLabel(lead.loan_application_stage) : 'Submitted'}
                       </span>
                     )}
                   </div>
@@ -393,7 +406,8 @@ export default function LeadsList() {
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Vehicle No.</th>
                   <th className="text-right py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Loan Amount</th>
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Branch</th>
-                  <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Current Stage</th>
+                  <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Lead Stage</th>
+                  <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Loan Stage</th>
                   <th className="py-4 px-4"></th>
                 </tr>
               </thead>
@@ -432,22 +446,27 @@ export default function LeadsList() {
                       <span className="text-xs text-muted-foreground font-medium">{lead.our_branch || 'Direct'}</span>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      {lead.converted_to_loan ? (
+                      <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
+                        lead.converted_to_loan 
+                          ? getLeadStageColor('CONVERTED')
+                          : getLeadStageColor('SUBMITTED')
+                      }`}>
+                        {lead.converted_to_loan ? getLeadStageLabel('CONVERTED') : getLeadStageLabel('SUBMITTED')}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {lead.converted_to_loan && lead.loan_application_stage ? (
                         <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
-                          lead.loan_application_stage 
-                            ? getLoanStageColor(lead.loan_application_stage)
-                            : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                          getLoanStageColor(lead.loan_application_stage)
                         }`}>
-                          {lead.loan_application_stage ? getLoanStageLabel(lead.loan_application_stage) : 'Converted'}
+                          {getLoanStageLabel(lead.loan_application_stage)}
+                        </span>
+                      ) : lead.converted_to_loan ? (
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border bg-blue-100 text-blue-700 border-blue-200">
+                          Submitted
                         </span>
                       ) : (
-                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
-                          lead.application_stage 
-                            ? STAGE_COLORS[lead.application_stage as ApplicationStage] 
-                            : 'bg-primary/10 text-primary border-primary/20'
-                        }`}>
-                          {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
-                        </span>
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="py-4 px-4">
