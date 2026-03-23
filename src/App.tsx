@@ -40,6 +40,7 @@ import FolioAccounts from "@/pages/FolioAccounts";
 import AccountPayments from "@/pages/AccountPayments";
 import BankAccounts from "@/pages/BankAccounts";
 import ApplicationStageManagement from "@/pages/ApplicationStageManagement";
+import UserProfile from "@/pages/UserProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -93,6 +94,7 @@ function AppRoutes() {
       <Route path="/audit-logs" element={<ProtectedRoute><AuditLogPage /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><TeamUsers /></ProtectedRoute>} />
       <Route path="/application-stages" element={<ProtectedRoute><ApplicationStageManagement /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
 
       {/* External Portals */}
       {/* Accountant Portal */}
