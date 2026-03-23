@@ -14,6 +14,7 @@ export interface AppUser {
   reporting_to?: number;
   manager_name?: string;
   manager_role?: string;
+  refer_code?: string;
 }
 
 interface AuthContextType {
@@ -22,7 +23,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  signUp: (userData: any) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,12 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string): Promise<{ error: string | null }> => {
+  const signUp = async (userData: any): Promise<{ success: boolean; error?: string }> => {
     try {
-      await authAPI.signup(fullName, email, password);
-      return { error: null };
+      await authAPI.signup(userData.name, userData.email, userData.password, {
+        role: userData.role,
+        refer_code: userData.refer_code,
+        pan_number: userData.pan_number,
+        aadhaar_number: userData.aadhaar_number,
+        pan_data: userData.pan_data,
+        aadhaar_data: userData.aadhaar_data
+      });
+      return { success: true };
     } catch (error: any) {
-      return { error: error.message };
+      return { success: false, error: error.message };
     }
   };
 

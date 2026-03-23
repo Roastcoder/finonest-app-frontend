@@ -33,7 +33,12 @@ export default function Login() {
     const result = await login(email, password);
     setLoading(false);
     if (result.error) {
-      setError('Invalid email or password. Please try again.');
+      // Check if it's an approval pending error
+      if (result.error.includes('pending approval')) {
+        setError('Your account is pending approval. Please contact admin.');
+      } else {
+        setError('Invalid email or password. Please try again.');
+      }
     } else {
       navigate('/dashboard');
     }

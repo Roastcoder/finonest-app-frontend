@@ -5,10 +5,11 @@ import { ROLE_LABELS } from '@/lib/auth';
 import {
   LayoutDashboard, FileText, Users, Building2, UserCheck, BarChart3,
   LogOut, Menu, X, Car, Bell, CreditCard, Shield, ChevronLeft, ChevronRight, MapPin, UserPlus, Settings,
-  Wallet, Receipt, ShieldCheck, Sliders, ChevronDown, ChevronUp, Folder
+  Wallet, Receipt, ShieldCheck, Sliders, ChevronDown, ChevronUp, Folder, Copy, Share2
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import MobileBottomNav from './MobileBottomNav';
+import { toast } from 'sonner';
 import NotificationBell from './NotificationBell';
 
 
@@ -89,6 +90,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleCopyReferCode = () => {
+    if (user.refer_code) {
+      navigator.clipboard.writeText(user.refer_code);
+      toast.success('Refer code copied to clipboard!');
+    }
+  };
+
+  const handleShareReferCode = () => {
+    if (user.refer_code) {
+      const message = `Join Finonest with my refer code: ${user.refer_code}`;
+      if (navigator.share) {
+        navigator.share({
+          title: 'Finonest Refer Code',
+          text: message
+        });
+      } else {
+        navigator.clipboard.writeText(message);
+        toast.success('Refer message copied to clipboard!');
+      }
+    }
   };
 
   const initials = user.name
@@ -257,6 +280,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         {/* User */}
         <div className={`px-4 pb-6 pt-6 border-t border-white/20 dark:border-white/5 ${collapsed ? 'flex flex-col items-center' : ''}`}>
+          {/* Refer Code Section */}
+          {!collapsed && ['team_leader', 'branch_manager', 'dsa'].includes(user.role) && user.refer_code && (
+            <div className="mb-4 px-4 py-3 rounded-2xl glass-card shadow-sm border border-white/40 dark:border-white/10">
+              <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-2">Your Refer Code</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm font-mono font-bold text-primary bg-primary/10 px-3 py-2 rounded-lg">
+                  {user.refer_code}
+                </code>
+                <button
+                  onClick={handleCopyReferCode}
+                  className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10 text-gray-500 hover:text-primary transition-colors"
+                  title="Copy refer code"
+                >
+                  <Copy size={16} />
+                </button>
+                <button
+                  onClick={handleShareReferCode}
+                  className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-white/10 text-gray-500 hover:text-primary transition-colors"
+                  title="Share refer code"
+                >
+                  <Share2 size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Debug info - remove after testing */}
+          {!collapsed && (
+            <div className="mb-2 px-2 py-1 text-xs text-gray-500">
+              Role: {user.role}, Refer: {user.refer_code || 'None'}
+            </div>
+          )}
           {!collapsed && (
             <div className="flex items-center gap-4 px-4 py-3 mb-4 rounded-2xl glass-card shadow-sm border border-white/40 dark:border-white/10">
               <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm border border-white/20">
@@ -290,9 +344,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
         <header className="h-12 lg:h-16 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-xl lg:rounded-2xl flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
-          {/* Mobile: Logo */}
-          <div className="lg:hidden flex items-center">
+          {/* Mobile: Logo and Refer Code */}
+          <div className="lg:hidden flex items-center gap-3">
             <img src={logo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
+            {['team_leader', 'branch_manager', 'dsa'].includes(user.role) && user.refer_code && (
+              <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-lg">
+                <code className="text-xs font-mono font-bold text-primary">
+                  {user.refer_code}
+                </code>
+                <button
+                  onClick={handleCopyReferCode}
+                  className="p-1 rounded hover:bg-primary/20 text-primary transition-colors"
+                  title="Copy refer code"
+                >
+                  <Copy size={12} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Page title / User greeting */}
@@ -334,6 +402,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         Team: {user.manager_name || 'No team leader assigned'}
                       </p>
+                    )}
+                    {['team_leader', 'branch_manager', 'dsa'].includes(user.role) && user.refer_code && (
+                      <div className="mt-2 p-2 bg-primary/10 rounded-lg">
+                        <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Refer Code</p>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs font-mono font-bold text-primary">{user.refer_code}</code>
+                          <button
+                            onClick={handleCopyReferCode}
+                            className="p-1 rounded hover:bg-white/50 text-gray-500 hover:text-primary transition-colors"
+                            title="Copy"
+                          >
+                            <Copy size={12} />
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="p-2">

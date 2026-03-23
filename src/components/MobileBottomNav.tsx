@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { LayoutDashboard, FileText, Car, Users, UserPlus, MoreHorizontal, Building2, UserCheck, MapPin, Settings, Wallet, Receipt, CreditCard, ShieldCheck, BarChart3, Sliders } from 'lucide-react';
+import { LayoutDashboard, FileText, Car, Users, UserPlus, MoreHorizontal, Building2, UserCheck, MapPin, Settings, Wallet, Receipt, CreditCard, ShieldCheck, BarChart3, Sliders, Copy, Share2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface NavItem {
   label: string;
@@ -39,6 +40,28 @@ export default function MobileBottomNav() {
 
   if (!user) return null;
 
+  const handleCopyReferCode = () => {
+    if (user.refer_code) {
+      navigator.clipboard.writeText(user.refer_code);
+      toast.success('Refer code copied to clipboard!');
+    }
+  };
+
+  const handleShareReferCode = () => {
+    if (user.refer_code) {
+      const message = `Join Finonest with my refer code: ${user.refer_code}`;
+      if (navigator.share) {
+        navigator.share({
+          title: 'Finonest Refer Code',
+          text: message
+        });
+      } else {
+        navigator.clipboard.writeText(message);
+        toast.success('Refer message copied to clipboard!');
+      }
+    }
+  };
+
   const filteredNav = MOBILE_NAV_ITEMS.filter(item => !user.role || item.roles.includes(user.role));
   const filteredMore = MORE_ITEMS.filter(item => !user.role || item.roles.includes(user.role));
 
@@ -73,6 +96,33 @@ export default function MobileBottomNav() {
             <SheetHeader>
               <SheetTitle>More Options</SheetTitle>
             </SheetHeader>
+            
+            {/* Refer Code Section for Mobile */}
+            {['team_leader', 'branch_manager', 'dsa'].includes(user.role) && user.refer_code && (
+              <div className="mt-4 mb-6 p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Your Refer Code</p>
+                <div className="flex items-center gap-3">
+                  <code className="flex-1 text-lg font-mono font-bold text-primary bg-white/80 dark:bg-gray-800/80 px-4 py-3 rounded-xl border border-primary/20">
+                    {user.refer_code}
+                  </code>
+                  <button
+                    onClick={handleCopyReferCode}
+                    className="p-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                    title="Copy refer code"
+                  >
+                    <Copy size={20} />
+                  </button>
+                  <button
+                    onClick={handleShareReferCode}
+                    className="p-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                    title="Share refer code"
+                  >
+                    <Share2 size={20} />
+                  </button>
+                </div>
+              </div>
+            )}
+            
             <div className="mt-6 space-y-2 overflow-y-auto h-[calc(70vh-80px)]">
               {filteredMore.map(item => {
                 const active = location.pathname === item.path;

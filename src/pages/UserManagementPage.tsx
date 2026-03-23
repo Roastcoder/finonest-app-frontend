@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Plus, Edit, Trash2 } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function UserManagementPage() {
@@ -69,6 +69,7 @@ export default function UserManagementPage() {
               <th className="text-left py-3">Role</th>
               <th className="text-left py-3">Branch</th>
               <th className="text-left py-3">Status</th>
+              <th className="text-left py-3">Status</th>
               <th className="text-right py-3">Actions</th>
             </tr>
           </thead>
@@ -79,9 +80,31 @@ export default function UserManagementPage() {
                 <td className="py-3">{user.email}</td>
                 <td className="py-3"><span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">{user.role}</span></td>
                 <td className="py-3">{user.branch || '-'}</td>
-                <td className="py-3"><span className={`px-2 py-1 rounded text-xs ${user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{user.status}</span></td>
+                <td className="py-3">
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    user.status === 'active' ? 'bg-green-100 text-green-800' :
+                    user.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {user.status === 'active' ? 'Approved' : user.status === 'rejected' ? 'Rejected' : 'Pending'}
+                  </span>
+                </td>
                 <td className="py-3 text-right">
-                  <button onClick={() => deleteUser.mutate(user.id)} className="text-red-600 hover:text-red-800"><Trash2 size={18} /></button>
+                  <div className="flex items-center justify-end gap-2">
+                    {user.status !== 'active' && (
+                      <button onClick={() => approveUser.mutate(user.id)} className="text-green-600 hover:text-green-800" title="Approve">
+                        <Check size={18} />
+                      </button>
+                    )}
+                    {user.status !== 'rejected' && (
+                      <button onClick={() => rejectUser.mutate(user.id)} className="text-red-600 hover:text-red-800" title="Reject">
+                        <X size={18} />
+                      </button>
+                    )}
+                    <button onClick={() => deleteUser.mutate(user.id)} className="text-red-600 hover:text-red-800">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

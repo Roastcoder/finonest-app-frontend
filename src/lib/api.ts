@@ -61,8 +61,8 @@ export const api = {
 // Auth API
 export const authAPI = {
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
-  signup: (name: string, email: string, password: string, role?: string) => 
-    api.post('/auth/signup', { name, email, password, role }),
+  signup: (name: string, email: string, password: string, additionalData?: any) => 
+    api.post('/auth/signup', { name, email, password, ...additionalData }),
   getProfile: () => api.get('/auth/profile'),
 };
 

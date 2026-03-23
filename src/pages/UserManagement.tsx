@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ROLE_LABELS, UserRole } from '@/lib/auth';
-import { Users, Search, Shield, Edit, Trash2 } from 'lucide-react';
+import { Users, Search, Shield, Edit, Trash2, Check, X } from 'lucide-react';
 import { RoleAssignModal } from '@/components/RoleAssignModal';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
 
   const handleAssignRole = (u: any) => {
     setSelectedUser(u);
@@ -50,6 +51,136 @@ export default function UserManagement() {
       toast.error(error.message || 'Failed to delete user');
     }
   });
+
+  const approveUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}/approve`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to approve user');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('User approved successfully');
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to approve user');
+    }
+  });
+
+  const rejectUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}/reject`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to reject user');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('User rejected successfully');
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to reject user');
+    }
+  });
+
+  const handleApproveUser = (u: any) => {
+    if (confirm(`Are you sure you want to approve ${u.full_name}?`)) {
+      approveUserMutation.mutate(u.id);
+    }
+  };
+
+  const handleRejectUser = (u: any) => {
+    if (confirm(`Are you sure you want to reject ${u.full_name}?`)) {
+      rejectUserMutation.mutate(u.id);
+    }
+  };
+
+  const bulkApproveUsers = useMutation({
+    mutationFn: async (userIds: number[]) => {
+      const promises = userIds.map(id => 
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${id}/approve`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        })
+      );
+      const responses = await Promise.all(promises);
+      const results = await Promise.all(responses.map(res => res.json()));
+      return results;
+    },
+    onSuccess: (data) => {
+      toast.success(`Approved ${selectedUsers.length} users successfully`);
+      setSelectedUsers([]);
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to approve users');
+    }
+  });
+
+  const handleBulkApprove = () => {
+    if (selectedUsers.length === 0) {
+      toast.error('Please select users to approve');
+      return;
+    }
+    if (confirm(`Are you sure you want to approve ${selectedUsers.length} selected users?`)) {
+      bulkApproveUsers.mutate(selectedUsers);
+    }
+  };
+
+  const handleSelectUser = (userId: number) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleSelectAll = (users: any[]) => {
+    const pendingUsers = users.filter(u => u.status !== 'active').map(u => u.id);
+    if (selectedUsers.length === pendingUsers.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(pendingUsers);
+    }
+  };
+
+  const generateReferCodes = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/generate-refer-codes`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to generate refer codes');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(`Generated refer codes for ${data.updatedCount} users`);
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to generate refer codes');
+    }
+  });
+
+  const handleGenerateReferCodes = () => {
+    if (confirm('Generate refer codes for Team Leaders, Branch Managers, and DSAs who don\'t have one?')) {
+      generateReferCodes.mutate();
+    }
+  };
 
   const handleDeleteUser = (u: any) => {
     if (confirm(`Are you sure you want to delete ${u.full_name}? This action cannot be undone.`)) {
@@ -95,29 +226,98 @@ export default function UserManagement() {
     return manager ? manager.full_name || manager.email : '—';
   };
 
-  const UserTable = ({ users }: any) => (
+  const UserTable = ({ users }: any) => {
+    console.log('Users with status:', users.map((u: any) => ({ name: u.full_name, status: u.status })));
+    const pendingUsers = users.filter((u: any) => u.status !== 'active');
+    const allPendingSelected = pendingUsers.length > 0 && pendingUsers.every((u: any) => selectedUsers.includes(u.id));
+    
+    return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b border-border bg-muted/50">
+            <th className="px-4 py-3 text-center text-xs font-semibold text-foreground">
+              {pendingUsers.length > 0 && (
+                <input
+                  type="checkbox"
+                  checked={allPendingSelected}
+                  onChange={() => handleSelectAll(users)}
+                  className="rounded border-border"
+                />
+              )}
+            </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Name</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Email</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">User ID</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Reporting To</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Branch</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Status</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Refer Code</th>
             <th className="px-4 py-3 text-center text-xs font-semibold text-foreground">Action</th>
           </tr>
         </thead>
         <tbody>
           {users.map((u: any) => (
             <tr key={u.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+              <td className="px-4 py-3 text-center">
+                {u.status !== 'active' && (
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(u.id)}
+                    onChange={() => handleSelectUser(u.id)}
+                    className="rounded border-border"
+                  />
+                )}
+              </td>
               <td className="px-4 py-3 text-sm font-medium text-foreground">{u.full_name || '(No name)'}</td>
               <td className="px-4 py-3 text-sm text-muted-foreground truncate">{u.email}</td>
               <td className="px-4 py-3 text-sm text-muted-foreground">{u.user_id}</td>
               <td className="px-4 py-3 text-sm text-blue-600 font-medium">{u.reporting_to ? getManagerName(u.reporting_to) : '—'}</td>
               <td className="px-4 py-3 text-sm text-green-600">{u.branch_name || '—'}</td>
+              <td className="px-4 py-3 text-sm">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  u.status === 'active' ? 'bg-green-100 text-green-800' :
+                  u.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {u.status === 'active' ? 'Approved' : u.status === 'rejected' ? 'Rejected' : 'Pending'}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-sm">
+                {['team_leader', 'branch_manager', 'dsa'].includes(u.role) ? (
+                  u.refer_code ? (
+                    <code className="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded">
+                      {u.refer_code}
+                    </code>
+                  ) : (
+                    <span className="text-gray-400 text-xs">Not Generated</span>
+                  )
+                ) : (
+                  <span className="text-gray-400 text-xs">—</span>
+                )}
+              </td>
               <td className="px-4 py-3 text-center">
                 <div className="flex items-center justify-center gap-2">
+                  {u.status !== 'active' && (
+                    <button 
+                      onClick={() => handleApproveUser(u)} 
+                      disabled={approveUserMutation.isPending}
+                      className="p-1.5 rounded-lg hover:bg-green-100 transition-colors text-green-600 hover:text-green-700 disabled:opacity-50"
+                      title="Approve User"
+                    >
+                      <Check size={14} />
+                    </button>
+                  )}
+                  {u.status !== 'rejected' && (
+                    <button 
+                      onClick={() => handleRejectUser(u)} 
+                      disabled={rejectUserMutation.isPending}
+                      className="p-1.5 rounded-lg hover:bg-red-100 transition-colors text-red-600 hover:text-red-700 disabled:opacity-50"
+                      title="Reject User"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                   <button onClick={() => handleAssignRole(u)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                     <Edit size={14} />
                   </button>
@@ -138,6 +338,7 @@ export default function UserManagement() {
       </table>
     </div>
   );
+  };
 
   return (
     <div>
@@ -147,15 +348,30 @@ export default function UserManagement() {
           <p className="text-muted-foreground text-sm mt-1">Manage system users, roles, and reporting hierarchy</p>
         </div>
         {(user?.role === 'admin' || user?.role === 'sales_manager' || user?.role === 'branch_manager' || user?.role === 'dsa' || user?.role === 'team_leader') && (
-          <button
-            onClick={() => {
-              setSelectedUser(null);
-              setModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm"
-          >
-            <Users size={16} /> Add New User
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setSelectedUser(null);
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm"
+            >
+              <Users size={16} /> Add New User
+            </button>
+            {selectedUsers.length > 0 && (
+              <button
+                onClick={handleBulkApprove}
+                disabled={bulkApproveUsers.isPending}
+                className="inline-flex items-center gap-2 bg-green-600 text-white font-semibold py-2.5 px-4 rounded-xl hover:bg-green-700 transition-colors text-sm disabled:opacity-50"
+              >
+                <Check size={16} /> Approve Selected ({selectedUsers.length})
+              </button>
+            )}
+            {/* Debug info */}
+            <div className="text-xs text-gray-500 flex items-center">
+              Selected: {selectedUsers.length}
+            </div>
+          </div>
         )}
       </div>
 

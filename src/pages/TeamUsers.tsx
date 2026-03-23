@@ -1,13 +1,22 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Search, Shield, ChevronDown, ChevronRight, UserPlus, X } from 'lucide-react';
+import { Users, Search, Shield, ChevronDown, ChevronRight, UserPlus, X, Edit2, Save } from 'lucide-react';
 import { ROLE_LABELS, UserRole } from '@/lib/auth';
 import { toast } from 'sonner';
 
-const UserHierarchyNode = ({ user, childrenMap, level = 0 }: any) => {
+const UserHierarchyNode = ({ user, childrenMap, level = 0, onUpdateReporting, availableManagers }: any) => {
   const [expanded, setExpanded] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newReportingTo, setNewReportingTo] = useState(user.reporting_to || '');
   const children = childrenMap[user.id] || [];
+
+  const handleSaveReporting = () => {
+    if (newReportingTo !== user.reporting_to) {
+      onUpdateReporting(user.id, newReportingTo);
+    }
+    setIsEditing(false);
+  };
 
   return (
     <div className="w-full">
@@ -45,13 +54,67 @@ const UserHierarchyNode = ({ user, childrenMap, level = 0 }: any) => {
           <div className="w-24 hidden lg:block text-xs text-muted-foreground truncate">
             {user.phone || '—'}
           </div>
+          
+          {/* Edit Reporting Button for Executives */}
+          {user.role === 'executive' && availableManagers.length > 0 && (
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <select
+                    value={newReportingTo}
+                    onChange={(e) => setNewReportingTo(e.target.value)}
+                    className="text-xs px-2 py-1 rounded border border-border bg-background"
+                  >
+                    <option value="">Select Team Leader</option>
+                    {availableManagers?.map((manager: any) => (
+                      <option key={manager.id} value={manager.id}>
+                        {manager.full_name} ({ROLE_LABELS[manager.role as UserRole]})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleSaveReporting}
+                    className="p-1 rounded hover:bg-green-100 text-green-600 transition-colors"
+                    title="Save"
+                  >
+                    <Save size={12} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setNewReportingTo(user.reporting_to || '');
+                    }}
+                    className="p-1 rounded hover:bg-red-100 text-red-600 transition-colors"
+                    title="Cancel"
+                  >
+                    <X size={12} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors"
+                  title="Assign to Team Leader"
+                >
+                  <Edit2 size={12} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {expanded && children.length > 0 && (
         <div className="w-full">
           {children.map((child: any) => (
-            <UserHierarchyNode key={child.id} user={child} childrenMap={childrenMap} level={level + 1} />
+            <UserHierarchyNode 
+              key={child.id} 
+              user={child} 
+              childrenMap={childrenMap} 
+              level={level + 1} 
+              onUpdateReporting={onUpdateReporting}
+              availableManagers={availableManagers}
+            />
           ))}
         </div>
       )}
@@ -91,6 +154,35 @@ export default function TeamUsers() {
     },
     enabled: !!user?.id,
   });
+
+  const updateReporting = useMutation({
+    mutationFn: async ({ userId, reportingTo }: { userId: number; reportingTo: string }) => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({ reporting_to: reportingTo || null })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update reporting');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-hierarchy'] });
+      toast.success('Reporting updated successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update reporting');
+    }
+  });
+
+  const handleUpdateReporting = (userId: number, reportingTo: string) => {
+    updateReporting.mutate({ userId, reportingTo });
+  };
 
   const createUser = useMutation({
     mutationFn: async () => {
@@ -166,6 +258,24 @@ export default function TeamUsers() {
     return { filteredHierarchy: hierarchy, roleCounts: counts };
   }, [teamData, search, roleFilter]);
 
+  // Get available managers for reporting change (only team leaders under current user)
+  const availableManagers = useMemo(() => {
+    if (user?.role === 'branch_manager' || user?.role === 'dsa') {
+      // BM/DSA can assign to team leaders under them
+      const teamLeaders = flatTeam.filter((u: any) => 
+        u.role === 'team_leader' && u.reporting_to === user.id
+      );
+      return teamLeaders;
+    } else if (user?.role === 'team_leader') {
+      // Team leaders can assign to other team leaders at same level
+      const otherTeamLeaders = flatTeam.filter((u: any) => 
+        u.role === 'team_leader' && u.id !== user.id
+      );
+      return otherTeamLeaders;
+    }
+    return [];
+  }, [flatTeam, user]);
+
   const isManager = ['manager', 'dsa', 'branch_manager', 'sales_manager'].includes(user?.role || '');
 
   return (
@@ -236,11 +346,24 @@ export default function TeamUsers() {
               // Manager view: show team leaders with their members
               filteredHierarchy.map((leader: any) => (
                 <div key={leader.id}>
-                  <UserHierarchyNode user={leader} childrenMap={{}} level={0} />
+                  <UserHierarchyNode 
+                    user={leader} 
+                    childrenMap={{}} 
+                    level={0} 
+                    onUpdateReporting={handleUpdateReporting}
+                    availableManagers={availableManagers}
+                  />
                   {leader.team_members && leader.team_members.length > 0 && (
                     <div>
                       {leader.team_members.map((member: any) => (
-                        <UserHierarchyNode key={member.id} user={member} childrenMap={{}} level={1} />
+                        <UserHierarchyNode 
+                          key={member.id} 
+                          user={member} 
+                          childrenMap={{}} 
+                          level={1} 
+                          onUpdateReporting={handleUpdateReporting}
+                          availableManagers={availableManagers}
+                        />
                       ))}
                     </div>
                   )}
@@ -249,7 +372,14 @@ export default function TeamUsers() {
             ) : (
               // Team leader view: show direct team members
               filteredHierarchy.map((member: any) => (
-                <UserHierarchyNode key={member.id} user={member} childrenMap={{}} level={0} />
+                <UserHierarchyNode 
+                  key={member.id} 
+                  user={member} 
+                  childrenMap={{}} 
+                  level={0} 
+                  onUpdateReporting={handleUpdateReporting}
+                  availableManagers={availableManagers}
+                />
               ))
             )}
           </div>
