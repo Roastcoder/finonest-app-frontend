@@ -123,6 +123,23 @@ export default function Signup() {
     
     setLoading(true);
     try {
+      // First check if PAN already exists in our system
+      const checkResponse = await fetch('http://localhost:5000/api/auth/check-pan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pan_number: panNumber })
+      });
+      
+      const checkData = await checkResponse.json();
+      
+      if (!checkResponse.ok) {
+        if (checkData.errorType === 'PAN_EXISTS') {
+          toast.error(checkData.error);
+          return;
+        }
+      }
+      
+      // If PAN doesn't exist, proceed with KYC verification
       const response = await fetch('http://localhost:5000/api/kyc/verify-pan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,6 +173,23 @@ export default function Signup() {
     
     setLoading(true);
     try {
+      // First check if Aadhaar already exists in our system
+      const checkResponse = await fetch('http://localhost:5000/api/auth/check-aadhaar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aadhaar_number: aadhaarNumber })
+      });
+      
+      const checkData = await checkResponse.json();
+      
+      if (!checkResponse.ok) {
+        if (checkData.errorType === 'AADHAAR_EXISTS') {
+          toast.error(checkData.error);
+          return;
+        }
+      }
+      
+      // If Aadhaar doesn't exist, proceed with OTP
       const response = await fetch('http://localhost:5000/api/kyc/send-aadhaar-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
