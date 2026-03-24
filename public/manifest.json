@@ -9,16 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/logo192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/logo.png",
+      "src": "/logo512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -27,21 +27,21 @@
       "short_name": "Dashboard",
       "description": "View dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
     },
     {
       "name": "Add Lead",
       "short_name": "Add Lead",
       "description": "Create new lead",
       "url": "/add-lead",
-      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
     },
     {
       "name": "Loans",
       "short_name": "Loans",
       "description": "View loans",
       "url": "/loans",
-      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
     }
   ],
   "categories": ["finance", "business", "productivity"],
