@@ -10,9 +10,10 @@ interface RoleAssignModalProps {
   onClose: () => void;
   onSuccess: () => void;
   user: any;
+  defaultBranchId?: number | string;
 }
 
-export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: RoleAssignModalProps) {
+export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, defaultBranchId }: RoleAssignModalProps) {
   const { user } = useAuth();
   const [role, setRole] = useState(targetUser?.role || 'executive');
   const [branchId, setBranchId] = useState(targetUser?.branch_id || '');
@@ -126,7 +127,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser }: 
       setPhone(targetUser.phone || '');
     } else {
       setRole('executive');
-      setBranchId(user?.role === 'branch_manager' ? (user?.branch_id || '') : '');
+      setBranchId(defaultBranchId || (user?.role === 'branch_manager' ? (user?.branch_id || '') : ''));
       setDsaId('');
       setReportingTo(user?.role === 'team_leader' ? user.id : (user?.role === 'branch_manager' ? user.id : ''));
       setFullName('');

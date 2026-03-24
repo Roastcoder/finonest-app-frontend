@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Building2, MapPin, Edit, Trash2 } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit, Trash2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { RoleAssignModal } from '@/components/RoleAssignModal';
 
 export default function BranchManagement() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<any>(null);
+  const [addUserBranch, setAddUserBranch] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -150,6 +152,12 @@ export default function BranchManagement() {
                 <Edit size={14} /> Edit
               </button>
               <button
+                onClick={() => setAddUserBranch(branch)}
+                className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent text-sm transition-colors font-medium"
+              >
+                <UserPlus size={14} /> Add User
+              </button>
+              <button
                 onClick={() => deleteBranch.mutate(branch.id)}
                 className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive text-sm transition-colors"
               >
@@ -159,6 +167,14 @@ export default function BranchManagement() {
           </div>
         ))}
       </div>
+
+      <RoleAssignModal
+        open={!!addUserBranch}
+        onClose={() => setAddUserBranch(null)}
+        onSuccess={() => { setAddUserBranch(null); queryClient.invalidateQueries({ queryKey: ['branches'] }); }}
+        user={null}
+        defaultBranchId={addUserBranch?.id}
+      />
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

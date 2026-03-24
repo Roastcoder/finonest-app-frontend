@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowRight, Mail, Lock, Shield, BarChart3, Users, Zap, Download, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Mail, Lock, Shield, BarChart3, Zap, Download, Eye, EyeOff } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 export default function Login() {
@@ -49,7 +49,6 @@ export default function Login() {
   const features = [
     { icon: <Shield size={22} />, title: 'Role-Based Access', desc: 'Multi-level permissions for admins, managers, brokers & employees' },
     { icon: <BarChart3 size={22} />, title: 'Real-Time Analytics', desc: 'Track applications, commissions & performance metrics live' },
-    { icon: <Users size={22} />, title: 'Multi-Party Management', desc: 'Banks, NBFCs, brokers & customers — all in one place' },
     { icon: <Zap size={22} />, title: 'Streamlined Workflow', desc: 'Application to disbursement with full document tracking' },
   ];
 
@@ -193,20 +192,13 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="mt-6 pt-5 border-t border-gray-200/50 dark:border-gray-700/50 text-center space-y-3">
+            <div className="mt-6 pt-5 border-t border-gray-200/50 dark:border-gray-700/50 text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                 Don't have an account?{' '}
                 <Link to="/signup" className="text-blue-700 dark:text-blue-400 font-bold hover:underline underline-offset-2">
                   Sign Up
                 </Link>
               </p>
-              <Link
-                to="/customer-login"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary glass-card hover:bg-white/60 dark:hover:bg-white/10 transition-all shadow-sm border border-white/40 dark:border-white/10"
-              >
-                <Users size={16} />
-                Customer Login
-              </Link>
             </div>
           </div>
 

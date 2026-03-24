@@ -19,6 +19,8 @@ export default function Signup() {
   const [panData, setPanData] = useState<any>(null);
   const [panVerified, setPanVerified] = useState(false);
   const [panError, setPanError] = useState('');
+  const [panFetchedName, setPanFetchedName] = useState('');
+  const [panFetching, setPanFetching] = useState(false);
   
   // Step 2: Aadhaar Verification
   const [aadhaarNumber, setAadhaarNumber] = useState('');
@@ -99,6 +101,7 @@ export default function Signup() {
     }
     
     setPanNumber(validatedValue);
+    setPanFetchedName('');
     
     // Set error messages
     if (error) {
@@ -108,6 +111,17 @@ export default function Signup() {
     } else if (validatedValue.length === 10) {
       if (validatePAN(validatedValue)) {
         setPanError('');
+        // Live-fetch name as soon as PAN is complete
+        setPanFetching(true);
+        fetch(`${(import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api'}/kyc/verify-pan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pan_number: validatedValue })
+        })
+          .then(r => r.json())
+          .then(d => { if (d.success && d.data?.full_name) setPanFetchedName(d.data.full_name); })
+          .catch(() => {})
+          .finally(() => setPanFetching(false));
       } else {
         setPanError('Invalid PAN format');
       }
@@ -308,13 +322,14 @@ export default function Signup() {
                 />
               </div>
               {panError && <p className="text-xs text-red-500 mt-1 font-semibold">{panError}</p>}
-              {!panError && panNumber.length === 10 && validatePAN(panNumber) && (
+              {panFetching && <p className="text-xs text-blue-500 mt-1 font-semibold">Fetching PAN details...</p>}
+              {panFetchedName && !panFetching && (
                 <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-semibold flex items-center gap-1">
                   <CheckCircle size={12} />
-                  Valid PAN format
+                  {panFetchedName}
                 </p>
               )}
-              {!panError && panNumber.length === 0 && (
+              {!panError && !panFetchedName && !panFetching && panNumber.length === 0 && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Format: AAAAA9999A (5 letters, 4 numbers, 1 letter)
                 </p>
@@ -362,20 +377,6 @@ export default function Signup() {
             <div className="text-center mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Personal Details</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">Fill in your basic information</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">Full Name</label>
-              <div className="relative">
-                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Enter your full name"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
-                />
-              </div>
             </div>
 
             <div>
