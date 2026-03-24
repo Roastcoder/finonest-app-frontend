@@ -122,9 +122,35 @@ function buildLoanHTML(loan: LoanData): string {
   ${loan.existing_loan_status === 'Active' ? row4('No of EMI Paid', fmt(loan.no_of_emi_paid || 0), 'Total Interest', fmtCur(loan.total_interest || 0), 'Bouncing in Last 3M', fmt(loan.bouncing_3_months || 0), 'Bouncing in Last 6M', fmt(loan.bouncing_6_months || 0)) : ''}
   ${row4('Financier Name', fmt(loan.rto_financier_name || loan.financer), '', '', '', '', '', '')}
 
+  ${(() => {
+    const profFields: [string, string][] = [];
+    if (loan.income_source) profFields.push(['Income Source', fmt(loan.income_source)]);
+    if (loan.monthly_income || loan.net_monthly_salary) profFields.push(['Monthly Income', loan.monthly_income ? fmtCur(loan.monthly_income) : fmtCur(loan.net_monthly_salary)]);
+    if (loan.company_name) profFields.push(['Company Name', fmt(loan.company_name)]);
+    if (loan.designation) profFields.push(['Designation', fmt(loan.designation)]);
+    if (loan.current_job_years) profFields.push(['Current Job (Yrs)', fmt(loan.current_job_years)]);
+    if (loan.total_work_exp || loan.work_experience) profFields.push(['Total Work Exp (Yrs)', fmt(loan.total_work_exp || loan.work_experience)]);
+    if (loan.salary_credit_mode) profFields.push(['Salary Credit Mode', fmt(loan.salary_credit_mode.replace(/_/g, ' '))]);
+    if (loan.salary_slip_available != null) profFields.push(['Salary Slip', loan.salary_slip_available ? 'Available' : 'Not Available']);
+    if (loan.business_name) profFields.push(['Business Name', fmt(loan.business_name)]);
+    if (loan.business_type) profFields.push(['Business Type', fmt(loan.business_type)]);
+    if (loan.business_vintage) profFields.push(['Business Vintage (Yrs)', fmt(loan.business_vintage)]);
+    if (loan.annual_income_itr) profFields.push(['Annual Income (ITR)', fmtCur(loan.annual_income_itr)]);
+    if (loan.itr_available != null) profFields.push(['ITR Available', loan.itr_available ? 'Yes' : 'No']);
+    if (loan.professional_subtype) profFields.push(['Professional Sub Type', fmt(loan.professional_subtype)]);
+    if (loan.practice_experience) profFields.push(['Practice Exp (Yrs)', fmt(loan.practice_experience)]);
+    if (loan.freelancer_subtype) profFields.push(['Freelancer Type', fmt(loan.freelancer_subtype)]);
+    if (profFields.length === 0) return '';
+    while (profFields.length % 4 !== 0) profFields.push(['', '']);
+    return sectionTitle('&#128188;', 'Professional Details') + profFields.reduce((acc, _, i) => {
+      if (i % 4 === 0) acc += row4(profFields[i]?.[0]||'', profFields[i]?.[1]||'', profFields[i+1]?.[0]||'', profFields[i+1]?.[1]||'', profFields[i+2]?.[0]||'', profFields[i+2]?.[1]||'', profFields[i+3]?.[0]||'', profFields[i+3]?.[1]||'');
+      return acc;
+    }, '');
+  })()}
+
   ${sectionTitle('&#127974;', 'Lender Details')}
   ${row4('Lender', fmt(loan.financier_name || loan.selected_financier || loan.bank_name), 'Branch', fmt(loan.financier_branch_name), 'Sales Manager', fmt(loan.financier_executive_name), 'SM Mobile', fmt(loan.financier_executive_mobile))}
-  ${row4('Area Manager', fmt(loan.financier_area_manager_name), 'AM Mobile', fmt(loan.financier_area_manager_mobile), 'Loan Amount', fmtCur(loan.loan_amount), 'Case Type', fmt(loan.case_type))}
+  ${row4('Area Manager', fmt(loan.financier_area_manager_name), 'AM Mobile', fmt(loan.financier_area_manager_mobile), 'Loan Amount Required', fmtCur(loan.loan_amount), 'Case Type', fmt(loan.case_type))}
 
   ${loan.application_stage === 'APPROVED' || loan.application_stage === 'DISBURSED' || loan.application_stage === 'CANCELLED' || loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'cancelled' ? `
   ${sectionTitle('&#128203;', 'Deductions & Disbursement')}
@@ -173,6 +199,34 @@ const ROLE_LABELS_MAP: Record<string, string> = {
   admin: 'Admin',
 };
 
+async function fetchLeadProfile(leadId: any): Promise<any | null> {
+  try {
+    if (!leadId) return null;
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
+    const res = await fetch(`${API}/leads/${leadId}/profile`, { headers });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function buildProfessionalHTML(p: any): string {
+  if (!p) return '';
+  const isSalaried = p.profile_type === 'salaried';
+  const rows: string[] = [];
+  if (isSalaried) {
+    rows.push(row4('Employment Type', 'Salaried', 'Company Name', fmt(p.company_name), 'Designation', fmt(p.designation), 'Salary Credit', fmt(p.salary_credit_mode?.replace(/_/g, ' '))));
+    rows.push(row4('Current Exp (Yrs)', fmt(p.current_job_experience_years), 'Total Exp (Yrs)', fmt(p.total_work_experience_years), 'Net Monthly Salary', p.net_monthly_salary ? fmtCur(p.net_monthly_salary) : '—', 'Salary Slip', p.salary_slip_available ? 'Available' : 'Not Available'));
+  } else {
+    const subType = fmt(p.sub_type);
+    rows.push(row4('Employment Type', 'Self Employed', 'Sub Type', subType, 'Business Name', fmt(p.business_name || p.professional_type || p.freelancer_type), 'Annual Income', p.annual_income ? fmtCur(p.annual_income) : '—'));
+    rows.push(row4('Business Vintage (Yrs)', fmt(p.business_vintage_years), 'Practice Exp (Yrs)', fmt(p.practice_experience_years), 'ITR Available', p.itr_available ? 'Yes' : 'No', '', ''));
+  }
+  return `${sectionTitle('&#128188;', 'Professional Details')}${rows.join('')}`;
+}
+
 async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designation: string }[]> {
   try {
     const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -213,8 +267,9 @@ async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designati
 export function exportLoanPDF(loan: LoanData, docs: any[] = []) {
   const win = window.open('', '_blank');
   if (!win) return;
-  Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]).then(async ([hierarchy, docFileObjs]) => {
-    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+  const leadId = loan.lead_id || loan.id;
+  Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]).then(async ([hierarchy, docFileObjs, profile]) => {
+    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
     const html = buildLoanHTML(loanWithHierarchy);
     win.document.write(html);
     win.document.close();
@@ -378,9 +433,31 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
     ] as [string,string][] : [['Financier Name', fmt(loan.financer || loan.rto_financier_name)], ['', ''], ['', ''], ['', '']] as [string,string][]),
   ]);
 
+  const profFields: [string, string][] = [];
+  if (loan.income_source) profFields.push(['Income Source', fmt(loan.income_source)]);
+  if (loan.monthly_income || loan.net_monthly_salary) profFields.push(['Monthly Income', loan.monthly_income ? fmtCur(loan.monthly_income) : fmtCur(loan.net_monthly_salary)]);
+  if (loan.company_name) profFields.push(['Company Name', fmt(loan.company_name)]);
+  if (loan.designation) profFields.push(['Designation', fmt(loan.designation)]);
+  if (loan.current_job_years) profFields.push(['Current Job (Yrs)', fmt(loan.current_job_years)]);
+  if (loan.total_work_exp || loan.work_experience) profFields.push(['Total Work Exp (Yrs)', fmt(loan.total_work_exp || loan.work_experience)]);
+  if (loan.salary_credit_mode) profFields.push(['Salary Credit Mode', fmt(loan.salary_credit_mode.replace(/_/g, ' '))]);
+  if (loan.salary_slip_available != null) profFields.push(['Salary Slip', loan.salary_slip_available ? 'Available' : 'Not Available']);
+  if (loan.business_name) profFields.push(['Business Name', fmt(loan.business_name)]);
+  if (loan.business_type) profFields.push(['Business Type', fmt(loan.business_type)]);
+  if (loan.business_vintage) profFields.push(['Business Vintage (Yrs)', fmt(loan.business_vintage)]);
+  if (loan.annual_income_itr) profFields.push(['Annual Income (ITR)', fmtCur(loan.annual_income_itr)]);
+  if (loan.itr_available != null) profFields.push(['ITR Available', loan.itr_available ? 'Yes' : 'No']);
+  if (loan.professional_subtype) profFields.push(['Professional Sub Type', fmt(loan.professional_subtype)]);
+  if (loan.practice_experience) profFields.push(['Practice Exp (Yrs)', fmt(loan.practice_experience)]);
+  if (loan.freelancer_subtype) profFields.push(['Freelancer Type', fmt(loan.freelancer_subtype)]);
+  if (profFields.length > 0) {
+    while (profFields.length % 4 !== 0) profFields.push(['', '']);
+    drawSection('PROFESSIONAL DETAILS', profFields as [string, string][]);
+  }
+
   drawSection('LENDER DETAILS', [
     ['Lender', fmt(loan.financier_name || loan.selected_financier || loan.bank_name)], ['Branch', fmt(loan.financier_branch_name)], ['Sales Manager', fmt(loan.financier_executive_name)], ['SM Mobile', fmt(loan.financier_executive_mobile)],
-    ['Area Manager', fmt(loan.financier_area_manager_name)], ['AM Mobile', fmt(loan.financier_area_manager_mobile)], ['Loan Amount', fmtCur(loan.loan_amount)], ['Case Type', fmt(loan.case_type)],
+    ['Area Manager', fmt(loan.financier_area_manager_name)], ['AM Mobile', fmt(loan.financier_area_manager_mobile)], ['Loan Amount Required', fmtCur(loan.loan_amount)], ['Case Type', fmt(loan.case_type)],
   ]);
 
   // Only show Deductions & Disbursement section for approved/disbursed/cancelled loans
@@ -527,8 +604,9 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
   const text = `*Finonest India - Loan Application*\n\n*ID:* ${loan.id}\n*Applicant:* ${loan.applicant_name}\n*Mobile:* ${loan.mobile}\n*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n*Loan Amount:* ${fmtCur(loan.loan_amount)}\n*Status:* ${loan.status}\n*EMI:* ${fmtCur(loan.emi_amount || loan.emi)}\n*Tenure:* ${loan.tenure} months`;
   
   try {
-    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+    const leadId = loan.lead_id || loan.id;
+    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
     const pdfBlob = await generatePDFBlob(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
     
@@ -563,8 +641,9 @@ function triggerDownload(blob: Blob, fileName: string) {
 
 export async function downloadLoanPDF(loan: LoanData, docs: any[] = []) {
   try {
-    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+    const leadId = loan.lead_id || loan.id;
+    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
     const pdfBlob = await generatePDFBlob(loanH, docFileObjs);
     triggerDownload(pdfBlob, `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`);
   } catch (error) {

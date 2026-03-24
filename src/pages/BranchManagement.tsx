@@ -17,6 +17,18 @@ export default function BranchManagement() {
     is_active: true,
   });
 
+  const fetchNextCode = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches/next-code`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFormData(prev => ({ ...prev, code: data.code }));
+      }
+    } catch {}
+  };
+
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
@@ -101,7 +113,7 @@ export default function BranchManagement() {
           <p className="text-sm text-muted-foreground mt-1">{branches.length} branches</p>
         </div>
         <button
-          onClick={() => { resetForm(); setShowModal(true); }}
+          onClick={() => { resetForm(); fetchNextCode(); setShowModal(true); }}
           className="flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm"
         >
           <Plus size={16} /> Add Branch
@@ -165,13 +177,12 @@ export default function BranchManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Branch Code *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Branch Code</label>
                   <input
                     type="text"
-                    required
                     value={formData.code}
-                    onChange={e => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+                    readOnly
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm font-mono font-bold cursor-not-allowed"
                   />
                 </div>
               </div>
