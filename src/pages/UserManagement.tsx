@@ -196,7 +196,7 @@ export default function UserManagement() {
   const allFiltered = useMemo(() => {
     return rawUsers.filter((u: any) => {
       const matchSearch = u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-        u.email?.toLowerCase().includes(search.toLowerCase());
+        u.phone?.toLowerCase().includes(search.toLowerCase());
       const matchRole = roleFilter === 'all' || 
         (roleFilter === 'branch_manager_dsa' && ['branch_manager', 'dsa'].includes(u.role)) ||
         u.role === roleFilter;
@@ -223,7 +223,7 @@ export default function UserManagement() {
 
   const getManagerName = (managerId: number) => {
     const manager = rawUsers.find((u: any) => u.id === managerId);
-    return manager ? manager.full_name || manager.email : '—';
+    return manager ? manager.full_name || manager.phone : '—';
   };
 
   const UserTable = ({ users }: any) => {
@@ -247,7 +247,7 @@ export default function UserManagement() {
               )}
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Name</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Email</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Phone</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">User ID</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Reporting To</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Branch</th>
@@ -270,7 +270,7 @@ export default function UserManagement() {
                 )}
               </td>
               <td className="px-4 py-3 text-sm font-medium text-foreground">{u.full_name || '(No name)'}</td>
-              <td className="px-4 py-3 text-sm text-muted-foreground truncate">{u.email}</td>
+              <td className="px-4 py-3 text-sm text-muted-foreground truncate">{u.phone || '—'}</td>
               <td className="px-4 py-3 text-sm text-muted-foreground">{u.user_id}</td>
               <td className="px-4 py-3 text-sm text-blue-600 font-medium">{u.reporting_to ? getManagerName(u.reporting_to) : '—'}</td>
               <td className="px-4 py-3 text-sm text-green-600">{u.branch_name || '—'}</td>
@@ -428,7 +428,7 @@ export default function UserManagement() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search users by name or email..."
+            placeholder="Search users by name or phone..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:border-accent"

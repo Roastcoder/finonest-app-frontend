@@ -32,12 +32,11 @@ export default function Signup() {
   
   // Step 2: Personal Details + Phone OTP
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneOtp, setPhoneOtp] = useState('');
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
-  const [password, setPassword] = useState('');
+  const [mpin, setMpin] = useState('');
   const [role] = useState('executive'); // Fixed role as executive
   const [referCode, setReferCode] = useState('');
 
@@ -225,10 +224,7 @@ export default function Signup() {
       if (data.success) {
         setAadhaarData(data.data);
         setAadhaarVerified(true);
-        // Auto-fill email if available and not masked
-        if (data.data.email && !email && !data.data.email.includes('*')) {
-          setEmail(data.data.email);
-        }
+
         toast.success('Aadhaar verified successfully!');
         setCurrentStep(4);
       } else {
@@ -243,7 +239,7 @@ export default function Signup() {
 
   // Final Signup
   const handleSignup = async () => {
-    if (!fullName || !email || !password) {
+    if (!fullName || !mpin) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -258,12 +254,16 @@ export default function Signup() {
       return;
     }
 
+    if (mpin.length !== 4) {
+      toast.error('MPIN must be exactly 4 digits');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await signUp({
         name: fullName,
-        email,
-        password,
+        mpin,
         phone,
         role,
         refer_code: referCode,
@@ -363,7 +363,7 @@ export default function Signup() {
                 </>
               ) : (
                 <>
-                  Verify PAN
+                  Next
                   <ArrowRight size={16} />
                 </>
               )}
@@ -460,28 +460,18 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">Email Address</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                  placeholder="you@example.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">Password</label>
+              <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">MPIN (4 digits)</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a password"
+                  value={mpin}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setMpin(value);
+                  }}
+                  placeholder="Create 4-digit MPIN"
+                  maxLength={4}
                   className="w-full pl-10 pr-11 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
                 />
                 <button
@@ -492,6 +482,9 @@ export default function Signup() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Enter a 4-digit MPIN for secure access
+              </p>
             </div>
 
             <button
@@ -499,11 +492,10 @@ export default function Signup() {
                 if (!fullName.trim()) { toast.error('Please enter your full name'); return; }
                 if (!phone.trim() || phone.length !== 10) { toast.error('Please enter a valid 10-digit mobile number'); return; }
                 if (!phoneVerified) { toast.error('Please verify your mobile number with OTP'); return; }
-                if (!email.trim() || !email.includes('@')) { toast.error('Please enter a valid email address'); return; }
-                if (!password.trim() || password.length < 6) { toast.error('Password must be at least 6 characters long'); return; }
+                if (!mpin.trim() || mpin.length !== 4) { toast.error('Please enter a 4-digit MPIN'); return; }
                 setCurrentStep(3);
               }}
-              disabled={!fullName || !email || !password || !phoneVerified}
+              disabled={!fullName || !mpin || !phoneVerified || mpin.length !== 4}
               className="w-full flex items-center justify-center gap-2 font-bold py-3 px-4 rounded-xl text-white text-sm transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 bg-gradient-to-r from-secondary to-primary border border-white/20"
             >
               Continue to Aadhaar Verification

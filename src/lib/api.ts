@@ -60,9 +60,9 @@ export const api = {
 
 // Auth API
 export const authAPI = {
-  login: (email: string, password: string) => api.post('/auth/login', { email, password }),
-  signup: (name: string, email: string, password: string, additionalData?: any) => 
-    api.post('/auth/signup', { name, email, password, ...additionalData }),
+  login: (phone: string, password: string) => api.post('/auth/login', { phone, password }),
+  signup: (name: string, phone: string, password: string, additionalData?: any) => 
+    api.post('/auth/signup', { name, phone, password, ...additionalData }),
   getProfile: () => api.get('/auth/profile'),
 };
 
@@ -144,9 +144,9 @@ export const branchesAPI = {
 // Legacy supabase compatibility
 export const supabase = {
   auth: {
-    signInWithPassword: async ({ email, password }: { email: string; password: string }) => {
+    signInWithPassword: async ({ phone, password }: { phone: string; password: string }) => {
       try {
-        const data = await authAPI.login(email, password);
+        const data = await authAPI.login(phone, password);
         if (data.token) {
           api.setToken(data.token);
         }
@@ -155,9 +155,9 @@ export const supabase = {
         return { data: { user: null }, error: { message: error.message } };
       }
     },
-    signUp: async ({ email, password, options }: any) => {
+    signUp: async ({ phone, password, options }: any) => {
       try {
-        await authAPI.signup(options?.data?.full_name || 'User', email, password);
+        await authAPI.signup(options?.data?.full_name || 'User', phone, password);
         return { error: null };
       } catch (error: any) {
         return { error: { message: error.message } };

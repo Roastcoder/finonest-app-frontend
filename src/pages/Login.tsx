@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowRight, Mail, Lock, Shield, BarChart3, Zap, Download, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Phone, Lock, Shield, BarChart3, Zap, Download, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [mpin, setMpin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,20 +23,18 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) { setError('Please enter your email'); return; }
-    if (!password) { setError('Please enter your password'); return; }
+    if (!phone) { setError('Please enter your phone number'); return; }
+    if (!mpin) { setError('Please enter your MPIN'); return; }
+    if (phone.length !== 10) { setError('Please enter a valid 10-digit phone number'); return; }
+    if (mpin.length !== 4) { setError('Please enter a valid 4-digit MPIN'); return; }
     setLoading(true);
     setError('');
 
     try {
-      const result = await login(email, password);
+      const result = await login(phone, mpin);
       setLoading(false);
       if (result?.error) {
-        if (result.error.includes('pending approval')) {
-          setError('Your account is pending approval. Please contact admin.');
-        } else {
-          setError('Invalid email or password. Please try again.');
-        }
+        setError('Invalid phone number or MPIN. Please try again.');
       } else {
         navigate('/dashboard');
       }
@@ -139,28 +137,38 @@ export default function Login() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Email Address</label>
+                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Phone Number</label>
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value.toLowerCase()); setError(''); }}
-                    placeholder="you@example.com"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(value);
+                      setError('');
+                    }}
+                    placeholder="10-digit phone number"
+                    maxLength={10}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">Password</label>
+                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5 drop-shadow-sm">MPIN</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                    placeholder="Enter your password"
+                    value={mpin}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                      setMpin(value);
+                      setError('');
+                    }}
+                    placeholder="4-digit MPIN"
+                    maxLength={4}
                     className="w-full pl-10 pr-11 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
                   />
                   <button
