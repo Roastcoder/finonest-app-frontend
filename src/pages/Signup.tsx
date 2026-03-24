@@ -36,7 +36,7 @@ export default function Signup() {
   const [phoneOtp, setPhoneOtp] = useState('');
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('executive');
+  const [role] = useState('executive'); // Fixed role as executive
   const [referCode, setReferCode] = useState('');
 
   // Step 4: Photo Upload
@@ -736,44 +736,37 @@ export default function Signup() {
               <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">Role</label>
               <div className="relative">
                 <Shield size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                <select
-                  value={role}
-                  onChange={(e) => {
-                    setRole(e.target.value);
-                    setReferCode('');
-                  }}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none shadow-sm backdrop-blur-md font-medium"
-                >
-                  <option value="executive">Executive</option>
-                  <option value="dsa">DSA</option>
-                </select>
+                <div className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm shadow-sm backdrop-blur-md font-medium">
+                  Executive
+                </div>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                You are signing up as an Executive
+              </p>
             </div>
 
-            {role === 'executive' && (
-              <div>
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">
-                  Refer Code
-                  <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">(Optional)</span>
-                </label>
-                <div className="relative">
-                  <UserCircle size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                  <input
-                    type="text"
-                    value={referCode}
-                    onChange={(e) => setReferCode(e.target.value.toUpperCase())}
-                    placeholder="Enter BM/DSA refer code"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {referCode 
-                    ? "Enter refer code of Branch Manager or DSA to join their team" 
-                    : "Without refer code, your account will need admin approval before you can login"
-                  }
-                </p>
+            <div>
+              <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">
+                Refer Code
+                <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">(Optional)</span>
+              </label>
+              <div className="relative">
+                <UserCircle size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                <input
+                  type="text"
+                  value={referCode}
+                  onChange={(e) => setReferCode(e.target.value.toUpperCase())}
+                  placeholder="Enter BM/DSA refer code"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
+                />
               </div>
-            )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {referCode 
+                  ? "Enter refer code of Branch Manager or DSA to join their team" 
+                  : "Without refer code, your account will need admin approval before you can login"
+                }
+              </p>
+            </div>
 
             <button
               onClick={handleSignup}
