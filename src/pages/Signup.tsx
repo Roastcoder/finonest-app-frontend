@@ -22,7 +22,7 @@ export default function Signup() {
   const [panFetchedName, setPanFetchedName] = useState('');
   const [panFetching, setPanFetching] = useState(false);
   
-  // Step 2: Aadhaar Verification
+  // Step 3: Aadhaar Verification
   const [aadhaarNumber, setAadhaarNumber] = useState('');
   const [aadhaarOtp, setAadhaarOtp] = useState('');
   const [aadhaarData, setAadhaarData] = useState<any>(null);
@@ -30,7 +30,7 @@ export default function Signup() {
   const [otpSent, setOtpSent] = useState(false);
   const [clientId, setClientId] = useState('');
   
-  // Step 3: User Details
+  // Step 2: Personal Details + Phone OTP
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
