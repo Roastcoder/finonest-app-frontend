@@ -20,7 +20,7 @@ const MOBILE_NAV_ITEMS: NavItem[] = [
 
 const MORE_ITEMS: NavItem[] = [
   { label: 'Reports', path: '/reports', icon: <BarChart3 size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
-  { label: 'Users', path: '/users', icon: <Users size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager'] },
+  { label: 'Users', path: '/users', icon: <Users size={18} />, roles: ['admin', 'manager', 'sales_manager'] },
   { label: 'Banks / NBFC', path: '/banks', icon: <Building2 size={18} />, roles: ['admin'] },
   { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={18} />, roles: ['admin'] },
   { label: 'Branches', path: '/branches', icon: <MapPin size={18} />, roles: ['admin', 'manager', 'sales_manager'] },
