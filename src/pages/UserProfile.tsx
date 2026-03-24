@@ -196,11 +196,7 @@ export default function UserProfile() {
           {kyc.pan_details?.dob && <InfoRow label="Date of Birth" value={kyc.pan_details.dob} />}
           {kyc.pan_details?.gender && <InfoRow label="Gender" value={kyc.pan_details.gender} />}
           {kyc.pan_details?.category && <InfoRow label="Category" value={kyc.pan_details.category} />}
-          <InfoRow
-            label="Aadhaar Linked"
-            value={kyc.pan_details?.aadhaar_linked ? 'Yes' : 'No'}
-            highlight={kyc.pan_details?.aadhaar_linked}
-          />
+
         </div>
       </div>
 

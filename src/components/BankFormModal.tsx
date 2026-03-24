@@ -31,6 +31,7 @@ const emptyBranch = (): Branch => ({
 });
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = API.replace('/api', '');
 const authHeader = () => ({ 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` });
 
 export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalProps) {
@@ -51,7 +52,7 @@ export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalP
     if (!open) return;
     if (bank) {
       setForm({ name: bank.name || '', status: bank.status || 'active' });
-      if (bank.logo_url) setLogoPreview(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${bank.logo_url}`);
+      if (bank.logo_url) setLogoPreview(`${API_BASE}${bank.logo_url}`);
       fetch(`${API}/banks/${bank.id}/branches`, { headers: authHeader() })
         .then(r => r.json())
         .then(data => setBranches(Array.isArray(data) ? data : []))

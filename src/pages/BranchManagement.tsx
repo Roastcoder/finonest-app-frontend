@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Building2, MapPin, Phone, Mail, Edit, Trash2 } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function BranchManagement() {
@@ -14,9 +14,6 @@ export default function BranchManagement() {
     city: '',
     state: '',
     pincode: '',
-    phone: '',
-    email: '',
-    manager_name: '',
     is_active: true,
   });
 
@@ -80,9 +77,6 @@ export default function BranchManagement() {
       city: '',
       state: '',
       pincode: '',
-      phone: '',
-      email: '',
-      manager_name: '',
       is_active: true,
     });
     setEditingBranch(null);
@@ -132,18 +126,6 @@ export default function BranchManagement() {
                 <MapPin size={14} className="text-muted-foreground mt-0.5" />
                 <p className="text-muted-foreground">{branch.address}, {branch.city}, {branch.state} - {branch.pincode}</p>
               </div>
-              {branch.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone size={14} className="text-muted-foreground" />
-                  <p className="text-muted-foreground">{branch.phone}</p>
-                </div>
-              )}
-              {branch.email && (
-                <div className="flex items-center gap-2">
-                  <Mail size={14} className="text-muted-foreground" />
-                  <p className="text-muted-foreground">{branch.email}</p>
-                </div>
-              )}
               {branch.manager_name && (
                 <p className="text-muted-foreground">Manager: <span className="text-foreground">{branch.manager_name}</span></p>
               )}
@@ -234,35 +216,6 @@ export default function BranchManagement() {
                     className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Manager Name</label>
-                <input
-                  type="text"
-                  value={formData.manager_name}
-                  onChange={e => setFormData({ ...formData, manager_name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
-                />
               </div>
               <div className="flex items-center gap-2">
                 <input
