@@ -32,6 +32,9 @@ export default function Signup() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('executive');
   const [referCode, setReferCode] = useState('');
@@ -369,17 +372,82 @@ export default function Signup() {
 
             <div>
               <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">Mobile Number</label>
-              <div className="relative">
-                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="10-digit mobile number"
-                  maxLength={10}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(val);
+                      if (phoneVerified) { setPhoneVerified(false); setPhoneOtpSent(false); setPhoneOtp(''); }
+                    }}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
+                    disabled={phoneVerified}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium disabled:opacity-60"
+                  />
+                </div>
+                {!phoneVerified && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!phone || phone.length !== 10) { toast.error('Enter a valid 10-digit mobile number'); return; }
+                      setLoading(true);
+                      try {
+                        await api.post('/auth/send-mobile-otp', { phone });
+                        setPhoneOtpSent(true);
+                        toast.success('OTP sent to your mobile!');
+                      } catch (e: any) {
+                        toast.error(e.message || 'Failed to send OTP');
+                      } finally { setLoading(false); }
+                    }}
+                    disabled={loading || phone.length !== 10}
+                    className="px-4 py-3 rounded-xl text-white text-sm font-bold bg-gradient-to-r from-secondary to-primary disabled:opacity-60 whitespace-nowrap"
+                  >
+                    {loading ? '...' : phoneOtpSent ? 'Resend' : 'Send OTP'}
+                  </button>
+                )}
+                {phoneVerified && (
+                  <div className="flex items-center gap-1 px-3 text-green-600">
+                    <CheckCircle size={18} />
+                  </div>
+                )}
               </div>
+              {phoneOtpSent && !phoneVerified && (
+                <div className="mt-2 flex gap-2">
+                  <div className="relative flex-1">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                    <input
+                      type="text"
+                      value={phoneOtp}
+                      onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-white/50 dark:border-white/10 bg-white/60 dark:bg-black/20 text-gray-900 dark:text-white text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-sm backdrop-blur-md font-medium"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (phoneOtp.length !== 6) { toast.error('Enter the 6-digit OTP'); return; }
+                      setLoading(true);
+                      try {
+                        await api.post('/auth/verify-mobile-otp', { phone, otp: phoneOtp });
+                        setPhoneVerified(true);
+                        toast.success('Mobile number verified!');
+                      } catch (e: any) {
+                        toast.error(e.message || 'Invalid OTP');
+                      } finally { setLoading(false); }
+                    }}
+                    disabled={loading || phoneOtp.length !== 6}
+                    className="px-4 py-3 rounded-xl text-white text-sm font-bold bg-gradient-to-r from-secondary to-primary disabled:opacity-60"
+                  >
+                    {loading ? '...' : 'Verify'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
@@ -419,25 +487,14 @@ export default function Signup() {
 
             <button
               onClick={() => {
-                if (!fullName.trim()) {
-                  toast.error('Please enter your full name');
-                  return;
-                }
-                if (!phone.trim() || phone.length !== 10) {
-                  toast.error('Please enter a valid 10-digit mobile number');
-                  return;
-                }
-                if (!email.trim() || !email.includes('@')) {
-                  toast.error('Please enter a valid email address');
-                  return;
-                }
-                if (!password.trim() || password.length < 6) {
-                  toast.error('Password must be at least 6 characters long');
-                  return;
-                }
+                if (!fullName.trim()) { toast.error('Please enter your full name'); return; }
+                if (!phone.trim() || phone.length !== 10) { toast.error('Please enter a valid 10-digit mobile number'); return; }
+                if (!phoneVerified) { toast.error('Please verify your mobile number with OTP'); return; }
+                if (!email.trim() || !email.includes('@')) { toast.error('Please enter a valid email address'); return; }
+                if (!password.trim() || password.length < 6) { toast.error('Password must be at least 6 characters long'); return; }
                 setCurrentStep(3);
               }}
-              disabled={!fullName || !email || !password}
+              disabled={!fullName || !email || !password || !phoneVerified}
               className="w-full flex items-center justify-center gap-2 font-bold py-3 px-4 rounded-xl text-white text-sm transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 bg-gradient-to-r from-secondary to-primary border border-white/20"
             >
               Continue to Aadhaar Verification
