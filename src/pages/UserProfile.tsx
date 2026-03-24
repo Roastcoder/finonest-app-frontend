@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, CreditCard, FileText, MapPin, CheckCircle, XCircle, Eye, EyeOff, Calendar, Users, Pencil, Check, X } from 'lucide-react';
+import { User, CreditCard, FileText, MapPin, CheckCircle, XCircle, Eye, EyeOff, Calendar, Users, Pencil, Check, X, Camera } from 'lucide-react';
 import { toast } from 'sonner';
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function UserProfile() {
   const { user } = useAuth();
@@ -12,6 +14,8 @@ export default function UserProfile() {
   const [editingPhone, setEditingPhone] = useState(false);
   const [phoneValue, setPhoneValue] = useState('');
   const [savingPhone, setSavingPhone] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.get('/auth/profile')
@@ -19,6 +23,35 @@ export default function UserProfile() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5MB'); return; }
+    setUploadingPhoto(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const formData = new FormData();
+      formData.append('photo', file);
+      const res = await fetch(`${API_BASE}/api/auth/profile/photo`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile((prev: any) => ({ ...prev, photo_path: data.photo_path }));
+        toast.success('Photo updated!');
+      } else {
+        toast.error(data.error || 'Upload failed');
+      }
+    } catch {
+      toast.error('Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  };
 
   const handleSavePhone = async () => {
     if (!phoneValue || phoneValue.length !== 10) {
@@ -59,8 +92,38 @@ export default function UserProfile() {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div className="glass-card p-6 flex items-center gap-5">
-        <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-bold text-2xl shadow-md">
-          {profile.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+        <div className="relative shrink-0">
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-primary flex items-center justify-center text-white font-bold text-2xl shadow-md">
+            {profile.photo_path ? (
+              <img
+                src={`${API_BASE}/${profile.photo_path}`}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            ) : (
+              profile.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+            )}
+          </div>
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-md hover:bg-primary/80 transition-colors"
+            title="Change photo"
+          >
+            {uploadingPhoto ? (
+              <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Camera size={12} />
+            )}
+          </button>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png"
+            className="hidden"
+            onChange={handlePhotoChange}
+          />
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">{profile.name}</h1>

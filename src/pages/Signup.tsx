@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { ArrowRight, Mail, Lock, User, Building2, Shield, BarChart3, Users as UsersIcon, Zap, Download, Eye, EyeOff, UserCircle, CreditCard, FileText, CheckCircle, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Mail, Lock, User, Building2, Shield, BarChart3, Users as UsersIcon, Zap, Download, Eye, EyeOff, UserCircle, CreditCard, FileText, CheckCircle, ArrowLeft, Camera, Upload, X } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { toast } from 'sonner';
 import React from 'react';
@@ -39,11 +39,18 @@ export default function Signup() {
   const [role, setRole] = useState('executive');
   const [referCode, setReferCode] = useState('');
 
+  // Step 4: Photo Upload
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoPath, setPhotoPath] = useState('');
+  const [photoUploaded, setPhotoUploaded] = useState(false);
+
   const steps = [
     { id: 1, title: 'PAN Verification', icon: <CreditCard size={20} /> },
     { id: 2, title: 'Personal Details', icon: <User size={20} /> },
     { id: 3, title: 'Aadhaar Verification', icon: <FileText size={20} /> },
-    { id: 4, title: 'Complete Profile', icon: <Shield size={20} /> }
+    { id: 4, title: 'Photo Upload', icon: <Camera size={20} /> },
+    { id: 5, title: 'Complete Profile', icon: <Shield size={20} /> }
   ];
 
   // Validation functions
@@ -249,7 +256,8 @@ export default function Signup() {
         pan_number: panNumber,
         aadhaar_number: aadhaarNumber,
         pan_data: panData,
-        aadhaar_data: aadhaarData
+        aadhaar_data: aadhaarData,
+        photo_path: photoPath || undefined
       });
       
       if (response.success) {
@@ -615,6 +623,111 @@ export default function Signup() {
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Upload Your Photo</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Upload a clear photo for identity verification</p>
+            </div>
+
+            <div className="flex flex-col items-center gap-4">
+              {/* Preview */}
+              <div className="relative w-32 h-32 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-800">
+                {photoPreview ? (
+                  <>
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoFile(null); setPhotoPreview(null); setPhotoPath(''); setPhotoUploaded(false); }}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </>
+                ) : (
+                  <Camera size={32} className="text-gray-400" />
+                )}
+              </div>
+
+              {/* File input */}
+              <label className="cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                <Upload size={16} />
+                {photoFile ? 'Change Photo' : 'Choose Photo'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5MB'); return; }
+                    setPhotoFile(file);
+                    setPhotoPreview(URL.createObjectURL(file));
+                    setPhotoUploaded(false);
+                    setPhotoPath('');
+                  }}
+                />
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400">JPG or PNG, max 5MB</p>
+            </div>
+
+            {photoUploaded && (
+              <div className="flex items-center gap-2 justify-center text-green-600">
+                <CheckCircle size={16} />
+                <span className="text-sm font-semibold">Photo uploaded successfully</span>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(5)}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-sm"
+              >
+                Skip
+              </button>
+              <button
+                onClick={async () => {
+                  if (!photoFile) { toast.error('Please select a photo first'); return; }
+                  setLoading(true);
+                  try {
+                    const formData = new FormData();
+                    formData.append('photo', photoFile);
+                    const BASE = (import.meta as any).env?.VITE_API_URL || '/api';
+                    const res = await fetch(`${BASE}/auth/upload-photo`, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.success) {
+                      setPhotoPath(data.photo_path);
+                      setPhotoUploaded(true);
+                      toast.success('Photo uploaded!');
+                      setTimeout(() => setCurrentStep(5), 600);
+                    } else {
+                      toast.error(data.error || 'Upload failed');
+                    }
+                  } catch (e: any) {
+                    toast.error('Upload failed. Please try again.');
+                  } finally { setLoading(false); }
+                }}
+                disabled={loading || !photoFile}
+                className="flex-1 flex items-center justify-center gap-2 font-bold py-3 px-4 rounded-xl text-white text-sm transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg bg-gradient-to-r from-secondary to-primary border border-white/20"
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Uploading...
+                  </div>
+                ) : (
+                  <>
+                    Upload & Continue
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-4">
+            <div className="text-center mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Complete Your Profile</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">Select your role and referral details</p>
             </div>
@@ -809,7 +922,8 @@ export default function Signup() {
                 {currentStep === 1 && 'Verify your PAN to continue'}
                 {currentStep === 2 && 'Fill in your personal details'}
                 {currentStep === 3 && 'Verify your Aadhaar with OTP'}
-                {currentStep === 4 && 'Complete your profile'}
+                {currentStep === 4 && 'Upload your photo'}
+                {currentStep === 5 && 'Complete your profile'}
               </div>
             </div>
 
