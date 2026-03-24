@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Phone, Lock, Shield, BarChart3, Users, Zap, ArrowRight, Download } from 'lucide-react';
-import logo from '@/assets/logo.png';
 
 export default function CustomerLogin() {
   const navigate = useNavigate();
@@ -11,6 +10,7 @@ export default function CustomerLogin() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const logo = '/Finonest%20logo.png';
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||

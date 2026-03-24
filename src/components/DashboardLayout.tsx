@@ -7,7 +7,6 @@ import {
   LogOut, Menu, X, Car, Bell, CreditCard, Shield, ChevronLeft, ChevronRight, MapPin, UserPlus, Settings,
   Wallet, Receipt, ShieldCheck, Sliders, ChevronDown, ChevronUp, Folder, Copy, Share2, UserCircle
 } from 'lucide-react';
-import logo from '@/assets/logo.png';
 import MobileBottomNav from './MobileBottomNav';
 import { toast } from 'sonner';
 import NotificationBell from './NotificationBell';
@@ -57,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const logo = '/Finonest%20logo.png';
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);

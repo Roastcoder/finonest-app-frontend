@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowRight, Mail, Lock, Shield, BarChart3, Zap, Download, Eye, EyeOff } from 'lucide-react';
-import logo from '@/assets/logo.png';
 
 export default function Login() {
   const { login } = useAuth();
@@ -13,6 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const logo = '/Finonest%20logo.png';
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||

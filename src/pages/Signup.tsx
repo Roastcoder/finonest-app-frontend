@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { ArrowRight, Mail, Lock, User, Building2, Shield, BarChart3, Users as UsersIcon, Zap, Download, Eye, EyeOff, UserCircle, CreditCard, FileText, CheckCircle, ArrowLeft, Camera, Upload, X } from 'lucide-react';
-import logo from '@/assets/logo.png';
 import { toast } from 'sonner';
 import React from 'react';
 
@@ -13,6 +12,7 @@ export default function Signup() {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const logo = '/Finonest%20logo.png';
   
   // Step 1: PAN Verification
   const [panNumber, setPanNumber] = useState('');

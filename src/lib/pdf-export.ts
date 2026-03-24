@@ -73,7 +73,7 @@ function buildLoanHTML(loan: LoanData): string {
 <table class="hdr-table">
   <tr>
     <td style="width:70%">
-      <img src="/Finonest logo.png" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+      <img src="/Finonest%20logo.png" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
       <div style="display:none;">
         <span class="company-name">Finonest India</span><br/>
         <span class="company-sub">Vehicle Loan Solutions &bull; Since 2015</span>
@@ -346,7 +346,7 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
 
       // Try to load and add logo
       try {
-        const logoBase64 = await loadImageAsBase64('/Finonest logo.png');
+        const logoBase64 = await loadImageAsBase64('/Finonest%20logo.png');
         doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
       } catch (logoError) {
         console.warn('Could not load logo, using text fallback:', logoError);
