@@ -1263,7 +1263,7 @@ export default function CreateLoan() {
                   )}
                   {form.itrAvailable === 'Yes' && (
                     <div className="floating-input-wrapper">
-                      <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " max="999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 6) t.value = t.value.slice(0,6); }} />
+                      <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
                       <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
                     </div>
                   )}
@@ -1349,7 +1349,7 @@ export default function CreateLoan() {
                       </div>
                       {form.itrAvailable === 'Yes' && (
                         <div className="floating-input-wrapper">
-                          <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " max="999999" onInput={e => { const t = e.target as HTMLInputElement; if(t.value.length > 6) t.value = t.value.slice(0,6); }} />
+                          <input type="number" className={inputClass} value={form.annualIncomeItr} onChange={e => update('annualIncomeItr', e.target.value)} placeholder=" " />
                           <label className={labelClass}>Annual Income (As Per Latest ITR)</label>
                         </div>
                       )}

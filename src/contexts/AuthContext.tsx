@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authAPI.signup(userData.name, userData.email, userData.password, {
         role: userData.role,
+        phone: userData.phone,
         refer_code: userData.refer_code,
         pan_number: userData.pan_number,
         aadhaar_number: userData.aadhaar_number,
