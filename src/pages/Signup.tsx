@@ -381,7 +381,7 @@ export default function Signup() {
             <div>
               <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-1.5">Mobile Number</label>
               <div className="flex gap-2">
-                <div className="relative flex-1">
+                <div className="relative flex-1 min-w-[140px]">
                   <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                   <input
                     type="tel"
@@ -425,7 +425,7 @@ export default function Signup() {
               </div>
               {phoneOtpSent && !phoneVerified && (
                 <div className="mt-2 flex gap-2">
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-[140px]">
                     <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
                     <input
                       type="text"
@@ -810,11 +810,6 @@ export default function Signup() {
           </div>
 
           <div className="flex-1 flex flex-col justify-center -mt-8">
-            <div className="mb-2">
-              <span className="inline-block px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
-                Management Portal
-              </span>
-            </div>
             <h1 className="text-4xl xl:text-[2.75rem] font-extrabold text-gray-900 dark:text-white leading-[1.15] mb-4 tracking-tight drop-shadow-sm">
               Car Loan Sales<br />
               <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
@@ -866,7 +861,6 @@ export default function Signup() {
           <div className="glass-card p-7 sm:p-8 shadow-xl">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight drop-shadow-sm">Create Account</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 font-medium">Join Finonest India team</p>
             </div>
 
             {/* Stepper */}
@@ -886,7 +880,7 @@ export default function Signup() {
                       )}
                     </div>
                     {index < steps.length - 1 && (
-                      <div className={`w-16 h-0.5 mx-2 transition-all ${
+                      <div className={`flex-1 min-w-[1.5rem] h-0.5 mx-1.5 transition-all ${
                         currentStep > step.id ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                       }`} />
                     )}

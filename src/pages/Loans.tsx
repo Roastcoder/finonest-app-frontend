@@ -159,7 +159,7 @@ export default function Loans() {
             <Upload size={16} /> Import CSV
           </button>
           <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          <Link to="/loans/new" className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm whitespace-nowrap">
+          <Link to="/loans/new" className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-white font-bold py-2.5 px-4 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all text-sm border border-white/20 whitespace-nowrap">
             <Plus size={16} /> New Application
           </Link>
         </div>
@@ -196,7 +196,7 @@ export default function Loans() {
             <button onClick={() => importRef.current?.click()} className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
               <Upload size={13} /> Import CSV
             </button>
-            <Link to="/loans/new" className="flex-1 inline-flex items-center justify-center gap-1 bg-accent text-accent-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
+            <Link to="/loans/new" className="flex-1 inline-flex items-center justify-center gap-1 bg-gradient-to-r from-secondary to-primary text-white font-bold py-2 rounded-xl text-xs shadow-md active:scale-95 transition-all border border-white/20 whitespace-nowrap">
               <Plus size={13} /> New Application
             </Link>
           </div>

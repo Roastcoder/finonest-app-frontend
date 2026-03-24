@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/api';
 import { ArrowRight, Mail, Lock, Shield, BarChart3, Users, Zap, Download, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 
 export default function Login() {
@@ -30,17 +28,21 @@ export default function Login() {
     setLoading(true);
     setError('');
 
-    const result = await login(email, password);
-    setLoading(false);
-    if (result.error) {
-      // Check if it's an approval pending error
-      if (result.error.includes('pending approval')) {
-        setError('Your account is pending approval. Please contact admin.');
+    try {
+      const result = await login(email, password);
+      setLoading(false);
+      if (result?.error) {
+        if (result.error.includes('pending approval')) {
+          setError('Your account is pending approval. Please contact admin.');
+        } else {
+          setError('Invalid email or password. Please try again.');
+        }
       } else {
-        setError('Invalid email or password. Please try again.');
+        navigate('/dashboard');
       }
-    } else {
-      navigate('/dashboard');
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'An error occurred during login');
     }
   };
 
@@ -52,32 +54,69 @@ export default function Login() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-transparent font-sans">
-      {/* ─── LOGIN FORM (FULL WIDTH TOP) ─── */}
+    <div className="min-h-screen flex bg-transparent font-sans">
+      {/* ─── LEFT PANEL (DESKTOP) ─── */}
+      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden glass-panel m-4 lg:mr-2 rounded-[2.5rem]">
+        <div className="relative z-10 flex flex-col justify-between p-10 xl:p-14 w-full h-full">
+          <div className="flex items-center gap-3.5">
+            <img src={logo} alt="Finonest India" className="h-14 w-auto object-contain drop-shadow-md" />
+          </div>
+
+          <div className="flex-1 flex flex-col justify-center -mt-8">
+            <h1 className="text-4xl xl:text-[2.75rem] font-extrabold text-gray-900 dark:text-white leading-[1.15] mb-4 tracking-tight drop-shadow-sm">
+              Car Loan Sales<br />
+              <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
+                & Management
+              </span>
+            </h1>
+            <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed max-w-sm mb-8 font-medium">
+              Complete loan lifecycle management — from lead generation to disbursement, all in one powerful platform.
+            </p>
+
+            <div className="space-y-3.5">
+              {features.map(f => (
+                <div key={f.title} className="flex items-start gap-3 group">
+                  <div className="shrink-0 w-9 h-9 rounded-xl glass-card flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-white/40 dark:group-hover:bg-white/10 transition-all duration-300 shadow-sm border border-white/50 dark:border-white/10">
+                    {f.icon}
+                  </div>
+                  <div className="pt-0.5">
+                    <h3 className="text-gray-900 dark:text-white text-sm font-semibold mb-0.5">{f.title}</h3>
+                    <p className="text-gray-600 dark:text-slate-400 text-xs leading-relaxed font-medium">{f.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {!isStandalone && (
+              <div className="mt-8 hidden lg:block">
+                <a
+                  href="/finonest.apk"
+                  download
+                  className="inline-flex items-center gap-2.5 glass-card hover:bg-white/60 dark:hover:bg-gray-800/60 text-gray-900 dark:text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-300 text-sm shadow-sm"
+                >
+                  <Download size={16} className="text-blue-600 dark:text-blue-400" />
+                  Download Android App
+                </a>
+              </div>
+            )}
+          </div>
+
+          <p className="text-gray-500 dark:text-slate-400 text-xs font-medium">© 2025 Finonest India. All rights reserved.</p>
+        </div>
+      </div>
+
+      {/* ─── RIGHT PANEL (FORM) ─── */}
       <div className="flex-1 flex items-center justify-center p-5 sm:p-8 bg-transparent">
         <div className="w-full max-w-[420px]">
-          <div className="flex flex-col items-center mb-8">
+          <div className="lg:hidden flex flex-col items-center mb-8">
             <img src={logo} alt="Finonest India" className="h-14 w-auto object-contain drop-shadow-md mb-3" />
           </div>
 
           {/* Card */}
           <div className="glass-card p-7 sm:p-8 shadow-xl">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight drop-shadow-sm">Welcome back</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 font-medium">Sign in to continue to your dashboard</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight drop-shadow-sm">Login</h2>
             </div>
-
-            {/* Mobile APK */}
-            {!isStandalone && (
-              <a
-                href="/finonest.apk"
-                download
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-secondary to-primary text-white font-semibold py-2.5 px-4 rounded-xl hover:shadow-lg transition-all text-sm mb-5 border border-white/20"
-              >
-                <Download size={16} />
-                Download Android App
-              </a>
-            )}
 
             {error && (
               <div className="mb-5 flex items-center gap-2 p-3 rounded-xl bg-red-100/80 dark:bg-red-900/40 border border-red-200 dark:border-red-800/40 backdrop-blur-md">
@@ -144,47 +183,23 @@ export default function Login() {
             <div className="mt-6 pt-5 border-t border-gray-200/50 dark:border-gray-700/50 text-center space-y-3">
               <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                 Don't have an account?{' '}
-                <a href="/signup" className="text-blue-700 dark:text-blue-400 font-bold hover:underline underline-offset-2">
+                <Link to="/signup" className="text-blue-700 dark:text-blue-400 font-bold hover:underline underline-offset-2">
                   Sign Up
-                </a>
+                </Link>
               </p>
-              <a
-                href="/customer-login"
+              <Link
+                to="/customer-login"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary glass-card hover:bg-white/60 dark:hover:bg-white/10 transition-all shadow-sm border border-white/40 dark:border-white/10"
               >
                 <Users size={16} />
                 Customer Login
-              </a>
+              </Link>
             </div>
           </div>
 
-          {/* Bottom trust */}
           <p className="text-center text-xs text-gray-500 dark:text-slate-400 mt-5 font-medium drop-shadow-sm">
             Secured with end-to-end encryption
           </p>
-        </div>
-      </div>
-
-      {/* ─── FEATURES SECTION (BOTTOM) ─── */}
-      <div className="hidden lg:block bg-gradient-to-t from-accent/5 to-transparent border-t border-white/10 px-8 py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Why Choose Finonest?</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Complete loan lifecycle management — from lead generation to disbursement</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map(f => (
-              <div key={f.title} className="flex items-start gap-3 group">
-                <div className="shrink-0 w-9 h-9 rounded-xl glass-card flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-white/40 dark:group-hover:bg-white/10 transition-all duration-300 shadow-sm border border-white/50 dark:border-white/10">
-                  {f.icon}
-                </div>
-                <div className="pt-0.5">
-                  <h3 className="text-gray-900 dark:text-white text-sm font-semibold mb-0.5">{f.title}</h3>
-                  <p className="text-gray-600 dark:text-slate-400 text-xs leading-relaxed font-medium">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

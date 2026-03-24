@@ -1,8 +1,7 @@
-const CACHE_NAME = 'mehar-finance-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/favicon.ico'
+  '/favicon.png'
 ];
 
 self.addEventListener('install', (event) => {

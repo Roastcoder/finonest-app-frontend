@@ -73,8 +73,8 @@ export default function LeadsList() {
     // Update the lead in the cache
     queryClient.setQueryData(['leads'], (oldData: any) => {
       if (!oldData) return oldData;
-      return oldData.map((lead: any) => 
-        lead.id === leadId 
+      return oldData.map((lead: any) =>
+        lead.id === leadId
           ? { ...lead, application_stage: stageData.stage, stage_data: stageData }
           : lead
       );
@@ -97,7 +97,7 @@ export default function LeadsList() {
     queryKey: ['leads'],
     queryFn: async () => {
       const leadsData = await api.get('/leads');
-      
+
       // Fetch loan data for each lead to get loan application stage
       const leadsWithLoanStage = await Promise.all(
         leadsData.map(async (lead: any) => {
@@ -125,7 +125,7 @@ export default function LeadsList() {
           return lead;
         })
       );
-      
+
       return leadsWithLoanStage;
     },
     enabled: !!user,
@@ -210,11 +210,10 @@ export default function LeadsList() {
           <div className="flex gap-2">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-all ${
-                isFilterOpen || filterBranch !== 'all' || filterStage !== 'all'
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-all ${isFilterOpen || filterBranch !== 'all' || filterStage !== 'all'
                   ? 'bg-accent/10 border-accent/20 text-accent'
                   : 'border-border bg-background/50 text-muted-foreground hover:bg-muted'
-              }`}
+                }`}
             >
               <Filter size={18} />
               Filters
@@ -319,19 +318,17 @@ export default function LeadsList() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
-                      lead.converted_to_loan 
+                    <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${lead.converted_to_loan
                         ? getLeadStageColor('CONVERTED')
                         : getLeadStageColor('SUBMITTED')
-                    }`}>
+                      }`}>
                       {lead.converted_to_loan ? getLeadStageLabel('CONVERTED') : getLeadStageLabel('SUBMITTED')}
                     </span>
                     {lead.converted_to_loan && (
-                      <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${
-                        lead.loan_application_stage 
+                      <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${lead.loan_application_stage
                           ? getLoanStageColor(lead.loan_application_stage)
                           : 'bg-blue-100 text-blue-700 border-blue-200'
-                      }`}>
+                        }`}>
                         {lead.loan_application_stage ? getLoanStageLabel(lead.loan_application_stage) : 'Submitted'}
                       </span>
                     )}
@@ -446,19 +443,17 @@ export default function LeadsList() {
                       <span className="text-xs text-muted-foreground font-medium">{lead.our_branch || 'Direct'}</span>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
-                        lead.converted_to_loan 
+                      <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${lead.converted_to_loan
                           ? getLeadStageColor('CONVERTED')
                           : getLeadStageColor('SUBMITTED')
-                      }`}>
+                        }`}>
                         {lead.converted_to_loan ? getLeadStageLabel('CONVERTED') : getLeadStageLabel('SUBMITTED')}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-center">
                       {lead.converted_to_loan && lead.loan_application_stage ? (
-                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${
-                          getLoanStageColor(lead.loan_application_stage)
-                        }`}>
+                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${getLoanStageColor(lead.loan_application_stage)
+                          }`}>
                           {getLoanStageLabel(lead.loan_application_stage)}
                         </span>
                       ) : lead.converted_to_loan ? (
@@ -471,26 +466,26 @@ export default function LeadsList() {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end gap-1 px-1">
-                        <button 
-                          onClick={() => navigate(`/leads/${lead.id}`)} 
-                          className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all hover:scale-110" 
+                        <button
+                          onClick={() => navigate(`/leads/${lead.id}`)}
+                          className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all hover:scale-110"
                           title="View Details"
                         >
                           <Eye size={18} />
                         </button>
                         {user?.role === 'admin' && (
-                          <button 
-                            onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })} 
-                            className="p-2 rounded-lg hover:bg-primary/5 text-primary/60 transition-all hover:scale-110" 
+                          <button
+                            onClick={() => setStageModal({ leadId: lead.id, currentStage: (lead.application_stage as ApplicationStage) || 'SUBMITTED' })}
+                            className="p-2 rounded-lg hover:bg-primary/5 text-primary/60 transition-all hover:scale-110"
                             title="Update Stage"
                           >
                             <Edit size={18} />
                           </button>
                         )}
                         {!lead.converted_to_loan && user?.role !== 'executive' ? (
-                          <button 
-                            onClick={() => navigate(`/loans/new?leadId=${lead.id}`)} 
-                            className="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all hover:scale-110" 
+                          <button
+                            onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
+                            className="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all hover:scale-110"
                             title="Convert to Loan"
                           >
                             <ArrowRight size={18} />
@@ -501,9 +496,9 @@ export default function LeadsList() {
                           </div>
                         ) : null}
                         {user?.role === 'admin' && (
-                          <button 
-                            onClick={() => setDeleteConfirm(lead.id)} 
-                            className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all hover:scale-110" 
+                          <button
+                            onClick={() => setDeleteConfirm(lead.id)}
+                            className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all hover:scale-110"
                             title="Delete Lead"
                           >
                             <Trash2 size={18} />

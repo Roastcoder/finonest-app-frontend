@@ -344,35 +344,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
         <header className="h-12 lg:h-16 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-xl lg:rounded-2xl flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
-          {/* Mobile: Logo and Refer Code */}
+          {/* Mobile: Logo Only */}
           <div className="lg:hidden flex items-center gap-3">
             <img src={logo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
-            {['team_leader', 'branch_manager', 'dsa'].includes(user.role) && user.refer_code && (
-              <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-lg">
-                <code className="text-xs font-mono font-bold text-primary">
-                  {user.refer_code}
-                </code>
-                <button
-                  onClick={handleCopyReferCode}
-                  className="p-1 rounded hover:bg-primary/20 text-primary transition-colors"
-                  title="Copy refer code"
-                >
-                  <Copy size={12} />
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Page title / User greeting */}
           <div className="flex-1 min-w-0 flex items-center lg:ml-2 lg:border-l border-white/50 dark:border-white/10 lg:pl-6 h-8 lg:h-10">
-            <div>
-              <p className="text-sm lg:text-base font-bold text-gray-900 dark:text-white truncate tracking-tight drop-shadow-sm">
-                Hi, <span className="text-primary dark:text-primary">{user.name?.split(' ')[0] || 'User'}</span>
-              </p>
-              <p className="text-xs lg:text-xs text-gray-600 dark:text-gray-400 font-medium truncate tracking-wide">
-                {user.role ? ROLE_LABELS[user.role] : 'User'}
-              </p>
-            </div>
+            <div className="hidden sm:flex flex-col">
+            {/* Greeting removed based on user feedback */}
+          </div>
           </div>
 
 
@@ -396,8 +377,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-sm" onClick={() => setProfileOpen(false)} />
                 <div className="absolute right-0 top-12 lg:top-14 w-60 glass-panel border border-white/20 dark:border-white/5 rounded-2xl shadow-xl z-50 overflow-hidden transform origin-top-right transition-all backdrop-blur-2xl bg-white/10 dark:bg-black/20">
                   <div className="p-4 border-b border-white/10">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name || 'User'}</p>
-                    <p className="text-xs font-semibold text-primary dark:text-primary">{user.role ? ROLE_LABELS[user.role] : 'No role'}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">User Account</p>
+                    <p className="text-xs font-semibold text-primary dark:text-primary">{user.role ? ROLE_LABELS[user.role as UserRole] : 'No role'}</p>
                     {user.role === 'executive' && (
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         Team: {user.manager_name || 'No team leader assigned'}
