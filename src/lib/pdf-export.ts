@@ -1,4 +1,3 @@
-import { formatCurrency } from '@/lib/mock-data';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 
@@ -23,7 +22,7 @@ function fmtCur(val: any): string {
   if (val === null || val === undefined || val === '') return '—';
   const n = Number(val);
   if (isNaN(n)) return '—';
-  return formatCurrency(n);
+  return `Rs. ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)}`;
 }
 
 function row4(l1: string, v1: string, l2: string, v2: string, l3: string, v3: string, l4: string, v4: string): string {
@@ -37,160 +36,6 @@ function row4(l1: string, v1: string, l2: string, v2: string, l3: string, v3: st
 
 function sectionTitle(icon: string, title: string): string {
   return `<tr><td colspan="8" class="sec-title">${icon} ${title}</td></tr>`;
-}
-
-function buildLoanHTML(loan: LoanData): string {
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Loan Application - ${loan.id}</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a2e; font-size: 10px; line-height: 1.4; padding: 10px; }
-  
-  .hdr-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; border-bottom: 2px solid #1a3a6b; padding-bottom: 6px; }
-  .hdr-table td { vertical-align: middle; padding: 4px; }
-  .company-logo { height: 35px; width: auto; }
-  .company-name { font-size: 18px; font-weight: 800; color: #1a3a6b; }
-  .company-sub { font-size: 9px; color: #666; }
-  .hdr-right { text-align: right; }
-  .hdr-lbl { font-size: 8px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-  .hdr-val { font-size: 12px; font-weight: 700; color: #1a3a6b; }
-
-  .title-bar { background: #1a3a6b; color: #fff; padding: 6px 12px; margin-bottom: 8px; }
-  .title-bar table { width: 100%; }
-  .title-bar td { color: #fff; }
-  .title-bar .t-left { font-size: 13px; font-weight: 700; }
-  .title-bar .t-right { text-align: right; font-size: 9px; font-weight: 600; text-transform: uppercase; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; }
-
-  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-  .data-table td { padding: 3px 5px; border: 1px solid #e0e4ea; vertical-align: top; }
-  .data-table .lbl { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.3px; width: 9%; background: #f8f9fb; }
-  .data-table .val { font-size: 10px; font-weight: 600; color: #1a1a2e; width: 16%; word-break: break-word; }
-  .data-table .sec-title { font-size: 10px; font-weight: 700; color: #1a3a6b; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #1a3a6b; background: #f0f4f8; padding: 5px; }
-
-  .sig-table { width: 100%; margin-top: 25px; border-collapse: collapse; }
-  .sig-table td { width: 33%; text-align: center; padding-top: 40px; border-top: 1px solid #333; font-size: 9px; color: #555; }
-
-  .footer-table { width: 100%; margin-top: 12px; border-top: 1.5px solid #e8ecf1; padding-top: 6px; }
-  .footer-table td { font-size: 8px; color: #999; padding: 2px; }
-</style></head><body>
-
-<table class="hdr-table">
-  <tr>
-    <td style="width:70%">
-      <img src="${PDF_LOGO_PATH}" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
-      <div style="display:none;">
-        <span class="company-name">Finonest India</span><br/>
-        <span class="company-sub">Vehicle Loan Solutions &bull; Since 2015</span>
-      </div>
-    </td>
-    <td class="hdr-right">
-      <span class="hdr-lbl">Application ID</span><br/>
-      <span class="hdr-val">${loan.id}</span><br/>
-      <span class="hdr-lbl">Date</span><br/>
-      <span class="hdr-val" style="font-size:11px">${new Date().toLocaleDateString('en-IN')}</span>
-    </td>
-  </tr>
-</table>
-
-<div class="title-bar">
-  <table><tr>
-    <td class="t-left">Loan Application Details</td>
-    <td><span class="t-right">${fmt(loan.status)}</span></td>
-  </tr></table>
-</div>
-
-<table class="data-table">
-  ${sectionTitle('&#128100;', 'Applicant Information')}
-  ${row4('LoanApp ID', fmt(loan.loan_number || loan.id), 'Applicant Name', fmt(loan.applicant_name || loan.customer_name), 'Mobile', fmt(loan.mobile || loan.phone), 'Email', fmt(loan.email || loan._lead_email || loan.customer_email))}
-  ${row4('Co-Applicant', fmt(loan.co_applicant_name), 'Co-App Mobile', fmt(loan.co_applicant_mobile), 'Guarantor', fmt(loan.guarantor_name), 'Guarantor Mobile', fmt(loan.guarantor_mobile))}
-  <tr>
-    <td class="lbl">Address</td><td class="val" colspan="3">${fmt(loan.current_address || loan.address || loan.customer_address)}</td>
-    <td class="lbl">Landmark</td><td class="val">${fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)}</td>
-    <td class="lbl">City & State</td><td class="val">${fmt((loan.city || loan.current_city || loan.current_district || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))}</td>
-  </tr>
-  <tr>
-    <td class="lbl">Pincode</td><td class="val">${fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)}</td>
-    <td class="lbl"></td><td class="val"></td>
-    <td class="lbl"></td><td class="val"></td>
-    <td class="lbl"></td><td class="val"></td>
-  </tr>
-
-  ${sectionTitle('&#128663;', 'Vehicle Details')}
-  ${row4('Reg. No', fmt(loan.vehicle_number || loan.registration_number), 'Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make), 'Model/Variant', fmt(loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant), 'Engine Number', fmt(loan.engine_number))}
-  ${row4('Chassis Number', fmt(loan.chassis_number), 'Owner Name', fmt(loan.owner_name || loan.rc_owner_name), 'Fuel Type', fmt(loan.fuel_type), 'Mfg Date', formatDate(loan.manufacturing_date || loan.mfg_date))}
-  ${row4('Ownership Type', fmt(loan.ownership_type), 'Financer', fmt(loan.financer || loan.existing_financier), 'Finance Status', fmt(loan.finance_status), 'Insurance Company', fmt(loan.insurance_company))}
-  ${row4('Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry), 'PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry), 'Case Type', fmt(loan.case_type), '', '')}
-
-  ${sectionTitle('&#128176;', 'Existing Loan & EMI Details')}
-  ${row4('Loan Status', fmt(loan.existing_loan_status || loan.loan_status || loan.finance_status), 'Loan Amount', loan.existing_loan_status === 'Active' ? fmtCur(loan.existing_loan_amount) : '—', 'Tenure', loan.existing_loan_status === 'Active' && (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—', 'EMI Amount', loan.existing_loan_status === 'Active' ? fmtCur(loan.existing_emi || loan.emi_amount || loan.emi) : '—')}
-  ${loan.existing_loan_status === 'Active' ? row4('No of EMI Paid', fmt(loan.no_of_emi_paid || 0), 'Total Interest', fmtCur(loan.total_interest || 0), 'Bouncing in Last 3M', fmt(loan.bouncing_3_months || 0), 'Bouncing in Last 6M', fmt(loan.bouncing_6_months || 0)) : ''}
-  ${row4('Financier Name', fmt(loan.rto_financier_name || loan.financer), '', '', '', '', '', '')}
-
-  ${(() => {
-    const profFields: [string, string][] = [];
-    if (loan.income_source) profFields.push(['Income Source', fmt(loan.income_source)]);
-    if (loan.monthly_income || loan.net_monthly_salary) profFields.push(['Monthly Income', loan.monthly_income ? fmtCur(loan.monthly_income) : fmtCur(loan.net_monthly_salary)]);
-    if (loan.company_name) profFields.push(['Company Name', fmt(loan.company_name)]);
-    if (loan.designation) profFields.push(['Designation', fmt(loan.designation)]);
-    if (loan.current_job_years) profFields.push(['Current Job (Yrs)', fmt(loan.current_job_years)]);
-    if (loan.total_work_exp || loan.work_experience) profFields.push(['Total Work Exp (Yrs)', fmt(loan.total_work_exp || loan.work_experience)]);
-    if (loan.salary_credit_mode) profFields.push(['Salary Credit Mode', fmt(loan.salary_credit_mode.replace(/_/g, ' '))]);
-    if (loan.salary_slip_available != null) profFields.push(['Salary Slip', loan.salary_slip_available ? 'Available' : 'Not Available']);
-    if (loan.business_name) profFields.push(['Business Name', fmt(loan.business_name)]);
-    if (loan.business_type) profFields.push(['Business Type', fmt(loan.business_type)]);
-    if (loan.business_vintage) profFields.push(['Business Vintage (Yrs)', fmt(loan.business_vintage)]);
-    if (loan.annual_income_itr) profFields.push(['Annual Income (ITR)', fmtCur(loan.annual_income_itr)]);
-    if (loan.itr_available != null) profFields.push(['ITR Available', loan.itr_available ? 'Yes' : 'No']);
-    if (loan.professional_subtype) profFields.push(['Professional Sub Type', fmt(loan.professional_subtype)]);
-    if (loan.practice_experience) profFields.push(['Practice Exp (Yrs)', fmt(loan.practice_experience)]);
-    if (loan.freelancer_subtype) profFields.push(['Freelancer Type', fmt(loan.freelancer_subtype)]);
-    if (profFields.length === 0) return '';
-    while (profFields.length % 4 !== 0) profFields.push(['', '']);
-    return sectionTitle('&#128188;', 'Professional Details') + profFields.reduce((acc, _, i) => {
-      if (i % 4 === 0) acc += row4(profFields[i]?.[0]||'', profFields[i]?.[1]||'', profFields[i+1]?.[0]||'', profFields[i+1]?.[1]||'', profFields[i+2]?.[0]||'', profFields[i+2]?.[1]||'', profFields[i+3]?.[0]||'', profFields[i+3]?.[1]||'');
-      return acc;
-    }, '');
-  })()}
-
-  ${sectionTitle('&#127974;', 'Lender Details')}
-  ${row4('Lender', fmt(loan.financier_name || loan.selected_financier || loan.bank_name), 'Branch', fmt(loan.financier_branch_name), 'Sales Manager', fmt(loan.financier_executive_name), 'SM Mobile', fmt(loan.financier_executive_mobile))}
-  ${row4('Area Manager', fmt(loan.financier_area_manager_name), 'AM Mobile', fmt(loan.financier_area_manager_mobile), 'Loan Amount Required', fmtCur(loan.loan_amount), 'Case Type', fmt(loan.case_type))}
-
-  ${loan.application_stage === 'APPROVED' || loan.application_stage === 'DISBURSED' || loan.application_stage === 'CANCELLED' || loan.status === 'approved' || loan.status === 'disbursed' || loan.status === 'cancelled' ? `
-  ${sectionTitle('&#128203;', 'Deductions & Disbursement')}
-  ${row4('File Charge', fmtCur(loan.file_charge), 'Loan Suraksha', fmtCur(loan.loan_suraksha), 'Stamping', fmtCur(loan.stamping), 'Processing Fee', fmtCur(loan.processing_fee))}
-  ${row4('Total Deduction', fmtCur(loan.total_deduction), 'Net Disbursement', fmtCur(loan.net_disbursement_amount), 'Payment Recd.', formatDate(loan.payment_received_date), 'Disburse Date', formatDate(loan.financier_disburse_date))}
-  ` : ''}
-</table>
-
-<div style="margin-top: 20px;">
-  <h3 style="font-size: 12px; font-weight: bold; color: #1a3a6b; margin-bottom: 10px;">REFERENCES</h3>
-</div>
-
-<table class="sig-table">
-  <tr>
-    ${(() => {
-      const refs = loan._hierarchy || [
-        { name: loan.created_by_name || '—', designation: 'Creator' }
-      ];
-      const w = Math.floor(100 / refs.length);
-      return refs.map((ref: any) => `
-        <td style="padding-top:20px;width:${w}%;text-align:center;border-top:1px solid #333;font-size:9px;color:#555;">
-          <div style="font-size:10px;font-weight:bold;color:#1a1a2e;margin-bottom:5px;">${ref.name}</div>
-          <div style="margin-top:5px;">${ref.designation}</div>
-        </td>`).join('');
-    })()}
-  </tr>
-</table>
-
-<table class="footer-table">
-  <tr>
-    <td>Generated on ${new Date().toLocaleString('en-IN')} &bull; Finonest India</td>
-    <td style="text-align:right">This is a system-generated document</td>
-  </tr>
-</table>
-
-</body></html>`;
 }
 
 const ROLE_LABELS_MAP: Record<string, string> = {
