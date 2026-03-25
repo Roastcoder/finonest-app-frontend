@@ -247,7 +247,7 @@ async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
     ['Applicant Name', loan.applicant_name || loan.customer_name], ['Mobile', loan.mobile || loan.phone],
     ['Email', loan.email || loan.customer_email || loan._lead_email], ['Address', applicantAddress || '—'],
     ['City & State', cityState || '—'], ['Pincode', loan.pincode || loan.current_pincode || loan.customer_pincode],
-  ], 2, true);
+  ], 4);
 
   addSection('VEHICLE DETAILS', [
     ['Reg. No', loan.vehicle_number || loan.registration_number], ['Maker', loan.maker_name || loan.car_make || loan.vehicle_make],
@@ -265,7 +265,7 @@ async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
     ['Lender', loan.financier_name || loan.selected_financier || loan.bank_name], ['Branch', loan.financier_branch_name],
     ['Sales Manager', loan.financier_executive_name], ['Area Manager', loan.financier_area_manager_name],
     ['Prepared By', loan.created_by_name || loan._hierarchy?.[0]?.name], ['Role', loan._hierarchy?.[0]?.designation || 'Creator'],
-  ], 2, true);
+  ], 4);
 
   const footerY = 280;
   doc.setDrawColor(...colors.line);
