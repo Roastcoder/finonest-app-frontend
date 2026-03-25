@@ -226,10 +226,10 @@ export default function LoanDetail() {
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
             <button onClick={() => {
-              import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
-                shareLoanPDF(loan, documents as any[]);
+              import('@/lib/pdf-export').then(({ shareLoanMobile }) => {
+                shareLoanMobile(loan, documents as any[]);
               });
-            }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share via native sharing">
+            }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share via native sharing (mobile optimized)">
               <Share2 size={12} className="text-blue-500" /> Share
             </button>
             {canDelete && (
@@ -312,15 +312,15 @@ export default function LoanDetail() {
           </button>
           <button
             onClick={() => {
-              import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
-                shareLoanPDF(loan, documents as any[]);
+              import('@/lib/pdf-export').then(({ shareLoanMobile }) => {
+                shareLoanMobile(loan, documents as any[]);
               });
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
-            title="Share via native sharing (mobile devices)"
+            title="Share via native sharing (optimized for mobile)"
           >
             <Share2 size={14} className="text-blue-500" />
-            Share (Native)
+            Share
           </button>
           {canDelete && (
                 <button
