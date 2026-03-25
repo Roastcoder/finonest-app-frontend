@@ -438,8 +438,8 @@ export default function Loans() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share All</p>
-                  <p className="text-xs text-muted-foreground">PDF + attached documents</p>
+                  <p className="text-sm font-semibold text-foreground">Share PDF</p>
+                  <p className="text-xs text-muted-foreground">Loan PDF only</p>
                 </div>
                 <Share2 size={18} className="text-blue-500 shrink-0" />
               </div>

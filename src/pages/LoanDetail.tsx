@@ -210,7 +210,7 @@ export default function LoanDetail() {
   const handleShareAll = async () => {
     try {
       if (!shareBundle) {
-        toast.info(shareBundleLoading ? 'Preparing share files…' : 'Share files are still preparing. Please try again in a moment.');
+        toast.info(shareBundleLoading ? 'Preparing PDF…' : 'PDF is still preparing. Please try again in a moment.');
         return;
       }
 
@@ -382,8 +382,8 @@ export default function LoanDetail() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share All</p>
-                  <p className="text-xs text-muted-foreground">PDF + attached documents</p>
+                  <p className="text-sm font-semibold text-foreground">Share PDF</p>
+                  <p className="text-xs text-muted-foreground">Loan PDF only</p>
                 </div>
                 <Share2 size={18} className="text-blue-500 shrink-0" />
               </div>
@@ -492,10 +492,10 @@ export default function LoanDetail() {
             onClick={handleShareAll}
             disabled={shareBundleLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors disabled:opacity-60"
-            title="Share PDF with documents"
+            title="Share PDF"
           >
             <Share2 size={14} className="text-blue-500" />
-            {shareBundleLoading ? 'Preparing…' : 'Share All'}
+            {shareBundleLoading ? 'Preparing…' : 'Share PDF'}
           </button>
           {documents.length > 0 && (
             <button
