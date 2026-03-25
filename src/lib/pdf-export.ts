@@ -7,6 +7,7 @@ interface LoanData {
 }
 
 const LOAN_APPLICATION_PDF_TYPE = 'loan_application_pdf';
+const PDF_LOGO_PATH = '/Finonest%20logo.png';
 
 function formatDate(val: string | null | undefined): string {
   if (!val) return '—';
@@ -76,7 +77,7 @@ function buildLoanHTML(loan: LoanData): string {
 <table class="hdr-table">
   <tr>
     <td style="width:70%">
-      <img src="/logo.png" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+      <img src="${PDF_LOGO_PATH}" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
       <div style="display:none;">
         <span class="company-name">Finonest India</span><br/>
         <span class="company-sub">Vehicle Loan Solutions &bull; Since 2015</span>
@@ -308,7 +309,7 @@ function generatePDFBlobWithoutImages(loan: LoanData, docFiles: { file: File; na
 
       // Try to load and add logo
       try {
-        const logoBase64 = await loadImageAsBase64('/logo.png');
+        const logoBase64 = await loadImageAsBase64(PDF_LOGO_PATH);
         doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
       } catch (logoError) {
         console.warn('Could not load logo, using text fallback:', logoError);
@@ -339,55 +340,70 @@ function generatePDFBlobWithoutImages(loan: LoanData, docFiles: { file: File; na
   doc.setFontSize(8); doc.text(fmt(loan.status).toUpperCase(), lm + pw - 4, y + 5.5, { align: 'right' });
   y += 12;
 
-  // Helper to draw a 4-column section with auto-sizing
+  // Helper to draw a cleaner two-card section
   function drawSection(title: string, fields: [string, string][]) {
-    // Check page break
-    const rowCount = Math.ceil(fields.length / 4);
-    const needed = 8 + rowCount * 10; // increased estimate for auto-sizing
-    if (y + needed > 280) { doc.addPage(); y = 12; }
+    const sectionHeader = () => {
+      if (y + 12 > 280) { doc.addPage(); y = 12; }
+      doc.setFillColor(237, 243, 250);
+      doc.rect(lm, y, pw, 8, 'F');
+      doc.setDrawColor(...colors.primary);
+      doc.setLineWidth(0.35);
+      doc.line(lm, y + 8, lm + pw, y + 8);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...colors.primary);
+      doc.text(title, lm + 2, y + 5.3);
+      y += 11;
+    };
 
-    // Section title
-    doc.setFillColor(240, 244, 248); doc.rect(lm, y, pw, 6, 'F');
-    doc.setDrawColor(...colors.primary); doc.setLineWidth(0.4); doc.line(lm, y + 6, lm + pw, y + 6);
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-    doc.text(title, lm + 2, y + 4.2);
-    y += 7;
+    const cardGap = 4;
+    const cardW = (pw - cardGap) / 2;
+    const minCardH = 16;
+    sectionHeader();
 
-    const colW = pw / 4;
-    for (let i = 0; i < fields.length; i += 4) {
-      const rowFields = fields.slice(i, i + 4);
-      
-      // Calculate required height for this row based on content
-      let maxHeight = 7; // minimum height
-      for (let j = 0; j < 4; j++) {
-        if (rowFields[j] && rowFields[j][1]) {
-          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
-          const requiredHeight = Math.max(7, textLines.length * 2.5 + 4);
-          maxHeight = Math.max(maxHeight, requiredHeight);
-        }
+    for (let i = 0; i < fields.length; i += 2) {
+      const rowFields = fields.slice(i, i + 2);
+      const rowHeights = rowFields.map((field) => {
+        if (!field || !field[1]) return minCardH;
+        const lines = doc.splitTextToSize(field[1], cardW - 6);
+        return Math.max(minCardH, 9 + lines.length * 4.2);
+      });
+      const rowHeight = Math.max(...rowHeights, minCardH);
+
+      if (y + rowHeight > 280) {
+        doc.addPage();
+        y = 12;
+        sectionHeader();
       }
-      
-      // Draw cells with calculated height
-      for (let j = 0; j < 4; j++) {
-        const x = lm + j * colW;
-        doc.setDrawColor(...colors.light); doc.setLineWidth(0.2);
-        doc.rect(x, y, colW, maxHeight);
+
+      for (let j = 0; j < 2; j++) {
+        const x = lm + j * (cardW + cardGap);
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.25);
+        doc.roundedRect(x, y, cardW, rowHeight, 2, 2, 'FD');
+        doc.setFillColor(...colors.primary);
+        doc.rect(x, y, 1.5, rowHeight, 'F');
 
         if (rowFields[j]) {
-          doc.setFontSize(5.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-          doc.text(rowFields[j][0], x + 1.5, y + 2.5);
-          doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
-          
-          // Split text and draw multiple lines if needed
-          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
-          textLines.forEach((line: string, lineIndex: number) => {
-            doc.text(line, x + 1.5, y + 5.8 + (lineIndex * 2.5));
+          const [label, value] = rowFields[j];
+          doc.setFontSize(5.8);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...colors.gray);
+          doc.text(label, x + 3, y + 4.5);
+
+          doc.setFontSize(8.5);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...colors.dark);
+          const lines = doc.splitTextToSize(value, cardW - 6);
+          lines.forEach((line: string, lineIndex: number) => {
+            doc.text(line, x + 3, y + 9 + (lineIndex * 4));
           });
         }
       }
-      y += maxHeight;
+
+      y += rowHeight + 4;
     }
-    y += 2;
   }
 
   drawSection('APPLICANT INFORMATION', [
@@ -526,7 +542,7 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
 
       // Try to load and add logo
       try {
-        const logoBase64 = await loadImageAsBase64('/logo.png');
+        const logoBase64 = await loadImageAsBase64(PDF_LOGO_PATH);
         doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
       } catch (logoError) {
         console.warn('Could not load logo, using text fallback:', logoError);
@@ -557,55 +573,70 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
   doc.setFontSize(8); doc.text(fmt(loan.status).toUpperCase(), lm + pw - 4, y + 5.5, { align: 'right' });
   y += 12;
 
-  // Helper to draw a 4-column section with auto-sizing
+  // Helper to draw a cleaner two-card section
   function drawSection(title: string, fields: [string, string][]) {
-    // Check page break
-    const rowCount = Math.ceil(fields.length / 4);
-    const needed = 8 + rowCount * 10; // increased estimate for auto-sizing
-    if (y + needed > 280) { doc.addPage(); y = 12; }
+    const sectionHeader = () => {
+      if (y + 12 > 280) { doc.addPage(); y = 12; }
+      doc.setFillColor(237, 243, 250);
+      doc.rect(lm, y, pw, 8, 'F');
+      doc.setDrawColor(...colors.primary);
+      doc.setLineWidth(0.35);
+      doc.line(lm, y + 8, lm + pw, y + 8);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...colors.primary);
+      doc.text(title, lm + 2, y + 5.3);
+      y += 11;
+    };
 
-    // Section title
-    doc.setFillColor(240, 244, 248); doc.rect(lm, y, pw, 6, 'F');
-    doc.setDrawColor(...colors.primary); doc.setLineWidth(0.4); doc.line(lm, y + 6, lm + pw, y + 6);
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-    doc.text(title, lm + 2, y + 4.2);
-    y += 7;
+    const cardGap = 4;
+    const cardW = (pw - cardGap) / 2;
+    const minCardH = 16;
+    sectionHeader();
 
-    const colW = pw / 4;
-    for (let i = 0; i < fields.length; i += 4) {
-      const rowFields = fields.slice(i, i + 4);
-      
-      // Calculate required height for this row based on content
-      let maxHeight = 7; // minimum height
-      for (let j = 0; j < 4; j++) {
-        if (rowFields[j] && rowFields[j][1]) {
-          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
-          const requiredHeight = Math.max(7, textLines.length * 2.5 + 4);
-          maxHeight = Math.max(maxHeight, requiredHeight);
-        }
+    for (let i = 0; i < fields.length; i += 2) {
+      const rowFields = fields.slice(i, i + 2);
+      const rowHeights = rowFields.map((field) => {
+        if (!field || !field[1]) return minCardH;
+        const lines = doc.splitTextToSize(field[1], cardW - 6);
+        return Math.max(minCardH, 9 + lines.length * 4.2);
+      });
+      const rowHeight = Math.max(...rowHeights, minCardH);
+
+      if (y + rowHeight > 280) {
+        doc.addPage();
+        y = 12;
+        sectionHeader();
       }
-      
-      // Draw cells with calculated height
-      for (let j = 0; j < 4; j++) {
-        const x = lm + j * colW;
-        doc.setDrawColor(...colors.light); doc.setLineWidth(0.2);
-        doc.rect(x, y, colW, maxHeight);
+
+      for (let j = 0; j < 2; j++) {
+        const x = lm + j * (cardW + cardGap);
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.25);
+        doc.roundedRect(x, y, cardW, rowHeight, 2, 2, 'FD');
+        doc.setFillColor(...colors.primary);
+        doc.rect(x, y, 1.5, rowHeight, 'F');
 
         if (rowFields[j]) {
-          doc.setFontSize(5.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-          doc.text(rowFields[j][0], x + 1.5, y + 2.5);
-          doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
-          
-          // Split text and draw multiple lines if needed
-          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
-          textLines.forEach((line: string, lineIndex: number) => {
-            doc.text(line, x + 1.5, y + 5.8 + (lineIndex * 2.5));
+          const [label, value] = rowFields[j];
+          doc.setFontSize(5.8);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...colors.gray);
+          doc.text(label, x + 3, y + 4.5);
+
+          doc.setFontSize(8.5);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...colors.dark);
+          const lines = doc.splitTextToSize(value, cardW - 6);
+          lines.forEach((line: string, lineIndex: number) => {
+            doc.text(line, x + 3, y + 9 + (lineIndex * 4));
           });
         }
       }
-      y += maxHeight;
+
+      y += rowHeight + 4;
     }
-    y += 2;
   }
 
   drawSection('APPLICANT INFORMATION', [

@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
-import { exportLoanPDF, downloadLoanPDF, prepareLoanShareAllBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
@@ -25,7 +25,7 @@ export default function Loans() {
   const [sharingLoanId, setSharingLoanId] = useState<string | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareMenuLoan, setShareMenuLoan] = useState<any>(null);
-  const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareAllBundle>>>>({});
+  const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareBundle>>>>({});
   const [documentBundles, setDocumentBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareDocumentShareBundle>>>>({});
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +82,7 @@ export default function Loans() {
     try {
       const bundle = shareBundles[loanId];
       if (!bundle) {
-        toast.info('Saved PDF + docs are still loading. Please try again in a moment.');
+        toast.info('Saved PDF is still loading. Please try again in a moment.');
         return;
       }
 
@@ -101,7 +101,7 @@ export default function Loans() {
         text: bundle.text,
         files: bundle.files,
       });
-      toast.success(`Shared PDF + ${bundle.docCount} documents!`);
+      toast.success('Shared PDF!');
     } catch (error: any) {
       console.error('Share loan error:', error);
       if (error?.name === 'AbortError') {
@@ -130,7 +130,7 @@ export default function Loans() {
           );
           return index === firstIndex;
         });
-        const bundle = await prepareLoanShareAllBundle(freshLoan, uniqueDocs);
+        const bundle = await prepareLoanShareBundle(freshLoan, uniqueDocs);
         setShareBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
       } catch (error) {
         console.error('Failed to prepare share bundle for loan', loanId, error);
@@ -282,7 +282,7 @@ export default function Loans() {
             );
             return index === firstIndex;
           });
-        const bundle = await prepareLoanShareAllBundle(loan, uniqueDocs);
+          const bundle = await prepareLoanShareBundle(loan, uniqueDocs);
           if (cancelled) return;
           setShareBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
         } catch (error) {
@@ -467,8 +467,8 @@ export default function Loans() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share PDF + Docs</p>
-                  <p className="text-xs text-muted-foreground">Loan PDF and uploaded files</p>
+                  <p className="text-sm font-semibold text-foreground">Share PDF</p>
+                  <p className="text-xs text-muted-foreground">Saved loan PDF only</p>
                 </div>
                 <Share2 size={18} className="text-blue-500 shrink-0" />
               </div>
@@ -571,7 +571,7 @@ export default function Loans() {
                         <button
                           onClick={() => void openShareMenu(loan)}
                           disabled={sharingLoanId === String(loan.id)}
-                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share PDF + Docs">
+                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share PDF">
                           <MessageCircle size={11} className="text-green-500" />
                         </button>
                         {user?.role !== 'executive' && (
