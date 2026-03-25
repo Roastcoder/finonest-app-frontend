@@ -182,9 +182,9 @@ async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
     doc.roundedRect(x, yy, w, h, 2, 2, 'FD');
     doc.setFillColor(...colors.primary);
     doc.rect(x, yy, 1.6, h, 'F');
-    addText(label, x + 3, yy + 4, 5.3, 'bold', colors.gray);
-    const valueLines = clampLines(doc, fmt(value), w - 6, 2);
-    valueLines.forEach((line, idx) => addText(line, x + 3, yy + 8.2 + (idx * 4), 8.2, 'bold', colors.dark));
+    addText(label, x + 2.5, yy + 3.6, 4.9, 'bold', colors.gray);
+    const valueLines = clampLines(doc, fmt(value), w - 5, 2);
+    valueLines.forEach((line, idx) => addText(line, x + 2.5, yy + 7.6 + (idx * 3.6), 7.1, 'bold', colors.dark));
   };
 
   const addSection = (title: string, fields: [string, any][]) => {
@@ -192,16 +192,22 @@ async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
     doc.setDrawColor(...colors.line);
     doc.rect(lm, y, pageW, 7, 'F');
     doc.line(lm, y + 7, lm + pageW, y + 7);
-    addText(title, lm + 2.5, y + 4.8, 8.5, 'bold', colors.primary);
+    addText(title, lm + 2.5, y + 4.8, 8.2, 'bold', colors.primary);
     y += 9;
 
-    const gap = 4;
-    const colW = (pageW - gap) / 2;
-    const rowH = 14;
-    for (let i = 0; i < fields.length; i += 2) {
-      addField(lm, y, colW, rowH, fields[i][0], fields[i][1]);
-      if (fields[i + 1]) addField(lm + colW + gap, y, colW, rowH, fields[i + 1][0], fields[i + 1][1]);
-      y += rowH + 3;
+    const gap = 3;
+    const colW = (pageW - gap * 3) / 4;
+    const rowH = 15;
+    const normalized = [...fields];
+    while (normalized.length % 4 !== 0) normalized.push(['', '']);
+
+    for (let i = 0; i < normalized.length; i += 4) {
+      for (let j = 0; j < 4; j++) {
+        const field = normalized[i + j];
+        const x = lm + j * (colW + gap);
+        addField(x, y, colW, rowH, field[0], field[1]);
+      }
+      y += rowH + 2.5;
     }
   };
 
