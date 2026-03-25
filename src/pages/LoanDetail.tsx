@@ -229,9 +229,18 @@ export default function LoanDetail() {
               import('@/lib/pdf-export').then(({ shareLoanMobile }) => {
                 shareLoanMobile(loan, documents as any[]);
               });
-            }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share via native sharing (mobile optimized)">
-              <Share2 size={12} className="text-blue-500" /> Share
+            }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share PDF with documents">
+              <Share2 size={12} className="text-blue-500" /> Share All
             </button>
+            {documents.length > 0 && (
+              <button onClick={() => {
+                import('@/lib/pdf-export').then(({ shareDocuments }) => {
+                  shareDocuments(documents as any[]);
+                });
+              }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share documents only">
+                <FileText size={12} className="text-green-500" /> Docs
+              </button>
+            )}
             {canDelete && (
               <button onClick={() => { if (confirm('Delete this loan?')) deleteLoan.mutate(); }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
                 Delete
@@ -317,11 +326,25 @@ export default function LoanDetail() {
               });
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
-            title="Share via native sharing (optimized for mobile)"
+            title="Share PDF with documents (mobile optimized)"
           >
             <Share2 size={14} className="text-blue-500" />
-            Share
+            Share All
           </button>
+          {documents.length > 0 && (
+            <button
+              onClick={() => {
+                import('@/lib/pdf-export').then(({ shareDocuments }) => {
+                  shareDocuments(documents as any[]);
+                });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors"
+              title="Share documents only (images and PDFs)"
+            >
+              <FileText size={14} className="text-green-500" />
+              Share Docs
+            </button>
+          )}
           {canDelete && (
                 <button
                   onClick={() => {
