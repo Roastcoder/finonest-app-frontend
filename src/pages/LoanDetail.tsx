@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { formatCurrency, APPLICATION_STAGES, LEAD_STATUSES } from '@/lib/mock-data';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, Share2, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
-import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareLoanShareAllBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -42,6 +42,7 @@ const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'guarantor_rc_front', label: 'Guarantor RC Front' },
   { value: 'guarantor_rc_back', label: 'Guarantor RC Back' },
   { value: 'guarantor_photo', label: 'Guarantor Photo' },
+  { value: 'loan_application_pdf', label: 'Loan Application PDF' },
   { value: 'nach', label: 'NACH' },
   { value: 'other', label: 'Other' },
 ];
@@ -122,6 +123,8 @@ export default function LoanDetail() {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareBundle, setShareBundle] = useState<Awaited<ReturnType<typeof prepareLoanShareBundle>> | null>(null);
   const [shareBundleLoading, setShareBundleLoading] = useState(false);
+  const [shareAllBundle, setShareAllBundle] = useState<Awaited<ReturnType<typeof prepareLoanShareAllBundle>> | null>(null);
+  const [shareAllBundleLoading, setShareAllBundleLoading] = useState(false);
   const [documentShareBundle, setDocumentShareBundle] = useState<Awaited<ReturnType<typeof prepareDocumentShareBundle>> | null>(null);
   const [documentShareBundleLoading, setDocumentShareBundleLoading] = useState(false);
 
@@ -143,6 +146,27 @@ export default function LoanDetail() {
     }
 
     buildBundle();
+    return () => { cancelled = true; };
+  }, [loan, documents]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function buildShareAllBundle() {
+      if (!loan) return;
+      setShareAllBundleLoading(true);
+      try {
+        const bundle = await prepareLoanShareAllBundle(loan, documents as any[]);
+        if (!cancelled) setShareAllBundle(bundle);
+      } catch (error) {
+        console.error('Failed to prepare share-all bundle:', error);
+        if (!cancelled) setShareAllBundle(null);
+      } finally {
+        if (!cancelled) setShareAllBundleLoading(false);
+      }
+    }
+
+    buildShareAllBundle();
     return () => { cancelled = true; };
   }, [loan, documents]);
 
@@ -209,8 +233,8 @@ export default function LoanDetail() {
 
   const handleShareAll = async () => {
     try {
-      if (!shareBundle) {
-        toast.info(shareBundleLoading ? 'Preparing PDF…' : 'PDF is still preparing. Please try again in a moment.');
+      if (!shareAllBundle) {
+        toast.info(shareAllBundleLoading ? 'Preparing files…' : 'Files are still preparing. Please try again in a moment.');
         return;
       }
 
@@ -219,17 +243,17 @@ export default function LoanDetail() {
         return;
       }
 
-      if (navigator.canShare && !navigator.canShare({ files: shareBundle.files })) {
+      if (navigator.canShare && !navigator.canShare({ files: shareAllBundle.files })) {
         toast.error('This device cannot share the prepared files');
         return;
       }
 
       await navigator.share({
-        title: shareBundle.title,
-        text: shareBundle.text,
-        files: shareBundle.files,
+        title: shareAllBundle.title,
+        text: shareAllBundle.text,
+        files: shareAllBundle.files,
       });
-      toast.success(`Shared PDF with ${shareBundle.docCount} documents!`);
+      toast.success(`Shared PDF + ${shareAllBundle.docCount} documents!`);
     } catch (error: any) {
       console.error('Share error:', error);
       if (error?.name === 'AbortError') {
@@ -382,8 +406,8 @@ export default function LoanDetail() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share PDF</p>
-                  <p className="text-xs text-muted-foreground">Loan PDF only</p>
+                  <p className="text-sm font-semibold text-foreground">Share All</p>
+                  <p className="text-xs text-muted-foreground">PDF + attached documents</p>
                 </div>
                 <Share2 size={18} className="text-blue-500 shrink-0" />
               </div>
@@ -492,10 +516,10 @@ export default function LoanDetail() {
             onClick={handleShareAll}
             disabled={shareBundleLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors disabled:opacity-60"
-            title="Share PDF"
+            title="Share All"
           >
             <Share2 size={14} className="text-blue-500" />
-            {shareBundleLoading ? 'Preparing…' : 'Share PDF'}
+            {shareAllBundleLoading ? 'Preparing…' : 'Share All'}
           </button>
           {documents.length > 0 && (
             <button

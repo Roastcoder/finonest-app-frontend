@@ -6,6 +6,8 @@ interface LoanData {
   [key: string]: any;
 }
 
+const LOAN_APPLICATION_PDF_TYPE = 'loan_application_pdf';
+
 function formatDate(val: string | null | undefined): string {
   if (!val) return '—';
   try { return new Date(val).toLocaleDateString('en-IN'); } catch { return '—'; }
@@ -535,6 +537,10 @@ function generatePDFBlobWithoutImages(loan: LoanData, docFiles: { file: File; na
   });
 }
 
+export async function buildLoanApplicationPdfBlob(loan: LoanData): Promise<Blob> {
+  return generatePDFBlobWithoutImages(loan, []);
+}
+
 function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; docType: string }[] = []): Promise<Blob> {
   return new Promise(async (resolve, reject) => {
     try {
@@ -797,7 +803,7 @@ const PDF_DOC_LABELS: Record<string, string> = {
   guarantor_aadhar_front: 'Guarantor Aadhar Front', guarantor_aadhar_back: 'Guarantor Aadhar Back',
   guarantor_pan_card: 'Guarantor PAN Card', guarantor_rc_front: 'Guarantor RC Front',
   guarantor_rc_back: 'Guarantor RC Back', guarantor_photo: 'Guarantor Photo',
-  nach: 'NACH', other: 'Other',
+  nach: 'NACH', other: 'Other', loan_application_pdf: 'Loan Application PDF',
 };
 
 async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
@@ -819,6 +825,50 @@ async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: stri
   return files;
 }
 
+async function fetchStoredDocumentFile(doc: any): Promise<{ file: File; name: string; docType: string } | null> {
+  try {
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const token = localStorage.getItem('auth_token');
+    const res = await fetch(`${API}/documents/${doc.id}/download`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    if (!res.ok) return null;
+
+    const blob = await res.blob();
+    const docLabel = doc.document_type === LOAN_APPLICATION_PDF_TYPE
+      ? 'Loan Application PDF'
+      : PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
+    const fileName = doc.file_name || `${docLabel}.pdf`;
+
+    return {
+      file: new File([blob], fileName, { type: blob.type || 'application/pdf' }),
+      name: fileName,
+      docType: docLabel,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isGeneratedLoanPdf(doc: any) {
+  return doc?.document_type === LOAN_APPLICATION_PDF_TYPE;
+}
+
+async function prepareStoredFilesBundle(docs: any[] = []) {
+  const storedPdfDoc = docs.find(isGeneratedLoanPdf);
+  const otherDocs = docs.filter(doc => !isGeneratedLoanPdf(doc));
+  const [storedPdfFile, docFileObjs] = await Promise.all([
+    storedPdfDoc ? fetchStoredDocumentFile(storedPdfDoc) : Promise.resolve(null),
+    fetchDocumentFiles(otherDocs),
+  ]);
+
+  return {
+    pdfDoc: storedPdfDoc || null,
+    pdfFile: storedPdfFile?.file || null,
+    docFileObjs,
+  };
+}
+
 // Function to share individual documents
 export async function shareDocuments(docs: any[]) {
   try {
@@ -827,7 +877,9 @@ export async function shareDocuments(docs: any[]) {
       return;
     }
     
-    if (docs.length === 0) {
+    const shareableDocs = docs.filter(doc => !isGeneratedLoanPdf(doc));
+
+    if (shareableDocs.length === 0) {
       toast.error('No documents to share');
       return;
     }
@@ -835,7 +887,7 @@ export async function shareDocuments(docs: any[]) {
     const loadingToast = toast.loading('Preparing documents for sharing...');
     
     // Fetch document files
-    const docFileObjs = await fetchDocumentFiles(docs);
+    const docFileObjs = await fetchDocumentFiles(shareableDocs);
     
     if (docFileObjs.length === 0) {
       toast.dismiss(loadingToast);
@@ -983,17 +1035,9 @@ export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
 
 export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
   try {
-    // Show loading toast
-    const loadingToast = toast.loading('Preparing documents for sharing...');
-    
-    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
-    
-    const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
-    const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
-    const filesToShare = [pdfFile];
-
-    toast.dismiss(loadingToast);
+    const bundle = await prepareLoanShareBundle(loan, docs);
+    const filesToShare = bundle.files;
+    const pdfFile = filesToShare[0];
     
     // Check if native sharing is available
     if (!navigator.share) {
@@ -1009,8 +1053,8 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
         
         if (canShareFiles) {
           await navigator.share({ 
-            title: `Loan Application - ${loan.id}`,
-            text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
+            title: bundle.title,
+            text: bundle.text,
             files: filesToShare 
           });
           toast.success('Shared PDF!');
@@ -1053,24 +1097,29 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
 }
 
 export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
-  const [hierarchy, docFileObjs] = await Promise.all([
-    fetchHierarchy(loan),
-    fetchDocumentFiles(docs)
-  ]);
-
-  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
-  const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
-  const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+  const { pdfFile } = await prepareStoredFilesBundle(docs);
+  const finalPdf = pdfFile || new File([await buildLoanApplicationPdfBlob(loan)], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
   return {
     title: `Loan Application - ${loan.id}`,
     text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
-    files: [pdfFile],
+    files: [finalPdf],
     docCount: 0,
   };
 }
 
+export async function prepareLoanShareAllBundle(loan: LoanData, docs: any[] = []) {
+  const { pdfFile, docFileObjs } = await prepareStoredFilesBundle(docs);
+  const finalPdf = pdfFile || new File([await buildLoanApplicationPdfBlob(loan)], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+  return {
+    title: `Loan Application - ${loan.id}`,
+    text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
+    files: [finalPdf, ...docFileObjs.map(docFile => docFile.file)],
+    docCount: docFileObjs.length,
+  };
+}
+
 export async function prepareDocumentShareBundle(docs: any[] = []) {
-  const docFileObjs = await fetchDocumentFiles(docs);
+  const docFileObjs = await fetchDocumentFiles(docs.filter(doc => !isGeneratedLoanPdf(doc)));
   return {
     title: 'Loan Documents',
     text: `${docFileObjs.length} loan documents`,

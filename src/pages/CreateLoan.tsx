@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/api';
+import { api, supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { CAR_MAKES, calculateEMI, formatCurrency } from '@/lib/mock-data';
 import { FINANCIERS } from '@/lib/financiers';
 import { ArrowLeft, Calculator, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
+import { buildLoanApplicationPdfBlob } from '@/lib/pdf-export';
 import '@/styles/floating-labels.css';
 
 // Helper component for document previews
@@ -805,6 +806,31 @@ export default function CreateLoan() {
       if (uploadPromises.length > 0) {
         await Promise.allSettled(uploadPromises);
       }
+
+      try {
+        const createdLoan = await api.get(`/loans/${data.id}`);
+        const pdfBlob = await buildLoanApplicationPdfBlob(createdLoan);
+        const pdfFile = new File([pdfBlob], `Loan-${createdLoan.id}.pdf`, { type: 'application/pdf' });
+        const pdfFormData = new FormData();
+        pdfFormData.append('document', pdfFile);
+        pdfFormData.append('document_type', 'loan_application_pdf');
+        pdfFormData.append('loan_id', String(data.id));
+        if (selectedLeadId) pdfFormData.append('lead_id', String(selectedLeadId));
+
+        const pdfUploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+          body: pdfFormData,
+        });
+
+        if (!pdfUploadResponse.ok) {
+          const errorText = await pdfUploadResponse.text().catch(() => 'Unable to save loan PDF');
+          console.warn('Loan PDF upload failed:', errorText);
+        }
+      } catch (pdfError) {
+        console.warn('Failed to generate/store loan PDF:', pdfError);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });

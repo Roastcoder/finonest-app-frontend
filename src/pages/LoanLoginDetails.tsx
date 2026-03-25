@@ -5,6 +5,8 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { FINANCIERS } from '@/lib/financiers';
+import { api } from '@/lib/api';
+import { buildLoanApplicationPdfBlob } from '@/lib/pdf-export';
 
 export default function LoanLoginDetails() {
   const navigate = useNavigate();
@@ -79,7 +81,31 @@ export default function LoanLoginDetails() {
       if (!res.ok) throw new Error('Failed to create loan');
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      try {
+        const createdLoan = await api.get(`/loans/${data.id}`);
+        const pdfBlob = await buildLoanApplicationPdfBlob(createdLoan);
+        const pdfFile = new File([pdfBlob], `Loan-${createdLoan.id}.pdf`, { type: 'application/pdf' });
+        const pdfFormData = new FormData();
+        pdfFormData.append('document', pdfFile);
+        pdfFormData.append('document_type', 'loan_application_pdf');
+        pdfFormData.append('loan_id', String(data.id));
+        if (loanData?.lead_id) pdfFormData.append('lead_id', String(loanData.lead_id));
+
+        const pdfUploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+          body: pdfFormData,
+        });
+
+        if (!pdfUploadResponse.ok) {
+          const errorText = await pdfUploadResponse.text().catch(() => 'Unable to save loan PDF');
+          console.warn('Loan PDF upload failed:', errorText);
+        }
+      } catch (pdfError) {
+        console.warn('Failed to generate/store loan PDF:', pdfError);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans-dashboard'] });
       toast.success('Loan application created successfully!');

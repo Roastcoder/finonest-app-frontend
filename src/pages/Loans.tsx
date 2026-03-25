@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
-import { exportLoanPDF, downloadLoanPDF, shareLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, prepareLoanShareAllBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
@@ -25,7 +25,7 @@ export default function Loans() {
   const [sharingLoanId, setSharingLoanId] = useState<string | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareMenuLoan, setShareMenuLoan] = useState<any>(null);
-  const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareBundle>>>>({});
+  const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareAllBundle>>>>({});
   const [documentBundles, setDocumentBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareDocumentShareBundle>>>>({});
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -80,17 +80,28 @@ export default function Loans() {
     setSharingLoanId(loanId);
 
     try {
-      const freshLoan = await api.get(`/loans/${loan.id}`);
-      const freshDocs = await api.get(`/loans/${loan.id}/documents`);
-      const uniqueDocs = freshDocs.filter((doc: any, index: number, self: any[]) => {
-        const firstIndex = self.findIndex(d =>
-          d.document_type === doc.document_type &&
-          d.file_name === doc.file_name
-        );
-        return index === firstIndex;
-      });
+      const bundle = shareBundles[loanId];
+      if (!bundle) {
+        toast.info('PDF + docs are still loading. Please try again in a moment.');
+        return;
+      }
 
-      await shareLoanPDF(freshLoan, uniqueDocs);
+      if (!navigator.share) {
+        toast.error('Sharing not available on this device');
+        return;
+      }
+
+      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
+        toast.error('This device cannot share the prepared PDF');
+        return;
+      }
+
+      await navigator.share({
+        title: bundle.title,
+        text: bundle.text,
+        files: bundle.files,
+      });
+      toast.success(`Shared PDF + ${bundle.docCount} documents!`);
     } catch (error: any) {
       console.error('Share loan error:', error);
       if (error?.name === 'AbortError') {
@@ -108,6 +119,24 @@ export default function Loans() {
     setShowShareMenu(true);
 
     const loanId = String(loan.id);
+    if (!shareBundles[loanId]) {
+      try {
+        const freshLoan = await api.get(`/loans/${loan.id}`);
+        const freshDocs = await api.get(`/loans/${loan.id}/documents`);
+        const uniqueDocs = freshDocs.filter((doc: any, index: number, self: any[]) => {
+          const firstIndex = self.findIndex(d =>
+            d.document_type === doc.document_type &&
+            d.file_name === doc.file_name
+          );
+          return index === firstIndex;
+        });
+        const bundle = await prepareLoanShareAllBundle(freshLoan, uniqueDocs);
+        setShareBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
+      } catch (error) {
+        console.error('Failed to prepare share bundle for loan', loanId, error);
+      }
+    }
+
     if (!documentBundles[loanId]) {
       try {
         const docs = await api.get(`/loans/${loan.id}/documents`);
@@ -234,7 +263,7 @@ export default function Loans() {
     const matchStatus = statusFilter === 'all' || l.application_stage === statusFilter;
     return matchSearch && matchStatus;
   });
-  const sharePrefetchLoans = filtered.slice(0, 10);
+  const sharePrefetchLoans = filtered;
   const sharePrefetchKey = sharePrefetchLoans.map(loan => String(loan.id)).join('|');
 
   useEffect(() => {
@@ -253,7 +282,7 @@ export default function Loans() {
             );
             return index === firstIndex;
           });
-          const bundle = await prepareLoanShareBundle(loan, uniqueDocs);
+        const bundle = await prepareLoanShareAllBundle(loan, uniqueDocs);
           if (cancelled) return;
           setShareBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
         } catch (error) {
@@ -438,8 +467,8 @@ export default function Loans() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share PDF</p>
-                  <p className="text-xs text-muted-foreground">Loan PDF only</p>
+                  <p className="text-sm font-semibold text-foreground">Share PDF + Docs</p>
+                  <p className="text-xs text-muted-foreground">Loan PDF and uploaded files</p>
                 </div>
                 <Share2 size={18} className="text-blue-500 shrink-0" />
               </div>
@@ -540,9 +569,9 @@ export default function Loans() {
                           <Printer size={11} className="text-accent" />
                         </button>
                         <button
-                          onClick={() => handleShareLoan(loan)}
+                          onClick={() => void openShareMenu(loan)}
                           disabled={sharingLoanId === String(loan.id)}
-                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share PDF with Details">
+                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share PDF + Docs">
                           <MessageCircle size={11} className="text-green-500" />
                         </button>
                         {user?.role !== 'executive' && (
