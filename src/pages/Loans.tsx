@@ -21,6 +21,7 @@ export default function Loans() {
   const [statusFilter, setStatusFilter] = useState<ApplicationStageFilter>('all');
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [showStageManager, setShowStageManager] = useState(false);
+  const [sharingLoanId, setSharingLoanId] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   const { data: loans = [], isLoading } = useQuery({
@@ -66,6 +67,30 @@ export default function Loans() {
   const handleDelete = (loan: any) => {
     if (confirm(`Are you sure you want to delete loan ${loan.loan_number || loan.id}?`)) {
       deleteLoan.mutate(loan.id);
+    }
+  };
+
+  const handleShareLoan = async (loan: any) => {
+    const loanId = String(loan.id);
+    setSharingLoanId(loanId);
+
+    try {
+      const docs = await api.get(`/loans/${loan.id}/documents`);
+      const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+        const firstIndex = self.findIndex(d =>
+          d.document_type === doc.document_type &&
+          d.file_name === doc.file_name
+        );
+        return index === firstIndex;
+      });
+
+      const { shareLoanPDF } = await import('@/lib/pdf-export');
+      await shareLoanPDF(loan, uniqueDocs);
+    } catch (error: any) {
+      console.error('Share loan error:', error);
+      toast.error(error?.message || 'Failed to share loan application');
+    } finally {
+      setSharingLoanId(current => current === loanId ? null : current);
     }
   };
 
@@ -265,13 +290,11 @@ export default function Loans() {
                     </button>
                   )}
                   <button
-                    onClick={() => {
-                      import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
-                        shareLoanPDF(loan, []);
-                      });
-                    }}
+                    onClick={() => handleShareLoan(loan)}
+                    disabled={sharingLoanId === String(loan.id)}
                     className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
-                    <MessageCircle size={14} className="text-green-500" /> Share
+                    <MessageCircle size={14} className="text-green-500" />
+                    {sharingLoanId === String(loan.id) ? 'Sharing…' : 'Share'}
                   </button>
                   {canDelete && (
                     <button
@@ -347,11 +370,8 @@ export default function Loans() {
                           <Printer size={11} className="text-accent" />
                         </button>
                         <button
-                          onClick={() => {
-                            import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
-                              shareLoanPDF(loan, []);
-                            });
-                          }}
+                          onClick={() => handleShareLoan(loan)}
+                          disabled={sharingLoanId === String(loan.id)}
                           className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share PDF with Details">
                           <MessageCircle size={11} className="text-green-500" />
                         </button>

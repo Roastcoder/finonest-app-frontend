@@ -226,8 +226,8 @@ export default function LoanDetail() {
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
             <button onClick={() => {
-              import('@/lib/pdf-export').then(({ shareLoanMobile }) => {
-                shareLoanMobile(loan, documents as any[]);
+              import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
+                shareLoanPDF(loan, documents as any[]);
               });
             }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share PDF with documents">
               <Share2 size={12} className="text-blue-500" /> Share All
