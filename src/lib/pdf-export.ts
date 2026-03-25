@@ -1104,6 +1104,34 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
   }
 }
 
+export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
+  const leadId = loan.lead_id || loan.id;
+  const [hierarchy, docFileObjs, profile] = await Promise.all([
+    fetchHierarchy(loan),
+    fetchDocumentFiles(docs),
+    fetchLeadProfile(leadId)
+  ]);
+
+  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+  const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
+  const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+  const filesToShare = [pdfFile];
+
+  docFileObjs.forEach(docFile => {
+    const fileType = docFile.file.type;
+    if (fileType.includes('pdf') || fileType.includes('image/') || fileType.includes('jpeg') || fileType.includes('png')) {
+      filesToShare.push(docFile.file);
+    }
+  });
+
+  return {
+    title: `Loan Application - ${loan.id}`,
+    text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
+    files: filesToShare,
+    docCount: docFileObjs.length,
+  };
+}
+
 function triggerDownload(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

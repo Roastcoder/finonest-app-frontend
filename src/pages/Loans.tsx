@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
-import { exportLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
@@ -22,6 +22,7 @@ export default function Loans() {
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [showStageManager, setShowStageManager] = useState(false);
   const [sharingLoanId, setSharingLoanId] = useState<string | null>(null);
+  const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareBundle>>>>({});
   const importRef = useRef<HTMLInputElement>(null);
 
   const { data: loans = [], isLoading } = useQuery({
@@ -75,20 +76,35 @@ export default function Loans() {
     setSharingLoanId(loanId);
 
     try {
-      const docs = await api.get(`/loans/${loan.id}/documents`);
-      const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
-        const firstIndex = self.findIndex(d =>
-          d.document_type === doc.document_type &&
-          d.file_name === doc.file_name
-        );
-        return index === firstIndex;
-      });
+      const bundle = shareBundles[loanId];
+      if (!bundle) {
+        toast.info('Preparing share files for this loan. Please try again in a moment.');
+        return;
+      }
 
-      const { shareLoanPDF } = await import('@/lib/pdf-export');
-      await shareLoanPDF(loan, uniqueDocs);
+      if (!navigator.share) {
+        toast.error('Sharing not available on this device');
+        return;
+      }
+
+      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
+        toast.error('This device cannot share the prepared files');
+        return;
+      }
+
+      await navigator.share({
+        title: bundle.title,
+        text: bundle.text,
+        files: bundle.files,
+      });
+      toast.success(`Shared PDF with ${bundle.docCount} documents!`);
     } catch (error: any) {
       console.error('Share loan error:', error);
-      toast.error(error?.message || 'Failed to share loan application');
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share loan application');
+      }
     } finally {
       setSharingLoanId(current => current === loanId ? null : current);
     }
@@ -167,6 +183,40 @@ export default function Loans() {
     const matchStatus = statusFilter === 'all' || l.application_stage === statusFilter;
     return matchSearch && matchStatus;
   });
+  const sharePrefetchLoans = filtered.slice(0, 10);
+  const sharePrefetchKey = sharePrefetchLoans.map(loan => String(loan.id)).join('|');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function warmBundles() {
+      for (const loan of sharePrefetchLoans) {
+        const loanId = String(loan.id);
+        if (shareBundles[loanId]) continue;
+        try {
+          const docs = await api.get(`/loans/${loan.id}/documents`);
+          const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+            const firstIndex = self.findIndex(d =>
+              d.document_type === doc.document_type &&
+              d.file_name === doc.file_name
+            );
+            return index === firstIndex;
+          });
+          const bundle = await prepareLoanShareBundle(loan, uniqueDocs);
+          if (cancelled) return;
+          setShareBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
+        } catch (error) {
+          console.error('Failed to prefetch share bundle for loan', loanId, error);
+        }
+      }
+    }
+
+    warmBundles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sharePrefetchKey]);
 
   return (
     <div className="pb-24 lg:pb-0">

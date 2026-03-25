@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { formatCurrency, APPLICATION_STAGES, LEAD_STATUSES } from '@/lib/mock-data';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, Share2, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
-import { exportLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 
@@ -118,6 +118,38 @@ export default function LoanDetail() {
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [showReapplyModal, setShowReapplyModal] = useState(false);
   const [showStageManager, setShowStageManager] = useState(false);
+  const [shareBundle, setShareBundle] = useState<Awaited<ReturnType<typeof prepareLoanShareBundle>> | null>(null);
+  const [shareBundleLoading, setShareBundleLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function buildBundle() {
+      if (!loan) return;
+      setShareBundleLoading(true);
+      try {
+        const bundle = await prepareLoanShareBundle(loan, documents as any[]);
+        if (!cancelled) {
+          setShareBundle(bundle);
+        }
+      } catch (error) {
+        console.error('Failed to prepare share bundle:', error);
+        if (!cancelled) {
+          setShareBundle(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setShareBundleLoading(false);
+        }
+      }
+    }
+
+    buildBundle();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loan, documents]);
 
   const handleReapply = () => {
     if (!loan) return;
@@ -144,6 +176,39 @@ export default function LoanDetail() {
       toast.error(`Unable to preview document. Document ID ${doc.id} may not exist or may have been deleted.`);
     } finally {
       setLoadingPreview(null);
+    }
+  };
+
+  const handleShareAll = async () => {
+    if (!shareBundle) {
+      toast.info(shareBundleLoading ? 'Preparing share files…' : 'Share files are still preparing. Please try again in a moment.');
+      return;
+    }
+
+    if (!navigator.share) {
+      toast.error('Sharing not available on this device');
+      return;
+    }
+
+    try {
+      if (navigator.canShare && !navigator.canShare({ files: shareBundle.files })) {
+        toast.error('This device cannot share the prepared files');
+        return;
+      }
+
+      await navigator.share({
+        title: shareBundle.title,
+        text: shareBundle.text,
+        files: shareBundle.files,
+      });
+      toast.success(`Shared PDF with ${shareBundle.docCount} documents!`);
+    } catch (error: any) {
+      console.error('Share error:', error);
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share loan application');
+      }
     }
   };
 
@@ -225,11 +290,7 @@ export default function LoanDetail() {
             <button onClick={() => setShowStageManager(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
-            <button onClick={() => {
-              import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
-                shareLoanPDF(loan, documents as any[]);
-              });
-            }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share PDF with documents">
+            <button onClick={handleShareAll} disabled={shareBundleLoading} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border disabled:opacity-60" title="Share PDF with documents">
               <Share2 size={12} className="text-blue-500" /> Share All
             </button>
             {documents.length > 0 && (
@@ -320,16 +381,13 @@ export default function LoanDetail() {
             Update Stage
           </button>
           <button
-            onClick={() => {
-              import('@/lib/pdf-export').then(({ shareLoanMobile }) => {
-                shareLoanMobile(loan, documents as any[]);
-              });
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
-            title="Share PDF with documents (mobile optimized)"
+            onClick={handleShareAll}
+            disabled={shareBundleLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors disabled:opacity-60"
+            title="Share PDF with documents"
           >
             <Share2 size={14} className="text-blue-500" />
-            Share All
+            {shareBundleLoading ? 'Preparing…' : 'Share All'}
           </button>
           {documents.length > 0 && (
             <button
