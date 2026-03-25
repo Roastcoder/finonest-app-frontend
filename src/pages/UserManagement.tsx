@@ -209,7 +209,9 @@ Type 'DELETE' to confirm:`;
 
   const isAdmin = user?.role === 'admin';
   const validRoles = isAdmin
-    ? ['admin', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive']
+    ? ['admin', 'operation_team', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive']
+    : user?.role === 'sales_manager'
+    ? ['branch_manager', 'dsa', 'team_leader', 'executive']
     : ['branch_manager', 'dsa', 'team_leader', 'executive'];
   
   const allFiltered = useMemo(() => {

@@ -816,11 +816,13 @@ const PDF_DOC_LABELS: Record<string, string> = {
 
 async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  // No authentication headers needed for public document access
+  const token = localStorage.getItem('auth_token');
   const files: { file: File; name: string; docType: string }[] = [];
   for (const doc of docs) {
     try {
-      const res = await fetch(`${API}/documents/${doc.id}/download`);
+      const res = await fetch(`${API}/documents/${doc.id}/download`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (!res.ok) continue;
       const blob = await res.blob();
       const docLabel = PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
@@ -942,137 +944,72 @@ export async function shareDocuments(docs: any[]) {
   }
 }
 
-// Mobile-optimized sharing function
 export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
   try {
-    // Check if we're on mobile
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (!isMobile) {
-      toast.info('This feature is optimized for mobile devices');
-      return shareLoanPDF(loan, docs); // Use regular function for desktop
-    }
-    
-    // Show loading toast
-    const loadingToast = toast.loading('Preparing documents for mobile sharing...');
-    
-    const leadId = loan.lead_id || loan.id;
-    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
-    
-    // Create PDF
-    const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
-    const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
-    
-    // Prepare all files for sharing (PDF + images)
-    const filesToShare = [pdfFile];
-    
-    // Add image files (mobile handles images better than other file types)
-    const imageFiles = docFileObjs.filter(docFile => {
-      const fileType = docFile.file.type;
-      return fileType.startsWith('image/') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png');
-    });
-    
-    // Add PDF documents as well
-    const pdfFiles = docFileObjs.filter(docFile => {
-      const fileType = docFile.file.type;
-      return fileType.includes('pdf');
-    });
-    
-    // Add image files to sharing
-    imageFiles.forEach(docFile => {
-      filesToShare.push(docFile.file);
-    });
-    
-    // Add PDF documents to sharing
-    pdfFiles.forEach(docFile => {
-      filesToShare.push(docFile.file);
-    });
-    
-    toast.dismiss(loadingToast);
-    
     if (!navigator.share) {
       toast.error('Sharing not available on this device');
       return;
     }
-    
+
+    // Show loading toast
+    const loadingToast = toast.loading('Preparing documents for sharing...');
+
+    const leadId = loan.lead_id || loan.id;
+    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+
+    // Create PDF
+    const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
+    const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+
+    // All files: loan PDF + all document files
+    const filesToShare = [pdfFile, ...docFileObjs.map(d => d.file)];
+
+    toast.dismiss(loadingToast);
+
     try {
-      console.log('Attempting mobile share with files:', filesToShare.map(f => ({ name: f.name, type: f.type, size: f.size })));
-      
       // Try sharing all files together
-      if (navigator.canShare) {
-        const canShareAll = await navigator.canShare({ files: filesToShare });
-        console.log('Can share all files:', canShareAll);
-        
-        if (canShareAll) {
-          await navigator.share({ 
-            title: `Loan Application - ${loan.id}`,
-            text: `Loan application for ${loan.applicant_name || 'Customer'}\n\nID: ${loan.id}\nVehicle: ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}\nStatus: ${loan.status || loan.application_stage}`,
-            files: filesToShare 
-          });
-          
-          toast.success(`Shared PDF with ${imageFiles.length + pdfFiles.length} documents!`);
-          return;
-        }
-      }
-      
-      // Fallback 1: Try sharing images only (without main PDF)
-      if (imageFiles.length > 0) {
-        console.log('Trying to share images only:', imageFiles.length);
-        const canShareImages = navigator.canShare ? await navigator.canShare({ files: imageFiles.map(f => f.file) }) : true;
-        
-        if (canShareImages) {
-          await navigator.share({ 
-            title: `Loan Documents - ${loan.id}`,
-            text: `Loan documents for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
-            files: imageFiles.map(f => f.file)
-          });
-          
-          toast.success(`Shared ${imageFiles.length} document images!`);
-          
-          // Offer to share PDF separately
-          setTimeout(() => {
-            toast.info('PDF can be shared separately if needed.');
-          }, 2000);
-          return;
-        }
-      }
-      
-      // Fallback 2: Try sharing just the main PDF
-      console.log('Trying to share PDF only');
-      const canSharePDF = navigator.canShare ? await navigator.canShare({ files: [pdfFile] }) : true;
-      
-      if (canSharePDF) {
-        await navigator.share({ 
+      if (navigator.canShare && await navigator.canShare({ files: filesToShare })) {
+        await navigator.share({
           title: `Loan Application - ${loan.id}`,
-          text: `Loan application for ${loan.applicant_name || 'Customer'}\n\nID: ${loan.id}\nVehicle: ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}\nStatus: ${loan.status || loan.application_stage}`,
-          files: [pdfFile] 
+          text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}`,
+          files: filesToShare
         });
-        
-        toast.success('PDF shared! Additional documents may need separate sharing.');
+        toast.success(`Shared PDF with ${docFileObjs.length} documents!`);
         return;
       }
-      
-      // Fallback 3: Text-only sharing
-      await navigator.share({ 
+
+      // Fallback: share only images + PDF
+      const imageFiles = docFileObjs.filter(d => d.file.type.startsWith('image/')).map(d => d.file);
+      const fallbackFiles = [pdfFile, ...imageFiles];
+      if (navigator.canShare && await navigator.canShare({ files: fallbackFiles })) {
+        await navigator.share({
+          title: `Loan Application - ${loan.id}`,
+          text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}`,
+          files: fallbackFiles
+        });
+        toast.success(`Shared PDF with ${imageFiles.length} images!`);
+        return;
+      }
+
+      // Fallback: share just the PDF
+      await navigator.share({
         title: `Loan Application - ${loan.id}`,
-        text: `Loan application details for ${loan.applicant_name || 'Customer'}\n\nID: ${loan.id}\nVehicle: ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\nLoan Amount: ₹${Number(loan.loan_amount || 0).toLocaleString()}\nStatus: ${loan.status || loan.application_stage}\n\nFor complete PDF and documents, please contact us.\n\nFinonest India Team`
+        text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}`,
+        files: [pdfFile]
       });
-      toast.success('Shared loan details as text');
-      
-    } catch (shareError) {
-      console.error('Mobile share error:', shareError);
-      
+      toast.success('PDF shared!');
+
+    } catch (shareError: any) {
       if (shareError.name === 'AbortError') {
         toast.info('Sharing cancelled');
-        return;
+      } else {
+        toast.error('Failed to share: ' + shareError.message);
       }
-      
-      toast.error('Unable to share: ' + shareError.message);
     }
-    
+
   } catch (e) {
-    console.error('Mobile sharing error:', e);
+    console.error('Share error:', e);
     toast.error('Failed to prepare for sharing');
   }
 }
