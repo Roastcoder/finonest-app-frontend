@@ -1111,17 +1111,6 @@ export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
   };
 }
 
-export async function prepareLoanShareAllBundle(loan: LoanData, docs: any[] = []) {
-  const { pdfFile, docFileObjs } = await prepareStoredFilesBundle(docs);
-  const finalPdf = pdfFile || new File([await buildLoanApplicationPdfBlob(loan)], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
-  return {
-    title: `Loan Application - ${loan.id}`,
-    text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
-    files: [finalPdf, ...docFileObjs.map(docFile => docFile.file)],
-    docCount: docFileObjs.length,
-  };
-}
-
 export async function prepareDocumentShareBundle(docs: any[] = []) {
   const docFileObjs = await fetchDocumentFiles(docs.filter(doc => !isGeneratedLoanPdf(doc)));
   return {
