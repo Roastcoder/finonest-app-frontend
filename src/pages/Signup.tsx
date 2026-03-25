@@ -12,7 +12,7 @@ export default function Signup() {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const logo = '/Finonest%20logo.png';
+  const logo = '/favicon.png';
   
   // Step 1: PAN Verification
   const [panNumber, setPanNumber] = useState('');

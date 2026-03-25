@@ -73,7 +73,7 @@ function buildLoanHTML(loan: LoanData): string {
 <table class="hdr-table">
   <tr>
     <td style="width:70%">
-      <img src="/Finonest%20logo.png" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+      <img src="/favicon.png" alt="Finonest India" class="company-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
       <div style="display:none;">
         <span class="company-name">Finonest India</span><br/>
         <span class="company-sub">Vehicle Loan Solutions &bull; Since 2015</span>
@@ -346,7 +346,7 @@ function generatePDFBlobWithoutImages(loan: LoanData, docFiles: { file: File; na
 
       // Try to load and add logo
       try {
-        const logoBase64 = await loadImageAsBase64('/Finonest%20logo.png');
+        const logoBase64 = await loadImageAsBase64('/favicon.png');
         doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
       } catch (logoError) {
         console.warn('Could not load logo, using text fallback:', logoError);
@@ -377,11 +377,11 @@ function generatePDFBlobWithoutImages(loan: LoanData, docFiles: { file: File; na
   doc.setFontSize(8); doc.text(fmt(loan.status).toUpperCase(), lm + pw - 4, y + 5.5, { align: 'right' });
   y += 12;
 
-  // Helper to draw a 4-column section
+  // Helper to draw a 4-column section with auto-sizing
   function drawSection(title: string, fields: [string, string][]) {
     // Check page break
     const rowCount = Math.ceil(fields.length / 4);
-    const needed = 8 + rowCount * 7;
+    const needed = 8 + rowCount * 10; // increased estimate for auto-sizing
     if (y + needed > 280) { doc.addPage(); y = 12; }
 
     // Section title
@@ -394,20 +394,36 @@ function generatePDFBlobWithoutImages(loan: LoanData, docFiles: { file: File; na
     const colW = pw / 4;
     for (let i = 0; i < fields.length; i += 4) {
       const rowFields = fields.slice(i, i + 4);
-      // Draw cells
+      
+      // Calculate required height for this row based on content
+      let maxHeight = 7; // minimum height
+      for (let j = 0; j < 4; j++) {
+        if (rowFields[j] && rowFields[j][1]) {
+          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
+          const requiredHeight = Math.max(7, textLines.length * 2.5 + 4);
+          maxHeight = Math.max(maxHeight, requiredHeight);
+        }
+      }
+      
+      // Draw cells with calculated height
       for (let j = 0; j < 4; j++) {
         const x = lm + j * colW;
         doc.setDrawColor(...colors.light); doc.setLineWidth(0.2);
-        doc.rect(x, y, colW, 7);
+        doc.rect(x, y, colW, maxHeight);
 
         if (rowFields[j]) {
           doc.setFontSize(5.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
           doc.text(rowFields[j][0], x + 1.5, y + 2.5);
           doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
-          doc.text(rowFields[j][1], x + 1.5, y + 5.8, { maxWidth: colW - 3 });
+          
+          // Split text and draw multiple lines if needed
+          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
+          textLines.forEach((line: string, lineIndex: number) => {
+            doc.text(line, x + 1.5, y + 5.8 + (lineIndex * 2.5));
+          });
         }
       }
-      y += 7;
+      y += maxHeight;
     }
     y += 2;
   }
@@ -544,7 +560,7 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
 
       // Try to load and add logo
       try {
-        const logoBase64 = await loadImageAsBase64('/Finonest%20logo.png');
+        const logoBase64 = await loadImageAsBase64('/favicon.png');
         doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
       } catch (logoError) {
         console.warn('Could not load logo, using text fallback:', logoError);
@@ -575,11 +591,11 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
   doc.setFontSize(8); doc.text(fmt(loan.status).toUpperCase(), lm + pw - 4, y + 5.5, { align: 'right' });
   y += 12;
 
-  // Helper to draw a 4-column section
+  // Helper to draw a 4-column section with auto-sizing
   function drawSection(title: string, fields: [string, string][]) {
     // Check page break
     const rowCount = Math.ceil(fields.length / 4);
-    const needed = 8 + rowCount * 7;
+    const needed = 8 + rowCount * 10; // increased estimate for auto-sizing
     if (y + needed > 280) { doc.addPage(); y = 12; }
 
     // Section title
@@ -592,20 +608,36 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
     const colW = pw / 4;
     for (let i = 0; i < fields.length; i += 4) {
       const rowFields = fields.slice(i, i + 4);
-      // Draw cells
+      
+      // Calculate required height for this row based on content
+      let maxHeight = 7; // minimum height
+      for (let j = 0; j < 4; j++) {
+        if (rowFields[j] && rowFields[j][1]) {
+          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
+          const requiredHeight = Math.max(7, textLines.length * 2.5 + 4);
+          maxHeight = Math.max(maxHeight, requiredHeight);
+        }
+      }
+      
+      // Draw cells with calculated height
       for (let j = 0; j < 4; j++) {
         const x = lm + j * colW;
         doc.setDrawColor(...colors.light); doc.setLineWidth(0.2);
-        doc.rect(x, y, colW, 7);
+        doc.rect(x, y, colW, maxHeight);
 
         if (rowFields[j]) {
           doc.setFontSize(5.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
           doc.text(rowFields[j][0], x + 1.5, y + 2.5);
           doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
-          doc.text(rowFields[j][1], x + 1.5, y + 5.8, { maxWidth: colW - 3 });
+          
+          // Split text and draw multiple lines if needed
+          const textLines = doc.splitTextToSize(rowFields[j][1], colW - 3);
+          textLines.forEach((line: string, lineIndex: number) => {
+            doc.text(line, x + 1.5, y + 5.8 + (lineIndex * 2.5));
+          });
         }
       }
-      y += 7;
+      y += maxHeight;
     }
     y += 2;
   }

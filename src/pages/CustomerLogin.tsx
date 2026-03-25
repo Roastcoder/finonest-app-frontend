@@ -10,7 +10,7 @@ export default function CustomerLogin() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const logo = '/Finonest%20logo.png';
+  const logo = '/favicon.png';
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||

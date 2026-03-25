@@ -56,7 +56,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
-  const logo = '/Finonest%20logo.png';
+  const logo = '/favicon.png';
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);

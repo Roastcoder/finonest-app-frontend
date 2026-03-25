@@ -117,10 +117,31 @@ export default function LoanDetail() {
   const previewDocument = async (doc: any) => {
     setLoadingPreview(doc.id);
     try {
-      const data = await api.get(`/documents/${doc.id}/preview`);
-      setPreviewDoc({ url: data.signedUrl, name: doc.file_name });
-    } catch {
-      toast.error('Document not found in storage');
+      // Try preview endpoint first
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/preview`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewDoc({ url: data.signedUrl, name: doc.file_name });
+      } else {
+        // Fallback to download endpoint
+        const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        
+        if (downloadResponse.ok) {
+          const blob = await downloadResponse.blob();
+          const url = URL.createObjectURL(blob);
+          setPreviewDoc({ url, name: doc.file_name });
+        } else {
+          throw new Error('Document not accessible');
+        }
+      }
+    } catch (error) {
+      console.error('Preview error:', error);
+      toast.error('Unable to preview document. It may have been moved or deleted.');
     } finally {
       setLoadingPreview(null);
     }
@@ -544,7 +565,12 @@ export default function LoanDetail() {
           <div className="mb-4 rounded-xl border border-border overflow-hidden bg-background">
             <div className="flex items-center justify-between px-3 py-2 bg-muted/60 border-b border-border">
               <p className="text-sm font-medium text-foreground truncate">{previewDoc.name}</p>
-              <button onClick={() => setPreviewDoc(null)} className="p-1 rounded hover:bg-accent/10 text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={() => {
+                if (previewDoc.url.startsWith('blob:')) {
+                  URL.revokeObjectURL(previewDoc.url);
+                }
+                setPreviewDoc(null);
+              }} className="p-1 rounded hover:bg-accent/10 text-muted-foreground hover:text-foreground transition-colors">
                 <X size={16} />
               </button>
             </div>
