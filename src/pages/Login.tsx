@@ -12,7 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const logo = '/favicon.png';
+  const logo = '/Finonest%20logo.png';
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||

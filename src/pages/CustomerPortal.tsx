@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 
 export default function CustomerPortal() {
     const [phone, setPhone] = useState('');
-    const logo = '/favicon.png';
+    const logo = '/Finonest%20logo.png';
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-transparent font-sans">
