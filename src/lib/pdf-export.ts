@@ -855,7 +855,7 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
     
     toast.dismiss(loadingToast);
     
-    // Try native sharing with all files
+    // ONLY try native sharing - no fallback downloads
     if (navigator.share && navigator.canShare) {
       try {
         const canShareFiles = await navigator.canShare({ files: filesToShare });
@@ -867,59 +867,27 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
           });
           toast.success(`Shared PDF with ${docFileObjs.length} document attachments!`);
           return;
+        } else {
+          toast.error('File sharing not supported for these file types on this device');
+          return;
         }
       } catch (shareError) {
-        console.log('Native sharing failed, trying fallback:', shareError);
+        if (shareError.name === 'AbortError') {
+          toast.info('Sharing cancelled by user');
+        } else {
+          toast.error('Failed to share files: ' + shareError.message);
+        }
+        return;
       }
+    } else {
+      // Native sharing not supported
+      toast.error('Native sharing not supported on this device/browser. Please use a mobile device or supported browser.');
+      return;
     }
-    
-    // Fallback: Download all files and open WhatsApp
-    toast.info(`Downloading PDF and ${docFileObjs.length} documents for sharing...`);
-    
-    triggerDownload(pdfBlob, `Loan-${loan.id}.pdf`);
-    
-    // Download document attachments
-    if (docFileObjs.length > 0) {
-      docFileObjs.forEach((docFile, index) => {
-        setTimeout(() => {
-          triggerDownload(docFile.file, docFile.name);
-        }, (index + 1) * 500); // Stagger downloads
-      });
-    }
-    
-    // Open WhatsApp after downloads
-    setTimeout(() => {
-      const customerPhone = loan.mobile || loan.phone;
-      const message = encodeURIComponent(
-        `*Finonest India - Loan Application*\n\n` +
-        `Dear ${loan.applicant_name || 'Customer'},\n\n` +
-        `Your loan application details:\n` +
-        `*ID:* ${loan.id}\n` +
-        `*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n` +
-        `*Loan Amount:* ₹${Number(loan.loan_amount || 0).toLocaleString()}\n` +
-        `*Status:* ${loan.status || loan.application_stage}\n` +
-        `${loan.emi_amount || loan.emi ? `*EMI:* ₹${Number(loan.emi_amount || loan.emi).toLocaleString()}\n` : ''}` +
-        `${loan.tenure ? `*Tenure:* ${loan.tenure} months\n` : ''}\n` +
-        `📎 PDF and ${docFileObjs.length} document(s) downloaded for sharing\n\n` +
-        `For any queries, please contact us.\n\n` +
-        `Thank you,\nFinonest India Team`
-      );
-      
-      if (customerPhone) {
-        const formattedPhone = customerPhone.startsWith('+') ? customerPhone : `+91${customerPhone.replace(/^0+/, '')}`;
-        window.open(`https://wa.me/${formattedPhone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
-      } else {
-        window.open(`https://wa.me/?text=${message}`, '_blank');
-      }
-      
-      toast.success('Files downloaded! WhatsApp opened for sharing.');
-    }, docFileObjs.length * 500 + 1000);
     
   } catch (e) {
     console.error('Error sharing loan PDF:', e);
     toast.error('Failed to prepare documents for sharing');
-    // Simple fallback
-    window.open('https://wa.me/', '_blank');
   }
 }
 
