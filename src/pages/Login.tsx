@@ -34,7 +34,7 @@ export default function Login() {
       const result = await login(phone, mpin);
       setLoading(false);
       if (result?.error) {
-        setError('Invalid phone number or MPIN. Please try again.');
+        setError('Account Pending For Verification. Retry Login After 5 Mins.');
       } else {
         navigate('/dashboard');
       }

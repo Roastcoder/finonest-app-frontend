@@ -43,8 +43,11 @@ export default function UserManagement() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      toast.success('User deleted successfully');
+    onSuccess: (data) => {
+      const message = data.deletedUser 
+        ? `User deleted successfully. Cleared: ${data.deletedUser.pan_cleared ? 'PAN, ' : ''}${data.deletedUser.aadhaar_cleared ? 'Aadhaar, ' : ''}and all personal data.`
+        : 'User and all related data deleted successfully';
+      toast.success(message);
       refetch();
     },
     onError: (error: any) => {
@@ -183,8 +186,24 @@ export default function UserManagement() {
   };
 
   const handleDeleteUser = (u: any) => {
-    if (confirm(`Are you sure you want to delete ${u.full_name}? This action cannot be undone.`)) {
+    const confirmMessage = `⚠️ PERMANENT DELETION WARNING ⚠️
+
+You are about to permanently delete:
+• User: ${u.full_name}
+• Phone: ${u.phone}
+• All personal data including PAN and Aadhaar details
+• All KYC information and documents
+• All associated records
+
+This action CANNOT be undone!
+
+Type 'DELETE' to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    if (userInput === 'DELETE') {
       deleteUserMutation.mutate(u.id);
+    } else if (userInput !== null) {
+      toast.error('Deletion cancelled - you must type "DELETE" exactly to confirm');
     }
   };
 

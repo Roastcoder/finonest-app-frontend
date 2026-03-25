@@ -266,19 +266,9 @@ export default function Loans() {
                   )}
                   <button
                     onClick={() => {
-                      const message = `Loan Application Details\n\nID: ${loan.loan_number || loan.id}\nApplicant: ${loan.applicant_name}\nAmount: ₹${Number(loan.loan_amount).toLocaleString()}\nStatus: ${loan.application_stage}\nMobile: ${loan.mobile}`;
-                      if (navigator.share) {
-                        navigator.share({
-                          title: 'Loan Application Details',
-                          text: message
-                        }).catch(console.error);
-                      } else {
-                        navigator.clipboard.writeText(message).then(() => {
-                          alert('Loan details copied to clipboard!');
-                        }).catch(() => {
-                          alert(message);
-                        });
-                      }
+                      import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
+                        shareLoanPDF(loan, []);
+                      });
                     }}
                     className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
                     <MessageCircle size={14} className="text-green-500" /> Share
@@ -358,21 +348,11 @@ export default function Loans() {
                         </button>
                         <button
                           onClick={() => {
-                            const message = `Loan Application Details\n\nID: ${loan.loan_number || loan.id}\nApplicant: ${loan.applicant_name}\nAmount: ₹${Number(loan.loan_amount).toLocaleString()}\nStatus: ${loan.application_stage}\nMobile: ${loan.mobile}`;
-                            if (navigator.share) {
-                              navigator.share({
-                                title: 'Loan Application Details',
-                                text: message
-                              }).catch(console.error);
-                            } else {
-                              navigator.clipboard.writeText(message).then(() => {
-                                alert('Loan details copied to clipboard!');
-                              }).catch(() => {
-                                alert(message);
-                              });
-                            }
+                            import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
+                              shareLoanPDF(loan, []);
+                            });
                           }}
-                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via Native Share">
+                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share PDF with Details">
                           <MessageCircle size={11} className="text-green-500" />
                         </button>
                         {user?.role !== 'executive' && (

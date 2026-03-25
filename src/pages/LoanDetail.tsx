@@ -8,7 +8,6 @@ import { formatCurrency, APPLICATION_STAGES, LEAD_STATUSES } from '@/lib/mock-da
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, Share2, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
 import { exportLoanPDF, downloadLoanPDF } from '@/lib/pdf-export';
-import { shareToCustomer } from '@/lib/native-share';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 
@@ -206,19 +205,9 @@ export default function LoanDetail() {
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
             <button onClick={() => {
-              const message = `Loan Application Details\n\nID: ${loan.id}\nApplicant: ${loan.applicant_name}\nVehicle: ${(loan as any).maker_name || loan.car_make} ${(loan as any).model_variant_name || loan.car_model}\nAmount: ₹${Number(loan.loan_amount).toLocaleString()}\nStatus: ${(loan as any).application_stage}\nMobile: ${loan.mobile}`;
-              if (navigator.share) {
-                navigator.share({
-                  title: 'Loan Application Details',
-                  text: message
-                }).catch(console.error);
-              } else {
-                navigator.clipboard.writeText(message).then(() => {
-                  alert('Loan details copied to clipboard!');
-                }).catch(() => {
-                  alert(message);
-                });
-              }
+              import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
+                shareLoanPDF(loan, documents as any[]);
+              });
             }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
               <Share2 size={12} className="text-blue-500" /> Share
             </button>
@@ -302,19 +291,9 @@ export default function LoanDetail() {
           </button>
           <button
             onClick={() => {
-              const message = `Loan Application Details\n\nID: ${loan.id}\nApplicant: ${loan.applicant_name}\nVehicle: ${(loan as any).maker_name || loan.car_make} ${(loan as any).model_variant_name || loan.car_model}\nAmount: ₹${Number(loan.loan_amount).toLocaleString()}\nStatus: ${(loan as any).application_stage}\nMobile: ${loan.mobile}`;
-              if (navigator.share) {
-                navigator.share({
-                  title: 'Loan Application Details',
-                  text: message
-                }).catch(console.error);
-              } else {
-                navigator.clipboard.writeText(message).then(() => {
-                  alert('Loan details copied to clipboard!');
-                }).catch(() => {
-                  alert(message);
-                });
-              }
+              import('@/lib/pdf-export').then(({ shareLoanPDF }) => {
+                shareLoanPDF(loan, documents as any[]);
+              });
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
           >
