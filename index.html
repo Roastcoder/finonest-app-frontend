@@ -6,11 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0f172a" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="Finonest" />
   <title>Finonest - Car Loan Portal</title>
   <meta name="description"
     content="Complete car loan sales & DSA management system with lead tracking, approvals, disbursement, commission & branch control.">
   <meta name="author" content="Finonest India" />
-  <link rel="icon" type="image/png" href="/Finonest logo.png" />
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -45,7 +47,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js');
+        navigator.serviceWorker.register('/sw.js', { scope: '/' });
       });
     }
   </script>

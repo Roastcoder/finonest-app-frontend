@@ -92,7 +92,7 @@ export default function Login() {
                   className="inline-flex items-center gap-2.5 glass-card hover:bg-white/60 dark:hover:bg-gray-800/60 text-gray-900 dark:text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-300 text-sm shadow-sm"
                 >
                   <Download size={16} className="text-blue-600 dark:text-blue-400" />
-                  Download Android App
+                  Download APK
                 </a>
               </div>
             )}
@@ -117,7 +117,7 @@ export default function Login() {
                 className="inline-flex items-center gap-2.5 glass-card hover:bg-white/60 dark:hover:bg-gray-800/60 text-gray-900 dark:text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-300 text-sm shadow-sm"
               >
                 <Download size={16} className="text-blue-600 dark:text-blue-400" />
-                Download Android App
+                Download APK
               </a>
             </div>
           )}

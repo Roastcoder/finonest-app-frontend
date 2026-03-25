@@ -3,16 +3,17 @@
   "short_name": "Finonest",
   "description": "Complete car loan lifecycle management platform",
   "start_url": "/login",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#0f172a",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/logo192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/logo512.png",
