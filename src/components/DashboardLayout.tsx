@@ -346,7 +346,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <header className="h-12 lg:h-16 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-xl lg:rounded-2xl flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
           {/* Mobile: Logo Only */}
           <div className="lg:hidden flex items-center gap-3">
-            <img src={logo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
+            <img src={expandedLogo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
           </div>
 
           {/* Page title / User greeting */}
