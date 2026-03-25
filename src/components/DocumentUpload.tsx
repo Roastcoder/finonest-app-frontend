@@ -317,7 +317,16 @@ export function DocumentList({ leadId }: DocumentListProps) {
       );
       if (response.ok) {
         const data = await response.json();
-        setDocuments(data);
+        // Remove duplicates based on document_type and file_name
+        const uniqueDocs = data.filter((doc, index, self) => {
+          const firstIndex = self.findIndex(d => 
+            d.document_type === doc.document_type && 
+            d.file_name === doc.file_name
+          );
+          return index === firstIndex;
+        });
+        console.log(`Fetched ${data.length} documents, filtered to ${uniqueDocs.length} unique documents`);
+        setDocuments(uniqueDocs);
       }
     } catch (error) {
       console.error('Failed to fetch documents');

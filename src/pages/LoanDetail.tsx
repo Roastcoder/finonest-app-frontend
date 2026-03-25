@@ -75,10 +75,15 @@ export default function LoanDetail() {
     queryFn: async () => {
       try { 
         const docs = await api.get(`/loans/${id}/documents`);
-        // Remove duplicates based on document ID
-        const uniqueDocs = docs.filter((doc, index, self) => 
-          index === self.findIndex(d => d.id === doc.id)
-        );
+        // Strong deduplication: Remove duplicates based on document_type and file_name
+        const uniqueDocs = docs.filter((doc, index, self) => {
+          const firstIndex = self.findIndex(d => 
+            d.document_type === doc.document_type && 
+            d.file_name === doc.file_name
+          );
+          return index === firstIndex;
+        });
+        console.log(`Fetched ${docs.length} documents, filtered to ${uniqueDocs.length} unique documents`);
         return uniqueDocs;
       }
       catch { return []; }
