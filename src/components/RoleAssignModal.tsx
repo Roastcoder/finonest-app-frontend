@@ -24,6 +24,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
   const [email, setEmail] = useState(targetUser?.email || '');
   const [phone, setPhone] = useState(targetUser?.phone || '');
   const [password, setPassword] = useState('');
+  const [mpin, setMpin] = useState('');
   const [error, setError] = useState('');
 
   // Determine allowed roles based on current user role
@@ -134,6 +135,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
       setEmail('');
       setPhone('');
       setPassword('');
+      setMpin('');
     }
     setError('');
   }, [targetUser, user]);
@@ -150,8 +152,8 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
     setError('');
     
     // Validate phone number if provided
-    if (phone && phone.length !== 10) {
-      setError('Phone number must be exactly 10 digits');
+    if (!phone || phone.length !== 10) {
+      setError('Phone number is required and must be exactly 10 digits');
       return;
     }
     
@@ -159,6 +161,19 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
     if (phone && !/^\d{10}$/.test(phone)) {
       setError('Phone number must contain only digits');
       return;
+    }
+    
+    // Validate MPIN for new users
+    if (!targetUser) {
+      if (!mpin || mpin.length !== 4) {
+        setError('MPIN is required and must be exactly 4 digits');
+        return;
+      }
+      
+      if (!/^\d{4}$/.test(mpin)) {
+        setError('MPIN must contain only digits');
+        return;
+      }
     }
     
     setLoading(true);
@@ -196,6 +211,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
             email, 
             phone, 
             password, 
+            mpin,
             role, 
             branch_id: branchId || null,
             reporting_to: reportingTo || null,
@@ -224,7 +240,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{targetUser ? `Edit ${targetUser?.full_name || targetUser?.email}` : 'Add New User'}</DialogTitle>
+          <DialogTitle>{targetUser ? `Edit ${targetUser?.full_name || targetUser?.email}` : 'Add New User with Mobile & MPIN'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -258,9 +274,10 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Phone</label>
+                <label className="block text-sm font-medium mb-1.5">Phone Number *</label>
                 <input
                   type="tel"
+                  required
                   className={`w-full px-3 py-2 rounded-lg border bg-background ${
                     phone && phone.length > 0 
                       ? phone.length === 10 && /^\d{10}$/.test(phone)
@@ -282,17 +299,17 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
                       e.preventDefault();
                     }
                   }}
-                  placeholder="Enter 10-digit phone number"
+                  placeholder="Enter 10-digit mobile number"
                   maxLength={10}
                   pattern="[0-9]{10}"
-                  title="Please enter a valid 10-digit phone number"
+                  title="Please enter a valid 10-digit mobile number"
                 />
                 {phone && phone.length > 0 && (
                   <div className="mt-1 text-xs">
                     {phone.length === 10 && /^\d{10}$/.test(phone) ? (
-                      <span className="text-green-600">✓ Valid phone number</span>
+                      <span className="text-green-600">✓ Valid mobile number</span>
                     ) : (
-                      <span className="text-red-600">⚠ Phone number must be exactly 10 digits</span>
+                      <span className="text-red-600">⚠ Mobile number must be exactly 10 digits</span>
                     )}
                   </div>
                 )}
@@ -306,7 +323,50 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Enter password"
+                  minLength={6}
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">MPIN *</label>
+                <input
+                  type="password"
+                  required
+                  className={`w-full px-3 py-2 rounded-lg border bg-background ${
+                    mpin && mpin.length > 0 
+                      ? mpin.length === 4 && /^\d{4}$/.test(mpin)
+                        ? 'border-green-500 focus:border-green-500'
+                        : 'border-red-500 focus:border-red-500'
+                      : 'border-border'
+                  }`}
+                  value={mpin}
+                  onChange={e => {
+                    const value = e.target.value;
+                    // Only allow numbers and limit to 4 digits
+                    if (/^\d{0,4}$/.test(value)) {
+                      setMpin(value);
+                    }
+                  }}
+                  onKeyPress={e => {
+                    // Prevent non-numeric characters
+                    if (!/\d/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="Enter 4-digit MPIN"
+                  maxLength={4}
+                  pattern="[0-9]{4}"
+                  title="Please enter a valid 4-digit MPIN"
+                />
+                {mpin && mpin.length > 0 && (
+                  <div className="mt-1 text-xs">
+                    {mpin.length === 4 && /^\d{4}$/.test(mpin) ? (
+                      <span className="text-green-600">✓ Valid MPIN</span>
+                    ) : (
+                      <span className="text-red-600">⚠ MPIN must be exactly 4 digits</span>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">4-digit Mobile PIN for secure access</p>
               </div>
             </>
           )}
