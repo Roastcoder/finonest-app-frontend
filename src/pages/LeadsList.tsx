@@ -132,6 +132,9 @@ export default function LeadsList() {
   });
 
   const filtered = leads.filter((l: any) => {
+    // Show only pending leads (not converted) for all roles
+    if (l.converted_to_loan) return false;
+
     // Branch filter
     if (filterBranch !== 'all' && l.our_branch !== filterBranch) return false;
 
@@ -150,7 +153,7 @@ export default function LeadsList() {
   const stats = {
     total: filtered.length,
     pending: filtered.filter((l: any) => !['DISBURSED', 'REJECTED', 'CANCELLED'].includes(l.application_stage)).length,
-    converted: filtered.filter((l: any) => l.converted_to_loan).length
+    // Remove converted count since we're only showing pending leads
   };
 
   const branches = Array.from(new Set(leads.map((l: any) => l.our_branch).filter(Boolean))) as string[];
@@ -159,19 +162,19 @@ export default function LeadsList() {
     <div className="pb-24 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Leads Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">Overview and status of all customer leads</p>
+          <h1 className="text-2xl font-bold text-foreground">Pending Leads</h1>
+          <p className="text-sm text-muted-foreground mt-1">Leads awaiting conversion to loan applications</p>
         </div>
         <Link to="/add-lead" className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold py-2.5 px-6 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm">
           <Plus size={18} /> Add New Lead
         </Link>
       </div>
 
-      <div className={`grid gap-2 lg:gap-6 mb-6 ${user?.role === 'executive' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+      <div className="grid gap-2 lg:gap-6 mb-6 grid-cols-2">
         <div className="stat-card p-2 md:p-4 border-none bg-blue-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
           <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
             <Users size={16} className="text-blue-600 md:size-5" />
-            <p className="text-[10px] md:text-sm font-semibold text-blue-800/70 leading-tight">Total<br className="md:hidden" /> Leads</p>
+            <p className="text-[10px] md:text-sm font-semibold text-blue-800/70 leading-tight">Pending<br className="md:hidden" /> Leads</p>
           </div>
           <h3 className="text-lg md:text-2xl font-bold text-blue-900 tracking-tight leading-none">{stats.total}</h3>
         </div>
@@ -179,20 +182,10 @@ export default function LeadsList() {
         <div className="stat-card p-2 md:p-4 border-none bg-orange-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
           <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
             <ClipboardCheck size={16} className="text-orange-600 md:size-5" />
-            <p className="text-[10px] md:text-sm font-semibold text-orange-800/70 leading-tight">Pending<br className="md:hidden" /> Action</p>
+            <p className="text-[10px] md:text-sm font-semibold text-orange-800/70 leading-tight">Needs<br className="md:hidden" /> Action</p>
           </div>
           <h3 className="text-lg md:text-2xl font-bold text-orange-900 tracking-tight leading-none">{stats.pending}</h3>
         </div>
-
-        {user?.role !== 'executive' && (
-          <div className="stat-card p-2 md:p-4 border-none bg-emerald-50 hover:-translate-y-1 transition-transform flex flex-col items-center justify-center text-center">
-            <div className="flex flex-col items-center gap-1 md:gap-2 mb-1">
-              <TrendingUp size={16} className="text-emerald-600 md:size-5" />
-              <p className="text-[10px] md:text-sm font-semibold text-emerald-800/70 leading-tight">Converted</p>
-            </div>
-            <h3 className="text-lg md:text-2xl font-bold text-emerald-900 tracking-tight leading-none">{stats.converted}</h3>
-          </div>
-        )}
       </div>
 
       <div className="glass-panel p-4 mb-6">
@@ -302,9 +295,6 @@ export default function LeadsList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-md border border-primary/10">{lead.customer_id || 'NO-ID'}</span>
-                      {lead.converted_to_loan && (
-                        <span className="text-xs font-semibold bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-md border border-emerald-500/20">Converted</span>
-                      )}
                     </div>
                     <p className="font-bold text-foreground text-lg tracking-tight mb-1 truncate">{lead.customer_name}</p>
                     <div className="flex items-center gap-2 text-muted-foreground font-medium text-sm">
@@ -318,20 +308,9 @@ export default function LeadsList() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${lead.converted_to_loan
-                        ? getLeadStageColor('CONVERTED')
-                        : getLeadStageColor('SUBMITTED')
-                      }`}>
-                      {lead.converted_to_loan ? getLeadStageLabel('CONVERTED') : getLeadStageLabel('SUBMITTED')}
+                    <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${getLeadStageColor('SUBMITTED')}`}>
+                      {getLeadStageLabel('SUBMITTED')}
                     </span>
-                    {lead.converted_to_loan && (
-                      <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold shadow-sm border ${lead.loan_application_stage
-                          ? getLoanStageColor(lead.loan_application_stage)
-                          : 'bg-blue-100 text-blue-700 border-blue-200'
-                        }`}>
-                        {lead.loan_application_stage ? getLoanStageLabel(lead.loan_application_stage) : 'Submitted'}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -368,18 +347,14 @@ export default function LeadsList() {
                     <Edit size={14} /> Stage
                   </button>
                 )}
-                {!lead.converted_to_loan && user?.role !== 'executive' ? (
+                {user?.role !== 'executive' && (
                   <button
                     onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
                     className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors"
                   >
                     <ArrowRight size={14} /> Convert
                   </button>
-                ) : lead.converted_to_loan ? (
-                  <div className="py-3 flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground opacity-50 bg-muted/50">
-                    <Check size={14} /> Done
-                  </div>
-                ) : null}
+                )}
               </div>
             </div>
           ))
@@ -403,8 +378,7 @@ export default function LeadsList() {
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Vehicle No.</th>
                   <th className="text-right py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Loan Amount</th>
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Branch</th>
-                  <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Lead Stage</th>
-                  <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Loan Stage</th>
+                  <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
                   <th className="py-4 px-4"></th>
                 </tr>
               </thead>
@@ -443,26 +417,9 @@ export default function LeadsList() {
                       <span className="text-xs text-muted-foreground font-medium">{lead.our_branch || 'Direct'}</span>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${lead.converted_to_loan
-                          ? getLeadStageColor('CONVERTED')
-                          : getLeadStageColor('SUBMITTED')
-                        }`}>
-                        {lead.converted_to_loan ? getLeadStageLabel('CONVERTED') : getLeadStageLabel('SUBMITTED')}
+                      <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${getLeadStageColor('SUBMITTED')}`}>
+                        {getLeadStageLabel('SUBMITTED')}
                       </span>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      {lead.converted_to_loan && lead.loan_application_stage ? (
-                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${getLoanStageColor(lead.loan_application_stage)
-                          }`}>
-                          {getLoanStageLabel(lead.loan_application_stage)}
-                        </span>
-                      ) : lead.converted_to_loan ? (
-                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border bg-blue-100 text-blue-700 border-blue-200">
-                          Submitted
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end gap-1 px-1">
@@ -482,7 +439,7 @@ export default function LeadsList() {
                             <Edit size={18} />
                           </button>
                         )}
-                        {!lead.converted_to_loan && user?.role !== 'executive' ? (
+                        {user?.role !== 'executive' && (
                           <button
                             onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
                             className="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all hover:scale-110"
@@ -490,11 +447,7 @@ export default function LeadsList() {
                           >
                             <ArrowRight size={18} />
                           </button>
-                        ) : lead.converted_to_loan ? (
-                          <div className="p-2 text-emerald-600 opacity-50" title="Already converted">
-                            <Check size={18} />
-                          </div>
-                        ) : null}
+                        )}
                         {user?.role === 'admin' && (
                           <button
                             onClick={() => setDeleteConfirm(lead.id)}
