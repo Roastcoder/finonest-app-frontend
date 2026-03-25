@@ -25,6 +25,19 @@ function fmtCur(val: any): string {
   return `Rs. ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)}`;
 }
 
+function row4(l1: string, v1: string, l2: string, v2: string, l3: string, v3: string, l4: string, v4: string): string {
+  return `<tr>
+    <td class="lbl">${l1}</td><td class="val">${v1}</td>
+    <td class="lbl">${l2}</td><td class="val">${v2}</td>
+    <td class="lbl">${l3}</td><td class="val">${v3}</td>
+    <td class="lbl">${l4}</td><td class="val">${v4}</td>
+  </tr>`;
+}
+
+function sectionTitle(icon: string, title: string): string {
+  return `<tr><td colspan="8" class="sec-title">${icon} ${title}</td></tr>`;
+}
+
 const ROLE_LABELS_MAP: Record<string, string> = {
   executive: 'Executive',
   team_leader: 'Team Leader',
@@ -35,11 +48,27 @@ const ROLE_LABELS_MAP: Record<string, string> = {
   admin: 'Admin',
 };
 
+function buildProfessionalHTML(p: any): string {
+  if (!p) return '';
+  const isSalaried = p.profile_type === 'salaried';
+  const rows: string[] = [];
+  if (isSalaried) {
+    rows.push(row4('Employment Type', 'Salaried', 'Company Name', fmt(p.company_name), 'Designation', fmt(p.designation), 'Salary Credit', fmt(p.salary_credit_mode?.replace(/_/g, ' '))));
+    rows.push(row4('Current Exp (Yrs)', fmt(p.current_job_experience_years), 'Total Exp (Yrs)', fmt(p.total_work_experience_years), 'Net Monthly Salary', p.net_monthly_salary ? fmtCur(p.net_monthly_salary) : '—', 'Salary Slip', p.salary_slip_available ? 'Available' : 'Not Available'));
+  } else {
+    const subType = fmt(p.sub_type);
+    rows.push(row4('Employment Type', 'Self Employed', 'Sub Type', subType, 'Business Name', fmt(p.business_name || p.professional_type || p.freelancer_type), 'Annual Income', p.annual_income ? fmtCur(p.annual_income) : '—'));
+    rows.push(row4('Business Vintage (Yrs)', fmt(p.business_vintage_years), 'Practice Exp (Yrs)', fmt(p.practice_experience_years), 'ITR Available', p.itr_available ? 'Yes' : 'No', '', ''));
+  }
+  return `${sectionTitle('&#128188;', 'Professional Details')}${rows.join('')}`;
+}
+
 async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designation: string }[]> {
   try {
     const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
 
+    // If loan came from a lead, use lead's creator for hierarchy
     let creatorId = loan.created_by;
     if (loan.lead_id) {
       try {
@@ -51,6 +80,7 @@ async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designati
         }
       } catch {}
     }
+    // If no lead_id, use loan's created_by directly (TL or executive who created loan)
     if (!creatorId) return [];
 
     const hierarchy: { name: string; designation: string }[] = [];
@@ -90,6 +120,7 @@ export function exportLoanPDF(loan: LoanData, docs: any[] = []) {
   });
 }
 
+// Helper function to load image as base64
 function loadImageAsBase64(src: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -97,7 +128,10 @@ function loadImageAsBase64(src: string): Promise<string> {
     img.onload = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      if (!ctx) { reject(new Error('Could not get canvas context')); return; }
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
@@ -122,198 +156,126 @@ function clampLines(doc: jsPDF, text: string, maxWidth: number, maxLines = 2): s
 
 async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-
   const colors = {
-    primary:    [26, 58, 107]   as [number, number, number],
-    dark:       [27, 31, 43]    as [number, number, number],
-    gray:       [111, 119, 135] as [number, number, number],
-    line:       [224, 229, 236] as [number, number, number],
-    soft:       [244, 247, 251] as [number, number, number],
-    white:      [255, 255, 255] as [number, number, number],
-    accentBar:  [26, 58, 107]   as [number, number, number],
+    primary: [26, 58, 107] as [number, number, number],
+    dark: [27, 31, 43] as [number, number, number],
+    gray: [111, 119, 135] as [number, number, number],
+    line: [224, 229, 236] as [number, number, number],
+    soft: [244, 247, 251] as [number, number, number],
+    white: [255, 255, 255] as [number, number, number],
   };
-
-  const lm    = 12;          // left margin
-  const pageW = 186;         // usable width (210 - 2*12)
-  const gap   = 3;           // gap between field cards
-  const cols  = 4;
-  const colW  = (pageW - gap * (cols - 1)) / cols;  // ≈ 43.5 mm
-  const rowH  = 13;          // ▼ reduced from 15 — less empty space
+  const lm = 10;
+  const pageW = 190;
   let y = 10;
 
-  // ── helpers ──────────────────────────────────────────────────────────────
-  const setFont = (weight: 'normal' | 'bold', size: number, color: [number, number, number]) => {
+  const addText = (text: string, x: number, yy: number, size: number, weight: 'normal' | 'bold', color: [number, number, number], align: 'left' | 'right' | 'center' = 'left') => {
     doc.setFont('helvetica', weight);
     doc.setFontSize(size);
     doc.setTextColor(...color);
-  };
-
-  const txt = (
-    text: string, x: number, yy: number,
-    size: number, weight: 'normal' | 'bold',
-    color: [number, number, number],
-    align: 'left' | 'right' | 'center' = 'left'
-  ) => {
-    setFont(weight, size, color);
     doc.text(text, x, yy, { align });
   };
 
-  // Field card — draws a rounded rect with a left accent bar, label on top, value below
-  const addField = (x: number, yy: number, w: number, h: number, label: string, value: any) => {
-    // Card background
+  const addField = (x: number, yy: number, w: number, h: number, label: string, value: any, emphasis = false) => {
     doc.setFillColor(...colors.white);
     doc.setDrawColor(...colors.line);
-    doc.setLineWidth(0.2);
-    doc.roundedRect(x, yy, w, h, 1.5, 1.5, 'FD');
-
-    // Left accent bar
-    doc.setFillColor(...colors.accentBar);
-    doc.rect(x, yy, 1.4, h, 'F');
-
-    // Label
-    txt(label, x + 2.8, yy + 3.8, 5, 'normal', colors.gray);
-
-    // Value — clamp to 2 lines
-    const valueStr = fmt(value);
-    const valueLines = clampLines(doc, valueStr, w - 5, 2);
-    valueLines.forEach((line, idx) => {
-      txt(line, x + 2.8, yy + 7.6 + idx * 3.4, 7, 'bold', colors.dark);
-    });
+    doc.setLineWidth(0.15);
+    doc.rect(x, yy, w, h, 'S');
+    doc.setFillColor(247, 250, 255);
+    doc.rect(x, yy, w, 4.8, 'F');
+    doc.setDrawColor(237, 241, 246);
+    doc.line(x, yy + 4.8, x + w, yy + 4.8);
+    addText(label, x + 2.5, yy + 3.4, emphasis ? 5.4 : 4.8, 'bold', colors.gray);
+    const valueLines = clampLines(doc, fmt(value), w - 5, 2);
+    valueLines.forEach((line, idx) => addText(line, x + 2.5, yy + 8 + (idx * 3.8), emphasis ? 8.6 : 7.2, 'bold', colors.dark));
   };
 
-  // Section header bar
-  const addSection = (title: string, fields: [string, any][]) => {
-    // Soft background strip
+  const addSection = (title: string, fields: [string, any][], columns = 4, emphasis = false) => {
     doc.setFillColor(...colors.soft);
     doc.setDrawColor(...colors.line);
-    doc.setLineWidth(0.2);
-    doc.rect(lm, y, pageW, 6.5, 'FD');
-    txt(title, lm + 3, y + 4.4, 7.5, 'bold', colors.primary);
-    y += 8;   // ▼ was 9
+    doc.rect(lm, y, pageW, 6.5, 'F');
+    doc.line(lm, y + 6.5, lm + pageW, y + 6.5);
+    addText(title, lm + 2.5, y + 4.4, 7.9, 'bold', colors.primary);
+    y += 8;
 
-    // Pad fields to multiple of 4
+    const gap = 2.5;
+    const colW = (pageW - gap * (columns - 1)) / columns;
+    const rowH = emphasis ? 14.8 : 12.5;
     const normalized = [...fields];
-    while (normalized.length % cols !== 0) normalized.push(['', '']);
+    while (normalized.length % columns !== 0) normalized.push(['', '']);
 
-    for (let i = 0; i < normalized.length; i += cols) {
-      for (let j = 0; j < cols; j++) {
-        const [lbl, val] = normalized[i + j];
+    for (let i = 0; i < normalized.length; i += columns) {
+      for (let j = 0; j < columns; j++) {
+        const field = normalized[i + j];
         const x = lm + j * (colW + gap);
-        if (lbl) {
-          addField(x, y, colW, rowH, lbl, val);
-        }
-        // empty placeholder — draw nothing (no blank card)
+        addField(x, y, colW, rowH, field[0], field[1], emphasis);
       }
-      y += rowH + 2;   // ▼ was rowH + 2.5
+      y += rowH + 1.8;
     }
-
-    y += 2;   // breathing room after section
   };
 
-  // ── HEADER ───────────────────────────────────────────────────────────────
   try {
     const logoBase64 = await loadImageAsBase64(PDF_LOGO_PATH);
-    doc.addImage(logoBase64, 'PNG', lm, y, 40, 12);
-  } catch {
-    txt('Finonest India', lm, y + 6, 16, 'bold', colors.primary);
-    txt('Vehicle Loan Solutions', lm, y + 11, 7, 'normal', colors.gray);
+    doc.addImage(logoBase64, 'PNG', lm, y, 44, 13);
+  } catch (logoError) {
+    console.warn('Could not load logo, using text fallback:', logoError);
+    addText('Finonest India', lm, y + 5, 18, 'bold', colors.primary);
+    addText('Vehicle Loan Solutions', lm, y + 10, 7.5, 'normal', colors.gray);
   }
 
-  // Application ID block (top-right) — FIX: use plain text, no decoration
-  const rightX = lm + pageW;
-  txt('Application ID', rightX, y + 3, 6.5, 'normal', colors.gray, 'right');
-  txt(String(loan.loan_number || loan.id || '—'), rightX, y + 8, 11, 'bold', colors.primary, 'right');
-  txt('Date', rightX, y + 12.5, 6.5, 'normal', colors.gray, 'right');
+  addText('Application ID', lm + pageW, y + 2, 7, 'normal', colors.gray, 'right');
+  addText(String(loan.loan_number || loan.id || '—'), lm + pageW, y + 7.2, 12, 'bold', colors.primary, 'right');
+  addText('Date', lm + pageW, y + 12, 7, 'normal', colors.gray, 'right');
+  addText(new Date().toLocaleDateString('en-IN'), lm + pageW, y + 17, 9.5, 'bold', colors.primary, 'right');
 
-  // ▼ FIX for strikethrough date: build date string manually so no CSS affects it
-  const today = new Date();
-  const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-  txt(dateStr, rightX, y + 17, 9, 'bold', colors.dark, 'right');
-
-  y += 20;
-
-  // Separator line
+  y += 16;
   doc.setDrawColor(...colors.primary);
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.5);
   doc.line(lm, y, lm + pageW, y);
-  y += 5;
+  y += 6;
 
-  // ── TITLE BAR ────────────────────────────────────────────────────────────
   doc.setFillColor(...colors.primary);
-  doc.rect(lm, y, pageW, 8, 'F');
-  txt('Loan Application Details', lm + 4, y + 5.5, 10.5, 'bold', colors.white);
+  doc.rect(lm, y, pageW, 9, 'F');
+  addText('Loan Application Details', lm + 4, y + 5.7, 12, 'bold', colors.white);
+  addText(fmt(loan.status).toUpperCase(), lm + pageW - 4, y + 5.7, 8.5, 'bold', colors.white, 'right');
+  y += 13;
 
-  // Status badge (right side)
-  const statusStr = fmt(loan.status).toUpperCase();
-  txt(statusStr, rightX - 3, y + 5.5, 8, 'bold', colors.white, 'right');
-
-  y += 11;
-
-  // ── SECTIONS ─────────────────────────────────────────────────────────────
-  const applicantAddress = [
-    loan.current_address || loan.address || loan.customer_address,
-    loan.landmark || loan.current_landmark || loan.customer_landmark,
-  ].filter(Boolean).join(', ');
-
-  const cityState = [
-    loan.city || loan.current_city || loan.current_district,
-    loan.state || loan.current_state,
-  ].filter(Boolean).join(', ');
-
-  const summaryStatus =
-    loan.existing_loan_status || loan.loan_status ||
-    loan.finance_status || loan.status || loan.application_stage;
+  const applicantAddress = [loan.current_address || loan.address || loan.customer_address, loan.landmark || loan.current_landmark || loan.customer_landmark].filter(Boolean).join(', ');
+  const cityState = [loan.city || loan.current_city || loan.current_district, loan.state || loan.current_state].filter(Boolean).join(', ');
+  const summaryStatus = loan.existing_loan_status || loan.loan_status || loan.finance_status || loan.status || loan.application_stage;
 
   addSection('APPLICANT INFORMATION', [
-    ['Applicant Name', loan.applicant_name || loan.customer_name],
-    ['Mobile',         loan.mobile || loan.phone],
-    ['Email',          loan.email || loan.customer_email || loan._lead_email],
-    ['Address',        applicantAddress || '—'],
-    ['City & State',   cityState || '—'],
-    ['Pincode',        loan.pincode || loan.current_pincode || loan.customer_pincode],
-  ]);
+    ['Applicant Name', loan.applicant_name || loan.customer_name], ['Mobile', loan.mobile || loan.phone],
+    ['Email', loan.email || loan.customer_email || loan._lead_email], ['Address', applicantAddress || '—'],
+    ['City & State', cityState || '—'], ['Pincode', loan.pincode || loan.current_pincode || loan.customer_pincode],
+  ], 2, true);
 
   addSection('VEHICLE DETAILS', [
-    ['Reg. No',        loan.vehicle_number || loan.registration_number],
-    ['Maker',          loan.maker_name || loan.car_make || loan.vehicle_make],
-    ['Model/Variant',  loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant],
-    ['Chassis No',     loan.chassis_number],
-    ['Engine No',      loan.engine_number],
-    ['Fuel Type',      loan.fuel_type],
+    ['Reg. No', loan.vehicle_number || loan.registration_number], ['Maker', loan.maker_name || loan.car_make || loan.vehicle_make],
+    ['Model/Variant', loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant], ['Chassis No', loan.chassis_number],
+    ['Engine No', loan.engine_number], ['Fuel Type', loan.fuel_type],
   ]);
 
   addSection('LOAN SUMMARY', [
-    ['Loan App ID',          loan.loan_number || loan.id],
-    ['Loan Amount Required', getCompactMoney(loan.loan_amount)],
-    ['Loan Status',          summaryStatus],
-    ['Tenure',               loan.tenure ? `${loan.tenure} months` : '—'],
-    ['EMI Amount',           loan.emi ? getCompactMoney(loan.emi) : loan.existing_emi ? getCompactMoney(loan.existing_emi) : '—'],
-    ['Case Type',            loan.case_type],
+    ['Loan App ID', loan.loan_number || loan.id], ['Loan Amount Required', getCompactMoney(loan.loan_amount)],
+    ['Loan Status', summaryStatus], ['Tenure', loan.tenure ? `${loan.tenure} months` : '—'],
+    ['EMI Amount', loan.emi ? getCompactMoney(loan.emi) : loan.existing_emi ? getCompactMoney(loan.existing_emi) : '—'], ['Case Type', loan.case_type],
   ]);
 
   addSection('LENDER & CREATOR', [
-    ['Lender',        loan.financier_name || loan.selected_financier || loan.bank_name],
-    ['Branch',        loan.financier_branch_name],
-    ['Sales Manager', loan.financier_executive_name],
-    ['Area Manager',  loan.financier_area_manager_name],
-    ['Prepared By',   loan.created_by_name || loan._hierarchy?.[0]?.name],
-    ['Role',          loan._hierarchy?.[0]?.designation || 'Creator'],
-  ]);
+    ['Lender', loan.financier_name || loan.selected_financier || loan.bank_name], ['Branch', loan.financier_branch_name],
+    ['Sales Manager', loan.financier_executive_name], ['Area Manager', loan.financier_area_manager_name],
+    ['Prepared By', loan.created_by_name || loan._hierarchy?.[0]?.name], ['Role', loan._hierarchy?.[0]?.designation || 'Creator'],
+  ], 2, true);
 
-  // ── FOOTER ────────────────────────────────────────────────────────────────
   const footerY = 280;
   doc.setDrawColor(...colors.line);
   doc.setLineWidth(0.25);
-  doc.line(lm, footerY, lm + pageW, footerY);
-
-  const genTime = new Date().toLocaleString('en-IN');
-  txt(`Generated ${genTime}  •  Finonest India`, lm, footerY + 4.5, 6, 'normal', colors.gray);
-  txt('System-generated document', rightX, footerY + 4.5, 6, 'normal', colors.gray, 'right');
+  doc.line(lm, footerY - 4, lm + pageW, footerY - 4);
+  addText(`Generated ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, footerY, 6.2, 'normal', colors.gray);
+  addText('System-generated document', lm + pageW, footerY, 6.2, 'normal', colors.gray, 'right');
 
   return doc.output('blob');
 }
-
-// ── Public API (unchanged signatures) ────────────────────────────────────────
 
 function generatePDFBlobWithoutImages(loan: LoanData, _docFiles: { file: File; name: string; docType: string }[] = []): Promise<Blob> {
   return buildCompactLoanPdf(loan);
@@ -406,55 +368,113 @@ async function prepareStoredFilesBundle(docs: any[] = []) {
   };
 }
 
+// Function to share individual documents
 export async function shareDocuments(docs: any[]) {
   try {
-    if (!navigator.share) { toast.error('Sharing not available on this device'); return; }
+    if (!navigator.share) {
+      toast.error('Sharing not available on this device');
+      return;
+    }
+    
     const shareableDocs = docs.filter(doc => !isGeneratedLoanPdf(doc));
-    if (shareableDocs.length === 0) { toast.error('No documents to share'); return; }
 
+    if (shareableDocs.length === 0) {
+      toast.error('No documents to share');
+      return;
+    }
+    
     const loadingToast = toast.loading('Loading saved files for sharing...');
+    
+    // Fetch document files
     const docFileObjs = await fetchDocumentFiles(shareableDocs);
+    
     if (docFileObjs.length === 0) {
       toast.dismiss(loadingToast);
       toast.error('No documents could be prepared for sharing');
       return;
     }
-
-    const imageFiles = docFileObjs.filter(d => d.file.type.startsWith('image/'));
-    const pdfFiles   = docFileObjs.filter(d => d.file.type.includes('pdf'));
+    
+    // Separate images and PDFs
+    const imageFiles = docFileObjs.filter(docFile => {
+      const fileType = docFile.file.type;
+      return fileType.startsWith('image/') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png');
+    });
+    
+    const pdfFiles = docFileObjs.filter(docFile => {
+      const fileType = docFile.file.type;
+      return fileType.includes('pdf');
+    });
+    
     toast.dismiss(loadingToast);
-
+    
     try {
+      // Try sharing all documents together first
       const allFiles = docFileObjs.map(f => f.file);
+      console.log('Attempting to share documents:', allFiles.map(f => ({ name: f.name, type: f.type })));
+      
       if (navigator.canShare) {
-        if (await navigator.canShare({ files: allFiles })) {
-          await navigator.share({ title: 'Loan Documents', text: `${docFileObjs.length} loan documents`, files: allFiles });
+        const canShareAll = await navigator.canShare({ files: allFiles });
+        if (canShareAll) {
+          await navigator.share({ 
+            title: 'Loan Documents',
+            text: `${docFileObjs.length} loan documents`,
+            files: allFiles
+          });
           toast.success(`Shared ${docFileObjs.length} documents!`);
           return;
         }
       }
+      
+      // Fallback: Try sharing images only
       if (imageFiles.length > 0) {
-        const imgList = imageFiles.map(f => f.file);
-        if (!navigator.canShare || await navigator.canShare({ files: imgList })) {
-          await navigator.share({ title: 'Loan Document Images', text: `${imageFiles.length} loan document images`, files: imgList });
+        const imageFilesList = imageFiles.map(f => f.file);
+        const canShareImages = navigator.canShare ? await navigator.canShare({ files: imageFilesList }) : true;
+        
+        if (canShareImages) {
+          await navigator.share({ 
+            title: 'Loan Document Images',
+            text: `${imageFiles.length} loan document images`,
+            files: imageFilesList
+          });
           toast.success(`Shared ${imageFiles.length} document images!`);
-          if (pdfFiles.length > 0) setTimeout(() => toast.info(`${pdfFiles.length} PDF documents may need separate sharing.`), 2000);
+          
+          if (pdfFiles.length > 0) {
+            setTimeout(() => {
+              toast.info(`${pdfFiles.length} PDF documents may need separate sharing.`);
+            }, 2000);
+          }
           return;
         }
       }
+      
+      // If no images, try PDFs
       if (pdfFiles.length > 0) {
-        const pdfList = pdfFiles.map(f => f.file);
-        if (!navigator.canShare || await navigator.canShare({ files: pdfList })) {
-          await navigator.share({ title: 'Loan PDF Documents', text: `${pdfFiles.length} loan PDF documents`, files: pdfList });
+        const pdfFilesList = pdfFiles.map(f => f.file);
+        const canSharePDFs = navigator.canShare ? await navigator.canShare({ files: pdfFilesList }) : true;
+        
+        if (canSharePDFs) {
+          await navigator.share({ 
+            title: 'Loan PDF Documents',
+            text: `${pdfFiles.length} loan PDF documents`,
+            files: pdfFilesList
+          });
           toast.success(`Shared ${pdfFiles.length} PDF documents!`);
           return;
         }
       }
+      
       toast.error('Unable to share documents on this device');
-    } catch (shareError: any) {
-      if (shareError.name === 'AbortError') toast.info('Sharing cancelled');
-      else toast.error('Failed to share documents: ' + shareError.message);
+      
+    } catch (shareError) {
+      console.error('Document share error:', shareError);
+      
+      if (shareError.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error('Failed to share documents: ' + shareError.message);
+      }
     }
+    
   } catch (e) {
     console.error('Error preparing documents for sharing:', e);
     toast.error('Failed to prepare documents for sharing');
@@ -463,26 +483,49 @@ export async function shareDocuments(docs: any[]) {
 
 export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
   try {
-    if (!navigator.share) { toast.error('Sharing not available on this device'); return; }
+    if (!navigator.share) {
+      toast.error('Sharing not available on this device');
+      return;
+    }
+
+    // Show loading toast
     const loadingToast = toast.loading('Preparing documents for sharing...');
+
     const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
     const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
+
+    // Create PDF
     const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+    const filesToShare = [pdfFile];
+
     toast.dismiss(loadingToast);
 
     try {
-      if (navigator.canShare && await navigator.canShare({ files: [pdfFile] })) {
-        await navigator.share({ title: `Loan Application - ${loan.id}`, text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}`, files: [pdfFile] });
+      // Share PDF only for predictable mobile behavior
+      if (navigator.canShare && await navigator.canShare({ files: filesToShare })) {
+        await navigator.share({
+          title: `Loan Application - ${loan.id}`,
+          text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}`,
+          files: filesToShare
+        });
         toast.success('Shared PDF!');
         return;
       }
-      await navigator.share({ title: `Loan Application - ${loan.id}`, text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}` });
+      await navigator.share({
+        title: `Loan Application - ${loan.id}`,
+        text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}`
+      });
       toast.info('Shared loan details as text. Use Download PDF for the document file.');
+
     } catch (shareError: any) {
-      if (shareError.name === 'AbortError') toast.info('Sharing cancelled');
-      else toast.error('Failed to share: ' + shareError.message);
+      if (shareError.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error('Failed to share: ' + shareError.message);
+      }
     }
+
   } catch (e) {
     console.error('Share error:', e);
     toast.error('Failed to load saved files for sharing');
@@ -492,26 +535,60 @@ export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
 export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
   try {
     const bundle = await prepareLoanShareBundle(loan, docs);
-    if (!navigator.share) { toast.error('Native sharing not supported on this device/browser'); return; }
+    const filesToShare = bundle.files;
+    const pdfFile = filesToShare[0];
+    
+    // Check if native sharing is available
+    if (!navigator.share) {
+      toast.error('Native sharing not supported on this device/browser');
+      return;
+    }
+    
     try {
+      // Share PDF only for predictable mobile behavior
       if (navigator.canShare && typeof navigator.canShare === 'function') {
-        if (await navigator.canShare({ files: bundle.files })) {
-          await navigator.share({ title: bundle.title, text: bundle.text, files: bundle.files });
+        const canShareFiles = await navigator.canShare({ files: filesToShare });
+        console.log('Can share files:', canShareFiles);
+        
+        if (canShareFiles) {
+          await navigator.share({ 
+            title: bundle.title,
+            text: bundle.text,
+            files: filesToShare 
+          });
           toast.success('Shared PDF!');
           return;
         }
       }
-      if (!navigator.canShare || await navigator.canShare({ files: [bundle.files[0]] })) {
-        await navigator.share({ title: `Loan Application - ${loan.id}`, text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id}).`, files: [bundle.files[0]] });
+      
+      // Fallback: share just the PDF
+      const canSharePDF = navigator.canShare ? await navigator.canShare({ files: [pdfFile] }) : true;
+      
+      if (canSharePDF) {
+        await navigator.share({ 
+          title: `Loan Application - ${loan.id}`,
+          text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id}).`,
+          files: [pdfFile]
+        });
         toast.success('Shared PDF!');
         return;
       }
-      await navigator.share({ title: `Loan Application - ${loan.id}`, text: `Loan application details for ${loan.applicant_name || 'Customer'}\n\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}\nStatus: ${loan.status || loan.application_stage}\n\nFinonest India Team` });
+
+      await navigator.share({ 
+        title: `Loan Application - ${loan.id}`,
+        text: `Loan application details for ${loan.applicant_name || 'Customer'}\n\nID: ${loan.id}\nVehicle: ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\nLoan Amount: ₹${Number(loan.loan_amount || 0).toLocaleString()}\nStatus: ${loan.status || loan.application_stage}\n\nFinonest India Team`
+      });
       toast.info('Shared loan details as text.');
-    } catch (shareError: any) {
-      if (shareError.name === 'AbortError') toast.info('Sharing cancelled by user');
-      else toast.error('Failed to share: ' + shareError.message);
+      
+    } catch (shareError) {
+      console.error('Share error:', shareError);
+      if (shareError.name === 'AbortError') {
+        toast.info('Sharing cancelled by user');
+      } else {
+        toast.error('Failed to share: ' + shareError.message);
+      }
     }
+    
   } catch (e) {
     console.error('Error preparing documents for sharing:', e);
     toast.error('Failed to load saved files for sharing');
@@ -534,7 +611,7 @@ export async function prepareDocumentShareBundle(docs: any[] = []) {
   return {
     title: 'Loan Documents',
     text: `${docFileObjs.length} loan documents`,
-    files: docFileObjs.map(d => d.file),
+    files: docFileObjs.map(docFile => docFile.file),
     docCount: docFileObjs.length,
   };
 }
