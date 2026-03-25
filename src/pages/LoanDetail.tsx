@@ -117,31 +117,19 @@ export default function LoanDetail() {
   const previewDocument = async (doc: any) => {
     setLoadingPreview(doc.id);
     try {
-      // Try preview endpoint first
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/preview`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-      });
+      // Use public download endpoint directly (no auth required)
+      const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`);
       
-      if (response.ok) {
-        const data = await response.json();
-        setPreviewDoc({ url: data.signedUrl, name: doc.file_name });
+      if (downloadResponse.ok) {
+        const blob = await downloadResponse.blob();
+        const url = URL.createObjectURL(blob);
+        setPreviewDoc({ url, name: doc.file_name });
       } else {
-        // Fallback to download endpoint
-        const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-        });
-        
-        if (downloadResponse.ok) {
-          const blob = await downloadResponse.blob();
-          const url = URL.createObjectURL(blob);
-          setPreviewDoc({ url, name: doc.file_name });
-        } else {
-          throw new Error('Document not accessible');
-        }
+        throw new Error(`Document not found (${downloadResponse.status})`);
       }
     } catch (error) {
       console.error('Preview error:', error);
-      toast.error('Unable to preview document. It may have been moved or deleted.');
+      toast.error(`Unable to preview document. Document ID ${doc.id} may not exist or may have been deleted.`);
     } finally {
       setLoadingPreview(null);
     }

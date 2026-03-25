@@ -1,7 +1,7 @@
 // Helper function to fetch document files from API
 export async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
+  // No authentication headers needed for public document access
   
   const DOC_TYPES: Record<string, string> = {
     aadhar_front: 'Aadhar Front',
@@ -20,8 +20,11 @@ export async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; nam
   
   for (const doc of docs) {
     try {
-      const res = await fetch(`${API}/documents/${doc.id}/download`, { headers });
-      if (!res.ok) continue;
+      const res = await fetch(`${API}/documents/${doc.id}/download`);
+      if (!res.ok) {
+        console.warn(`Document ${doc.id} not accessible: ${res.status}`);
+        continue;
+      }
       
       const blob = await res.blob();
       const docLabel = DOC_TYPES[doc.document_type] || doc.document_type || 'Document';

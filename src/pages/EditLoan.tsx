@@ -439,7 +439,7 @@ export default function EditLoan() {
       formData.append('document_type', docType);
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}/documents`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`

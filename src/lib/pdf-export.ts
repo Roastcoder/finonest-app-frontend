@@ -836,45 +836,26 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
     const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
     const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
     
-    // Generate PDF without embedded images
     const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
     
-    // Prepare all files for sharing (PDF + image attachments)
-    const filesToShare = [pdfFile];
-    
-    // Add image files as separate attachments
-    for (const docFile of docFileObjs) {
-      if (docFile.file.type.startsWith('image/')) {
-        filesToShare.push(docFile.file);
-      }
-    }
-    
-    if (navigator.share && navigator.canShare) {
-      const shareData: ShareData = { 
+    // Try native sharing first
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      await navigator.share({ 
         title: `Loan Application - ${loan.id}`, 
-        files: filesToShare 
-      };
-      if (navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-        return;
-      }
+        files: [pdfFile] 
+      });
+      return;
     }
     
-    // Fallback: download PDF and open WhatsApp
-    triggerDownload(pdfBlob, `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`);
-    
-    // Download image attachments separately
-    for (const docFile of docFileObjs) {
-      if (docFile.file.type.startsWith('image/')) {
-        triggerDownload(docFile.file, docFile.name);
-      }
-    }
-    
-    window.open(`https://wa.me/`, '_blank');
+    // Fallback: download and open WhatsApp
+    triggerDownload(pdfBlob, `Loan-${loan.id}.pdf`);
+    setTimeout(() => {
+      window.open('https://wa.me/', '_blank');
+    }, 1000);
   } catch (e) {
-    console.error('Error generating files for sharing:', e);
-    window.open(`https://wa.me/`, '_blank');
+    // Simple fallback
+    window.open('https://wa.me/', '_blank');
   }
 }
 

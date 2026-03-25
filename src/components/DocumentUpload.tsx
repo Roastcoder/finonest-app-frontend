@@ -328,32 +328,20 @@ export function DocumentList({ leadId }: DocumentListProps) {
 
   const handlePreview = async (doc: any) => {
     try {
-      console.log('Attempting to preview document:', doc);
       const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`;
-      console.log('Download URL:', downloadUrl);
       
-      const response = await fetch(downloadUrl, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-      
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      // No authentication headers needed for public access
+      const response = await fetch(downloadUrl);
       
       if (response.ok) {
         const blob = await response.blob();
-        console.log('Blob created:', blob.type, blob.size);
         const url = URL.createObjectURL(blob);
         setPreviewUrl(url);
         setPreviewDoc(doc);
       } else {
-        const errorText = await response.text();
-        console.error('Preview failed:', response.status, errorText);
-        toast.error(`Failed to load document preview: ${response.status} ${errorText}`);
+        toast.error('Failed to load document preview');
       }
     } catch (error) {
-      console.error('Failed to preview document:', error);
       toast.error('Failed to load document preview');
     }
   };
@@ -598,11 +586,22 @@ export function DocumentList({ leadId }: DocumentListProps) {
                           
                           <div className="w-full bg-muted/10 relative group/preview pointer-events-auto flex justify-center items-center py-4 px-2">
                             {doc.file_name.toLowerCase().endsWith('.pdf') ? (
-                              <iframe 
-                                src={`${previewUrl}#toolbar=0`} 
-                                className="w-full h-[60vh] border border-border bg-white rounded-xl shadow-sm"
-                                title="PDF Viewer"
-                              />
+                              <div className="w-full h-[60vh] border border-border bg-white rounded-xl shadow-sm flex items-center justify-center">
+                                <div className="text-center">
+                                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                                  <p className="text-sm font-medium text-foreground mb-1">PDF Document</p>
+                                  <p className="text-xs text-muted-foreground mb-3">{doc.file_name}</p>
+                                  <a 
+                                    href={previewUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                                  >
+                                    <Eye size={16} />
+                                    Open PDF
+                                  </a>
+                                </div>
+                              </div>
                             ) : (
                               <img 
                                 src={previewUrl} 
