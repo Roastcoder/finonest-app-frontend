@@ -961,8 +961,6 @@ export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
     // Create PDF
     const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
-
-    // All files: loan PDF + all document files
     const filesToShare = [pdfFile, ...docFileObjs.map(d => d.file)];
 
     toast.dismiss(loadingToast);
@@ -972,7 +970,7 @@ export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
       if (navigator.canShare && await navigator.canShare({ files: filesToShare })) {
         await navigator.share({
           title: `Loan Application - ${loan.id}`,
-          text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}`,
+          text: `Loan application for ${loan.applicant_name || 'Customer'}\nID: ${loan.id}\nAmount: ₹${Number(loan.loan_amount || 0).toLocaleString()}\nIncludes uploaded documents.`,
           files: filesToShare
         });
         toast.success(`Shared PDF with ${docFileObjs.length} documents!`);
@@ -1025,7 +1023,16 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
     
     const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
-    
+    const filesToShare = [pdfFile];
+
+    // Add document files as attachments (limit file types for better mobile compatibility)
+    docFileObjs.forEach(docFile => {
+      const fileType = docFile.file.type;
+      if (fileType.includes('pdf') || fileType.includes('image/') || fileType.includes('jpeg') || fileType.includes('png')) {
+        filesToShare.push(docFile.file);
+      }
+    });
+
     toast.dismiss(loadingToast);
     
     // Check if native sharing is available
@@ -1036,22 +1043,6 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
     
     try {
       // First try sharing with all files (PDF + documents)
-      const filesToShare = [pdfFile];
-      
-      // Add document files as attachments (limit file types for better mobile compatibility)
-      if (docFileObjs.length > 0) {
-        docFileObjs.forEach(docFile => {
-          // Only add common file types that mobile devices can handle
-          const fileType = docFile.file.type;
-          if (fileType.includes('pdf') || fileType.includes('image/') || fileType.includes('jpeg') || fileType.includes('png')) {
-            filesToShare.push(docFile.file);
-          }
-        });
-      }
-      
-      console.log('Attempting to share files:', filesToShare.map(f => ({ name: f.name, type: f.type, size: f.size })));
-      
-      // Check if files can be shared
       if (navigator.canShare && typeof navigator.canShare === 'function') {
         const canShareFiles = await navigator.canShare({ files: filesToShare });
         console.log('Can share files:', canShareFiles);
@@ -1075,14 +1066,12 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
         await navigator.share({ 
           title: `Loan Application - ${loan.id}`,
           text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id}). Additional documents available separately.`,
-          files: [pdfFile] 
+          files: [pdfFile]
         });
         toast.success('Shared PDF! Additional documents may need to be shared separately.');
         return;
       }
-      
-      // Last fallback: Share without files (text only)
-      console.log('File sharing not supported, trying text only');
+
       await navigator.share({ 
         title: `Loan Application - ${loan.id}`,
         text: `Loan application details for ${loan.applicant_name || 'Customer'}\n\nID: ${loan.id}\nVehicle: ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\nLoan Amount: ₹${Number(loan.loan_amount || 0).toLocaleString()}\nStatus: ${loan.status || loan.application_stage}\n\nFor complete details and documents, please contact us.\n\nFinonest India Team`
