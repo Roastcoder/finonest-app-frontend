@@ -7,9 +7,10 @@ import { api } from '@/lib/api';
 import { formatCurrency, APPLICATION_STAGES, LEAD_STATUSES } from '@/lib/mock-data';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, Share2, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
-import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'aadhar_front', label: 'Aadhar Front' },
@@ -118,8 +119,11 @@ export default function LoanDetail() {
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [showReapplyModal, setShowReapplyModal] = useState(false);
   const [showStageManager, setShowStageManager] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareBundle, setShareBundle] = useState<Awaited<ReturnType<typeof prepareLoanShareBundle>> | null>(null);
   const [shareBundleLoading, setShareBundleLoading] = useState(false);
+  const [documentShareBundle, setDocumentShareBundle] = useState<Awaited<ReturnType<typeof prepareDocumentShareBundle>> | null>(null);
+  const [documentShareBundleLoading, setDocumentShareBundleLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,6 +154,39 @@ export default function LoanDetail() {
       cancelled = true;
     };
   }, [loan, documents]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function buildDocumentBundle() {
+      if (!documents.length) {
+        setDocumentShareBundle(null);
+        return;
+      }
+      setDocumentShareBundleLoading(true);
+      try {
+        const bundle = await prepareDocumentShareBundle(documents as any[]);
+        if (!cancelled) {
+          setDocumentShareBundle(bundle);
+        }
+      } catch (error) {
+        console.error('Failed to prepare document share bundle:', error);
+        if (!cancelled) {
+          setDocumentShareBundle(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setDocumentShareBundleLoading(false);
+        }
+      }
+    }
+
+    buildDocumentBundle();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documents]);
 
   const handleReapply = () => {
     if (!loan) return;
@@ -208,6 +245,39 @@ export default function LoanDetail() {
         toast.info('Sharing cancelled');
       } else {
         toast.error(error?.message || 'Failed to share loan application');
+      }
+    }
+  };
+
+  const handleShareDocuments = async () => {
+    if (!documentShareBundle) {
+      toast.info(documentShareBundleLoading ? 'Preparing documents…' : 'Documents are still preparing. Please try again in a moment.');
+      return;
+    }
+
+    if (!navigator.share) {
+      toast.error('Sharing not available on this device');
+      return;
+    }
+
+    try {
+      if (navigator.canShare && !navigator.canShare({ files: documentShareBundle.files })) {
+        toast.error('This device cannot share the prepared documents');
+        return;
+      }
+
+      await navigator.share({
+        title: documentShareBundle.title,
+        text: documentShareBundle.text,
+        files: documentShareBundle.files,
+      });
+      toast.success(`Shared ${documentShareBundle.docCount} documents!`);
+    } catch (error: any) {
+      console.error('Document share error:', error);
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share documents');
       }
     }
   };
@@ -290,18 +360,9 @@ export default function LoanDetail() {
             <button onClick={() => setShowStageManager(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
-            <button onClick={handleShareAll} disabled={shareBundleLoading} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border disabled:opacity-60" title="Share PDF with documents">
-              <Share2 size={12} className="text-blue-500" /> Share All
+            <button onClick={() => setShowShareMenu(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share options">
+              <Share2 size={12} className="text-blue-500" /> Share
             </button>
-            {documents.length > 0 && (
-              <button onClick={() => {
-                import('@/lib/pdf-export').then(({ shareDocuments }) => {
-                  shareDocuments(documents as any[]);
-                });
-              }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share documents only">
-                <FileText size={12} className="text-green-500" /> Docs
-              </button>
-            )}
             {canDelete && (
               <button onClick={() => { if (confirm('Delete this loan?')) deleteLoan.mutate(); }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
                 Delete
@@ -314,6 +375,63 @@ export default function LoanDetail() {
 
       {/* Mobile spacer */}
       <div className="lg:hidden h-[88px]" />
+
+      <Sheet open={showShareMenu} onOpenChange={setShowShareMenu}>
+        <SheetContent side="bottom" className="h-auto rounded-t-3xl px-5 pb-6 pt-5">
+          <SheetHeader>
+            <SheetTitle>Share Loan</SheetTitle>
+          </SheetHeader>
+          <div className="mt-5 space-y-3">
+            <button
+              onClick={() => {
+                setShowShareMenu(false);
+                handleShareAll();
+              }}
+              disabled={shareBundleLoading}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Share All</p>
+                  <p className="text-xs text-muted-foreground">PDF + attached documents</p>
+                </div>
+                <Share2 size={18} className="text-blue-500 shrink-0" />
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setShowShareMenu(false);
+                handleShareDocuments();
+              }}
+              disabled={documentShareBundleLoading || documents.length === 0}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left disabled:opacity-60"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Share Documents</p>
+                  <p className="text-xs text-muted-foreground">Only the uploaded files</p>
+                </div>
+                <FileText size={18} className="text-green-500 shrink-0" />
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setShowShareMenu(false);
+                downloadLoanPDF(loan, documents as any[]);
+              }}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Download PDF</p>
+                  <p className="text-xs text-muted-foreground">Save a copy on this device</p>
+                </div>
+                <Download size={18} className="text-accent shrink-0" />
+              </div>
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Reapply Confirmation Modal */}
       {showReapplyModal && (

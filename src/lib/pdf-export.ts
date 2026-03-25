@@ -1121,6 +1121,16 @@ export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
   };
 }
 
+export async function prepareDocumentShareBundle(docs: any[] = []) {
+  const docFileObjs = await fetchDocumentFiles(docs);
+  return {
+    title: 'Loan Documents',
+    text: `${docFileObjs.length} loan documents`,
+    files: docFileObjs.map(docFile => docFile.file),
+    docCount: docFileObjs.length,
+  };
+}
+
 function triggerDownload(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
