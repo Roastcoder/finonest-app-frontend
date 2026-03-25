@@ -234,7 +234,7 @@ export default function LoanDetail() {
   const handleShareAll = async () => {
     try {
       if (!shareAllBundle) {
-        toast.info(shareAllBundleLoading ? 'Preparing files…' : 'Files are still preparing. Please try again in a moment.');
+        toast.info(shareAllBundleLoading ? 'Loading PDF + docs…' : 'Saved files are still loading. Please try again in a moment.');
         return;
       }
 
@@ -266,7 +266,7 @@ export default function LoanDetail() {
 
   const handleShareDocuments = async () => {
     if (!documentShareBundle) {
-      toast.info(documentShareBundleLoading ? 'Preparing documents…' : 'Documents are still preparing. Please try again in a moment.');
+      toast.info(documentShareBundleLoading ? 'Loading documents…' : 'Documents are still loading. Please try again in a moment.');
       return;
     }
 

@@ -255,49 +255,22 @@ async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designati
 }
 
 export function exportLoanPDF(loan: LoanData, docs: any[] = []) {
-  const win = window.open('', '_blank');
-  if (!win) return;
   Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]).then(async ([hierarchy, docFileObjs]) => {
     const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
-    const html = buildLoanHTML(loanWithHierarchy);
-    win.document.write(html);
-    win.document.close();
+    const pdfBlob = await generatePDFBlob(loanWithHierarchy, docFileObjs);
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const win = window.open(pdfUrl, '_blank');
 
-    // Append document images inline in the print window
-    if (docFileObjs.length > 0) {
-      const container = win.document.createElement('div');
-      container.style.cssText = 'margin-top:20px;';
-      const heading = win.document.createElement('h3');
-      heading.style.cssText = 'font-size:12px;font-weight:bold;color:#1a3a6b;margin-bottom:10px;';
-      heading.textContent = 'UPLOADED DOCUMENTS';
-      container.appendChild(heading);
-
-      for (const docFile of docFileObjs) {
-        const wrapper = win.document.createElement('div');
-        wrapper.style.cssText = 'page-break-inside:avoid;margin-bottom:16px;border:1px solid #e0e4ea;border-radius:4px;overflow:hidden;';
-
-        const label = win.document.createElement('div');
-        label.style.cssText = 'background:#1a3a6b;color:#fff;padding:4px 10px;font-size:10px;font-weight:bold;';
-        label.textContent = docFile.docType;
-        wrapper.appendChild(label);
-
-        if (docFile.file.type.startsWith('image/')) {
-          const url = URL.createObjectURL(docFile.file);
-          const img = win.document.createElement('img');
-          img.src = url;
-          img.style.cssText = 'max-width:100%;display:block;';
-          wrapper.appendChild(img);
-        } else {
-          const note = win.document.createElement('p');
-          note.style.cssText = 'padding:8px;font-size:9px;color:#666;';
-          note.textContent = `${docFile.name} (PDF - see downloaded file)`;
-          wrapper.appendChild(note);
-        }
-        container.appendChild(wrapper);
-      }
-      win.document.body.appendChild(container);
+    if (!win) {
+      const a = document.createElement('a');
+      a.href = pdfUrl;
+      a.download = `Loan-${loan.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
-    setTimeout(() => win.print(), 800);
+
+    setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
   });
 }
 
@@ -884,7 +857,7 @@ export async function shareDocuments(docs: any[]) {
       return;
     }
     
-    const loadingToast = toast.loading('Preparing documents for sharing...');
+    const loadingToast = toast.loading('Loading saved files for sharing...');
     
     // Fetch document files
     const docFileObjs = await fetchDocumentFiles(shareableDocs);
@@ -1029,7 +1002,7 @@ export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
 
   } catch (e) {
     console.error('Share error:', e);
-    toast.error('Failed to prepare for sharing');
+    toast.error('Failed to load saved files for sharing');
   }
 }
 
@@ -1092,7 +1065,7 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
     
   } catch (e) {
     console.error('Error preparing documents for sharing:', e);
-    toast.error('Failed to prepare documents for sharing');
+    toast.error('Failed to load saved files for sharing');
   }
 }
 

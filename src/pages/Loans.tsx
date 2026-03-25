@@ -82,7 +82,7 @@ export default function Loans() {
     try {
       const bundle = shareBundles[loanId];
       if (!bundle) {
-        toast.info('PDF + docs are still loading. Please try again in a moment.');
+        toast.info('Saved PDF + docs are still loading. Please try again in a moment.');
         return;
       }
 
@@ -159,7 +159,7 @@ export default function Loans() {
     const loanId = String(loan.id);
     const bundle = documentBundles[loanId];
     if (!bundle) {
-      toast.info('Preparing documents for sharing. Please try again in a moment.');
+      toast.info('Documents are still loading. Please try again in a moment.');
       return;
     }
 
