@@ -21,9 +21,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
   const [dsaId, setDsaId] = useState(targetUser?.dsa_id || '');
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(targetUser?.full_name || '');
-  const [email, setEmail] = useState(targetUser?.email || '');
   const [phone, setPhone] = useState(targetUser?.phone || '');
-  const [password, setPassword] = useState('');
   const [mpin, setMpin] = useState('');
   const [error, setError] = useState('');
 
@@ -124,7 +122,6 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
       setReportingTo(targetUser.reporting_to || '');
       setDsaId(targetUser.dsa_id || '');
       setFullName(targetUser.full_name || '');
-      setEmail(targetUser.email || '');
       setPhone(targetUser.phone || '');
     } else {
       setRole('executive');
@@ -132,9 +129,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
       setDsaId('');
       setReportingTo(user?.role === 'team_leader' ? user.id : (user?.role === 'branch_manager' ? user.id : ''));
       setFullName('');
-      setEmail('');
       setPhone('');
-      setPassword('');
       setMpin('');
     }
     setError('');
@@ -208,9 +203,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
           },
           body: JSON.stringify({ 
             full_name: fullName, 
-            email, 
-            phone, 
-            password, 
+            phone,
             mpin,
             role, 
             branch_id: branchId || null,
@@ -263,17 +256,6 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Email *</label>
-                <input
-                  type="email"
-                  required
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="Enter email"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium mb-1.5">Phone Number *</label>
                 <input
                   type="tel"
@@ -313,18 +295,6 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
                     )}
                   </div>
                 )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Password *</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  minLength={6}
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">MPIN *</label>
