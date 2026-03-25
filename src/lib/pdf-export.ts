@@ -178,26 +178,28 @@ async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
   const addField = (x: number, yy: number, w: number, h: number, label: string, value: any) => {
     doc.setFillColor(...colors.white);
     doc.setDrawColor(...colors.line);
-    doc.setLineWidth(0.25);
-    doc.roundedRect(x, yy, w, h, 2, 2, 'FD');
-    doc.setFillColor(...colors.primary);
-    doc.rect(x, yy, 1.6, h, 'F');
-    addText(label, x + 2.5, yy + 3.6, 4.9, 'bold', colors.gray);
+    doc.setLineWidth(0.15);
+    doc.rect(x, yy, w, h, 'S');
+    doc.setFillColor(247, 250, 255);
+    doc.rect(x, yy, w, 4.8, 'F');
+    doc.setDrawColor(237, 241, 246);
+    doc.line(x, yy + 4.8, x + w, yy + 4.8);
+    addText(label, x + 2.5, yy + 3.4, 4.8, 'bold', colors.gray);
     const valueLines = clampLines(doc, fmt(value), w - 5, 2);
-    valueLines.forEach((line, idx) => addText(line, x + 2.5, yy + 7.6 + (idx * 3.6), 7.1, 'bold', colors.dark));
+    valueLines.forEach((line, idx) => addText(line, x + 2.5, yy + 8 + (idx * 3.8), 7.2, 'bold', colors.dark));
   };
 
   const addSection = (title: string, fields: [string, any][]) => {
     doc.setFillColor(...colors.soft);
     doc.setDrawColor(...colors.line);
-    doc.rect(lm, y, pageW, 7, 'F');
-    doc.line(lm, y + 7, lm + pageW, y + 7);
-    addText(title, lm + 2.5, y + 4.8, 8.2, 'bold', colors.primary);
-    y += 9;
+    doc.rect(lm, y, pageW, 6.5, 'F');
+    doc.line(lm, y + 6.5, lm + pageW, y + 6.5);
+    addText(title, lm + 2.5, y + 4.4, 7.9, 'bold', colors.primary);
+    y += 8;
 
-    const gap = 3;
+    const gap = 2.5;
     const colW = (pageW - gap * 3) / 4;
-    const rowH = 15;
+    const rowH = 12.5;
     const normalized = [...fields];
     while (normalized.length % 4 !== 0) normalized.push(['', '']);
 
@@ -207,7 +209,7 @@ async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
         const x = lm + j * (colW + gap);
         addField(x, y, colW, rowH, field[0], field[1]);
       }
-      y += rowH + 2.5;
+      y += rowH + 1.8;
     }
   };
 
@@ -265,11 +267,12 @@ async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
     ['Prepared By', loan.created_by_name || loan._hierarchy?.[0]?.name], ['Role', loan._hierarchy?.[0]?.designation || 'Creator'],
   ]);
 
+  const footerY = 280;
   doc.setDrawColor(...colors.line);
-  doc.setLineWidth(0.3);
-  doc.line(lm, 276, lm + pageW, 276);
-  addText(`Generated ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, 281, 6.5, 'normal', colors.gray);
-  addText('System-generated document', lm + pageW, 281, 6.5, 'normal', colors.gray, 'right');
+  doc.setLineWidth(0.25);
+  doc.line(lm, footerY - 4, lm + pageW, footerY - 4);
+  addText(`Generated ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, footerY, 6.2, 'normal', colors.gray);
+  addText('System-generated document', lm + pageW, footerY, 6.2, 'normal', colors.gray, 'right');
 
   return doc.output('blob');
 }
