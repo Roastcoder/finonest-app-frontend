@@ -200,19 +200,6 @@ const ROLE_LABELS_MAP: Record<string, string> = {
   admin: 'Admin',
 };
 
-async function fetchLeadProfile(leadId: any): Promise<any | null> {
-  try {
-    if (!leadId) return null;
-    const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
-    const res = await fetch(`${API}/leads/${leadId}/profile`, { headers });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
 function buildProfessionalHTML(p: any): string {
   if (!p) return '';
   const isSalaried = p.profile_type === 'salaried';
@@ -268,9 +255,8 @@ async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designati
 export function exportLoanPDF(loan: LoanData, docs: any[] = []) {
   const win = window.open('', '_blank');
   if (!win) return;
-  const leadId = loan.lead_id || loan.id;
-  Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]).then(async ([hierarchy, docFileObjs, profile]) => {
-    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+  Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]).then(async ([hierarchy, docFileObjs]) => {
+    const loanWithHierarchy = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
     const html = buildLoanHTML(loanWithHierarchy);
     win.document.write(html);
     win.document.close();
@@ -954,14 +940,19 @@ export async function shareLoanMobile(loan: LoanData, docs: any[] = []) {
     // Show loading toast
     const loadingToast = toast.loading('Preparing documents for sharing...');
 
-    const leadId = loan.lead_id || loan.id;
-    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
 
     // Create PDF
     const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
-    const filesToShare = [pdfFile, ...docFileObjs.map(d => d.file)];
+    const filesToShare = [pdfFile];
+    docFileObjs.forEach(docFile => {
+      const fileType = docFile.file.type;
+      if (fileType.includes('pdf') || fileType.includes('image/') || fileType.includes('jpeg') || fileType.includes('png')) {
+        filesToShare.push(docFile.file);
+      }
+    });
 
     toast.dismiss(loadingToast);
 
@@ -1017,9 +1008,8 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
     // Show loading toast
     const loadingToast = toast.loading('Preparing documents for sharing...');
     
-    const leadId = loan.lead_id || loan.id;
-    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
     
     const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
@@ -1094,14 +1084,12 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
 }
 
 export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
-  const leadId = loan.lead_id || loan.id;
-  const [hierarchy, docFileObjs, profile] = await Promise.all([
+  const [hierarchy, docFileObjs] = await Promise.all([
     fetchHierarchy(loan),
-    fetchDocumentFiles(docs),
-    fetchLeadProfile(leadId)
+    fetchDocumentFiles(docs)
   ]);
 
-  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+  const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
   const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
   const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
   const filesToShare = [pdfFile];
@@ -1144,9 +1132,8 @@ function triggerDownload(blob: Blob, fileName: string) {
 
 export async function downloadLoanPDF(loan: LoanData, docs: any[] = []) {
   try {
-    const leadId = loan.lead_id || loan.id;
-    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
-    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+    const [hierarchy, docFileObjs] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined };
     const pdfBlob = await generatePDFBlob(loanH, docFileObjs);
     triggerDownload(pdfBlob, `Loan-${loan.id}-${loan.applicant_name?.replace(/\s+/g, '_') || 'Application'}.pdf`);
   } catch (error) {
