@@ -56,7 +56,8 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
-  const logo = '/logo.png';
+  const expandedLogo = '/Finonest%20logo.png';
+  const collapsedLogo = '/logo.png';
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -130,17 +131,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Logo */}
         <div className={`flex items-center h-24 border-b border-white/20 dark:border-white/5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}>
           {collapsed ? (
-            /* In collapsed mode, the whole badge is the expand button */
             <button
               onClick={() => setCollapsed(false)}
               title="Expand sidebar"
-              className="h-12 w-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+              className="h-12 w-12 rounded-2xl bg-white/70 dark:bg-white/10 border border-white/50 dark:border-white/10 flex items-center justify-center shadow-lg hover:scale-105 transition-transform overflow-hidden"
             >
-              <span className="text-white font-black text-lg tracking-tight">FI</span>
+              <img src={collapsedLogo} alt="Finonest" className="h-9 w-9 object-contain" />
             </button>
           ) : (
             <>
-              <img src={logo} alt="Finonest India" className="h-16 w-auto object-contain drop-shadow-md flex-1 min-w-0" />
+              <img src={expandedLogo} alt="Finonest India" className="h-16 w-auto object-contain drop-shadow-md flex-1 min-w-0" />
               <button
                 onClick={() => setCollapsed(true)}
                 className="hidden lg:flex shrink-0 p-2 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 transition-all duration-300"
