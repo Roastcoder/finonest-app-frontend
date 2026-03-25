@@ -323,6 +323,10 @@ export default function LeadsList() {
                     <p className="text-xs font-medium text-muted-foreground mb-1">Reg. Number</p>
                     <p className="font-bold text-foreground text-base truncate uppercase">{lead.vehicle_number || '—'}</p>
                   </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Sourcing Person</p>
+                    <p className="font-bold text-foreground text-base truncate">{lead.sourcing_person_name || '—'}</p>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between mt-3 text-xs">
@@ -378,6 +382,7 @@ export default function LeadsList() {
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Vehicle No.</th>
                   <th className="text-right py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Loan Amount</th>
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Branch</th>
+                  <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Sourcing Person</th>
                   <th className="text-center py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
                   <th className="py-4 px-4"></th>
                 </tr>
@@ -415,6 +420,9 @@ export default function LeadsList() {
                     </td>
                     <td className="py-4 px-4">
                       <span className="text-xs text-muted-foreground font-medium">{lead.our_branch || 'Direct'}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="text-xs text-muted-foreground font-medium">{lead.sourcing_person_name || '—'}</span>
                     </td>
                     <td className="py-4 px-4 text-center">
                       <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm border ${getLeadStageColor('SUBMITTED')}`}>
