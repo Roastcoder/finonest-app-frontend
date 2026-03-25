@@ -265,7 +265,21 @@ export default function Loans() {
                     </button>
                   )}
                   <button
-                    onClick={() => window.open('https://web.whatsapp.com/', '_blank')}
+                    onClick={() => {
+                      const message = `Loan Application Details\n\nID: ${loan.loan_number || loan.id}\nApplicant: ${loan.applicant_name}\nAmount: ₹${Number(loan.loan_amount).toLocaleString()}\nStatus: ${loan.application_stage}\nMobile: ${loan.mobile}`;
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'Loan Application Details',
+                          text: message
+                        }).catch(console.error);
+                      } else {
+                        navigator.clipboard.writeText(message).then(() => {
+                          alert('Loan details copied to clipboard!');
+                        }).catch(() => {
+                          alert(message);
+                        });
+                      }
+                    }}
                     className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
                     <MessageCircle size={14} className="text-green-500" /> Share
                   </button>
@@ -343,8 +357,22 @@ export default function Loans() {
                           <Printer size={11} className="text-accent" />
                         </button>
                         <button
-                          onClick={() => window.open('https://web.whatsapp.com/', '_blank')}
-                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via WhatsApp">
+                          onClick={() => {
+                            const message = `Loan Application Details\n\nID: ${loan.loan_number || loan.id}\nApplicant: ${loan.applicant_name}\nAmount: ₹${Number(loan.loan_amount).toLocaleString()}\nStatus: ${loan.application_stage}\nMobile: ${loan.mobile}`;
+                            if (navigator.share) {
+                              navigator.share({
+                                title: 'Loan Application Details',
+                                text: message
+                              }).catch(console.error);
+                            } else {
+                              navigator.clipboard.writeText(message).then(() => {
+                                alert('Loan details copied to clipboard!');
+                              }).catch(() => {
+                                alert(message);
+                              });
+                            }
+                          }}
+                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share via Native Share">
                           <MessageCircle size={11} className="text-green-500" />
                         </button>
                         {user?.role !== 'executive' && (
