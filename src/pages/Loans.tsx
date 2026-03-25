@@ -5,11 +5,12 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
-import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
-import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings } from 'lucide-react';
+import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings, Share2, FileText } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type ApplicationStageFilter = ApplicationStage | 'all';
 
@@ -22,7 +23,10 @@ export default function Loans() {
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [showStageManager, setShowStageManager] = useState(false);
   const [sharingLoanId, setSharingLoanId] = useState<string | null>(null);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [shareMenuLoan, setShareMenuLoan] = useState<any>(null);
   const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareBundle>>>>({});
+  const [documentBundles, setDocumentBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareDocumentShareBundle>>>>({});
   const importRef = useRef<HTMLInputElement>(null);
 
   const { data: loans = [], isLoading } = useQuery({
@@ -107,6 +111,64 @@ export default function Loans() {
       }
     } finally {
       setSharingLoanId(current => current === loanId ? null : current);
+    }
+  };
+
+  const openShareMenu = async (loan: any) => {
+    setShareMenuLoan(loan);
+    setShowShareMenu(true);
+
+    const loanId = String(loan.id);
+    if (!documentBundles[loanId]) {
+      try {
+        const docs = await api.get(`/loans/${loan.id}/documents`);
+        const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+          const firstIndex = self.findIndex(d =>
+            d.document_type === doc.document_type &&
+            d.file_name === doc.file_name
+          );
+          return index === firstIndex;
+        });
+        const bundle = await prepareDocumentShareBundle(uniqueDocs);
+        setDocumentBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
+      } catch (error) {
+        console.error('Failed to prepare document share bundle for loan', loanId, error);
+      }
+    }
+  };
+
+  const handleShareDocs = async (loan: any) => {
+    const loanId = String(loan.id);
+    const bundle = documentBundles[loanId];
+    if (!bundle) {
+      toast.info('Preparing documents for sharing. Please try again in a moment.');
+      return;
+    }
+
+    if (!navigator.share) {
+      toast.error('Sharing not available on this device');
+      return;
+    }
+
+    try {
+      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
+        toast.error('This device cannot share the prepared documents');
+        return;
+      }
+
+      await navigator.share({
+        title: bundle.title,
+        text: bundle.text,
+        files: bundle.files,
+      });
+      toast.success(`Shared ${bundle.docCount} documents!`);
+    } catch (error: any) {
+      console.error('Document share error:', error);
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share documents');
+      }
     }
   };
 
@@ -340,11 +402,11 @@ export default function Loans() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleShareLoan(loan)}
+                    onClick={() => void openShareMenu(loan)}
                     disabled={sharingLoanId === String(loan.id)}
                     className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
                     <MessageCircle size={14} className="text-green-500" />
-                    {sharingLoanId === String(loan.id) ? 'Sharing…' : 'Share'}
+                    Share
                   </button>
                   {canDelete && (
                     <button
@@ -369,6 +431,75 @@ export default function Loans() {
           ))
         )}
       </div>
+
+      <Sheet open={showShareMenu} onOpenChange={setShowShareMenu}>
+        <SheetContent side="bottom" className="h-auto rounded-t-3xl px-5 pb-6 pt-5">
+          <SheetHeader>
+            <SheetTitle>Share Loan</SheetTitle>
+          </SheetHeader>
+          <div className="mt-5 space-y-3">
+            <button
+              onClick={async () => {
+                setShowShareMenu(false);
+                if (shareMenuLoan) {
+                  await handleShareLoan(shareMenuLoan);
+                }
+              }}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Share All</p>
+                  <p className="text-xs text-muted-foreground">PDF + attached documents</p>
+                </div>
+                <Share2 size={18} className="text-blue-500 shrink-0" />
+              </div>
+            </button>
+            <button
+              onClick={async () => {
+                setShowShareMenu(false);
+                if (shareMenuLoan) {
+                  await handleShareDocs(shareMenuLoan);
+                }
+              }}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Share Documents</p>
+                  <p className="text-xs text-muted-foreground">Only uploaded files</p>
+                </div>
+                <FileText size={18} className="text-green-500 shrink-0" />
+              </div>
+            </button>
+            <button
+              onClick={async () => {
+                setShowShareMenu(false);
+                if (shareMenuLoan) {
+                  const docs = await api.get(`/loans/${shareMenuLoan.id}/documents`);
+                  const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+                    const firstIndex = self.findIndex(d =>
+                      d.document_type === doc.document_type &&
+                      d.file_name === doc.file_name
+                    );
+                    return index === firstIndex;
+                  });
+                  downloadLoanPDF(shareMenuLoan, uniqueDocs);
+                }
+              }}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Download PDF</p>
+                  <p className="text-xs text-muted-foreground">Save a copy on this device</p>
+                </div>
+                <Download size={18} className="text-accent shrink-0" />
+              </div>
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Desktop Table View — only on lg+ screens */}
       <div className="stat-card max-lg:hidden" style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', overflowX: 'auto' }}>
