@@ -1,5 +1,6 @@
 import { formatCurrency } from '@/lib/mock-data';
 import { jsPDF } from 'jspdf';
+import { toast } from 'sonner';
 
 interface LoanData {
   [key: string]: any;
@@ -815,11 +816,11 @@ const PDF_DOC_LABELS: Record<string, string> = {
 
 async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
+  // No authentication headers needed for public document access
   const files: { file: File; name: string; docType: string }[] = [];
   for (const doc of docs) {
     try {
-      const res = await fetch(`${API}/documents/${doc.id}/download`, { headers });
+      const res = await fetch(`${API}/documents/${doc.id}/download`);
       if (!res.ok) continue;
       const blob = await res.blob();
       const docLabel = PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
@@ -832,6 +833,9 @@ async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: stri
 
 export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
   try {
+    // Show loading toast
+    const loadingToast = toast.loading('Preparing documents for sharing...');
+    
     const leadId = loan.lead_id || loan.id;
     const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
     const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
@@ -839,21 +843,81 @@ export async function shareLoanPDF(loan: LoanData, docs: any[] = []) {
     const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
     const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
     
-    // Try native sharing first
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      await navigator.share({ 
-        title: `Loan Application - ${loan.id}`, 
-        files: [pdfFile] 
+    // Prepare all files for sharing (PDF + document attachments)
+    const filesToShare = [pdfFile];
+    
+    // Add document files as attachments
+    if (docFileObjs.length > 0) {
+      docFileObjs.forEach(docFile => {
+        filesToShare.push(docFile.file);
       });
-      return;
     }
     
-    // Fallback: download and open WhatsApp
+    toast.dismiss(loadingToast);
+    
+    // Try native sharing with all files
+    if (navigator.share && navigator.canShare) {
+      try {
+        const canShareFiles = await navigator.canShare({ files: filesToShare });
+        if (canShareFiles) {
+          await navigator.share({ 
+            title: `Loan Application - ${loan.id}`,
+            text: `Loan application details for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
+            files: filesToShare 
+          });
+          toast.success(`Shared PDF with ${docFileObjs.length} document attachments!`);
+          return;
+        }
+      } catch (shareError) {
+        console.log('Native sharing failed, trying fallback:', shareError);
+      }
+    }
+    
+    // Fallback: Download all files and open WhatsApp
+    toast.info(`Downloading PDF and ${docFileObjs.length} documents for sharing...`);
+    
     triggerDownload(pdfBlob, `Loan-${loan.id}.pdf`);
+    
+    // Download document attachments
+    if (docFileObjs.length > 0) {
+      docFileObjs.forEach((docFile, index) => {
+        setTimeout(() => {
+          triggerDownload(docFile.file, docFile.name);
+        }, (index + 1) * 500); // Stagger downloads
+      });
+    }
+    
+    // Open WhatsApp after downloads
     setTimeout(() => {
-      window.open('https://wa.me/', '_blank');
-    }, 1000);
+      const customerPhone = loan.mobile || loan.phone;
+      const message = encodeURIComponent(
+        `*Finonest India - Loan Application*\n\n` +
+        `Dear ${loan.applicant_name || 'Customer'},\n\n` +
+        `Your loan application details:\n` +
+        `*ID:* ${loan.id}\n` +
+        `*Vehicle:* ${loan.maker_name || loan.car_make || ''} ${loan.model_variant_name || loan.car_model || ''}\n` +
+        `*Loan Amount:* ₹${Number(loan.loan_amount || 0).toLocaleString()}\n` +
+        `*Status:* ${loan.status || loan.application_stage}\n` +
+        `${loan.emi_amount || loan.emi ? `*EMI:* ₹${Number(loan.emi_amount || loan.emi).toLocaleString()}\n` : ''}` +
+        `${loan.tenure ? `*Tenure:* ${loan.tenure} months\n` : ''}\n` +
+        `📎 PDF and ${docFileObjs.length} document(s) downloaded for sharing\n\n` +
+        `For any queries, please contact us.\n\n` +
+        `Thank you,\nFinonest India Team`
+      );
+      
+      if (customerPhone) {
+        const formattedPhone = customerPhone.startsWith('+') ? customerPhone : `+91${customerPhone.replace(/^0+/, '')}`;
+        window.open(`https://wa.me/${formattedPhone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
+      } else {
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+      }
+      
+      toast.success('Files downloaded! WhatsApp opened for sharing.');
+    }, docFileObjs.length * 500 + 1000);
+    
   } catch (e) {
+    console.error('Error sharing loan PDF:', e);
+    toast.error('Failed to prepare documents for sharing');
     // Simple fallback
     window.open('https://wa.me/', '_blank');
   }

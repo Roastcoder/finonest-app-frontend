@@ -73,7 +73,14 @@ export default function LoanDetail() {
   const { data: documents = [], refetch: refetchDocs } = useQuery({
     queryKey: ['loan-documents', id],
     queryFn: async () => {
-      try { return await api.get(`/loans/${id}/documents`); }
+      try { 
+        const docs = await api.get(`/loans/${id}/documents`);
+        // Remove duplicates based on document ID
+        const uniqueDocs = docs.filter((doc, index, self) => 
+          index === self.findIndex(d => d.id === doc.id)
+        );
+        return uniqueDocs;
+      }
       catch { return []; }
     },
     enabled: !!id,
