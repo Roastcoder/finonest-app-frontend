@@ -133,26 +133,17 @@ export default function LoanDetail() {
       setShareBundleLoading(true);
       try {
         const bundle = await prepareLoanShareBundle(loan, documents as any[]);
-        if (!cancelled) {
-          setShareBundle(bundle);
-        }
+        if (!cancelled) setShareBundle(bundle);
       } catch (error) {
         console.error('Failed to prepare share bundle:', error);
-        if (!cancelled) {
-          setShareBundle(null);
-        }
+        if (!cancelled) setShareBundle(null);
       } finally {
-        if (!cancelled) {
-          setShareBundleLoading(false);
-        }
+        if (!cancelled) setShareBundleLoading(false);
       }
     }
 
     buildBundle();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [loan, documents]);
 
   useEffect(() => {
@@ -217,17 +208,17 @@ export default function LoanDetail() {
   };
 
   const handleShareAll = async () => {
-    if (!shareBundle) {
-      toast.info(shareBundleLoading ? 'Preparing share files…' : 'Share files are still preparing. Please try again in a moment.');
-      return;
-    }
-
-    if (!navigator.share) {
-      toast.error('Sharing not available on this device');
-      return;
-    }
-
     try {
+      if (!shareBundle) {
+        toast.info(shareBundleLoading ? 'Preparing share files…' : 'Share files are still preparing. Please try again in a moment.');
+        return;
+      }
+
+      if (!navigator.share) {
+        toast.error('Sharing not available on this device');
+        return;
+      }
+
       if (navigator.canShare && !navigator.canShare({ files: shareBundle.files })) {
         toast.error('This device cannot share the prepared files');
         return;
@@ -387,7 +378,6 @@ export default function LoanDetail() {
                 setShowShareMenu(false);
                 handleShareAll();
               }}
-              disabled={shareBundleLoading}
               className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
             >
               <div className="flex items-center justify-between gap-3">

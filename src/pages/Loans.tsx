@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
-import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
+import { exportLoanPDF, downloadLoanPDF, shareLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
@@ -80,28 +80,17 @@ export default function Loans() {
     setSharingLoanId(loanId);
 
     try {
-      const bundle = shareBundles[loanId];
-      if (!bundle) {
-        toast.info('Preparing share files for this loan. Please try again in a moment.');
-        return;
-      }
-
-      if (!navigator.share) {
-        toast.error('Sharing not available on this device');
-        return;
-      }
-
-      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
-        toast.error('This device cannot share the prepared files');
-        return;
-      }
-
-      await navigator.share({
-        title: bundle.title,
-        text: bundle.text,
-        files: bundle.files,
+      const freshLoan = await api.get(`/loans/${loan.id}`);
+      const freshDocs = await api.get(`/loans/${loan.id}/documents`);
+      const uniqueDocs = freshDocs.filter((doc: any, index: number, self: any[]) => {
+        const firstIndex = self.findIndex(d =>
+          d.document_type === doc.document_type &&
+          d.file_name === doc.file_name
+        );
+        return index === firstIndex;
       });
-      toast.success(`Shared PDF with ${bundle.docCount} documents!`);
+
+      await shareLoanPDF(freshLoan, uniqueDocs);
     } catch (error: any) {
       console.error('Share loan error:', error);
       if (error?.name === 'AbortError') {
