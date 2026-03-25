@@ -142,501 +142,142 @@ function loadImageAsBase64(src: string): Promise<string> {
   });
 }
 
-function generatePDFBlobWithoutImages(loan: LoanData, docFiles: { file: File; name: string; docType: string }[] = []): Promise<Blob> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      const pw = 190;
-      const lm = 10;
-      let y = 12;
+function getCompactMoney(val: any): string {
+  return fmtCur(val);
+}
 
-      const colors = { primary: [26, 58, 107] as [number, number, number], dark: [26, 26, 46] as [number, number, number], gray: [136, 136, 136] as [number, number, number], light: [232, 236, 241] as [number, number, number], white: [255, 255, 255] as [number, number, number] };
+function clampLines(doc: jsPDF, text: string, maxWidth: number, maxLines = 2): string[] {
+  const raw = doc.splitTextToSize(fmt(text), maxWidth) as string[];
+  if (raw.length <= maxLines) return raw;
+  const clipped = raw.slice(0, maxLines);
+  clipped[maxLines - 1] = `${clipped[maxLines - 1].replace(/\s+\S*$/, '')}...`;
+  return clipped;
+}
 
-      // Try to load and add logo
-      try {
-        const logoBase64 = await loadImageAsBase64(PDF_LOGO_PATH);
-        doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
-      } catch (logoError) {
-        console.warn('Could not load logo, using text fallback:', logoError);
-        // Fallback to text if logo fails
-        doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-        doc.text('Finonest India', lm, y);
-        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-        doc.text('Vehicle Loan Solutions • Since 2015', lm, y + 5);
-      }
+async function buildCompactLoanPdf(loan: LoanData): Promise<Blob> {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const colors = {
+    primary: [26, 58, 107] as [number, number, number],
+    dark: [27, 31, 43] as [number, number, number],
+    gray: [111, 119, 135] as [number, number, number],
+    line: [224, 229, 236] as [number, number, number],
+    soft: [244, 247, 251] as [number, number, number],
+    white: [255, 255, 255] as [number, number, number],
+  };
+  const lm = 10;
+  const pageW = 190;
+  let y = 10;
 
-      doc.setFontSize(7); doc.setTextColor(...colors.gray);
-      doc.text('Application ID', lm + pw, y - 4, { align: 'right' });
-      doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-      doc.text(String(loan.id || ''), lm + pw, y + 1, { align: 'right' });
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-      doc.text('Date', lm + pw, y + 5, { align: 'right' });
-      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-      doc.text(new Date().toLocaleDateString('en-IN'), lm + pw, y + 10, { align: 'right' });
+  const addText = (text: string, x: number, yy: number, size: number, weight: 'normal' | 'bold', color: [number, number, number], align: 'left' | 'right' | 'center' = 'left') => {
+    doc.setFont('helvetica', weight);
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
+    doc.text(text, x, yy, { align });
+  };
 
-      y += 14;
-      doc.setDrawColor(...colors.primary); doc.setLineWidth(0.5); doc.line(lm, y, lm + pw, y);
-      y += 6;
+  const addField = (x: number, yy: number, w: number, h: number, label: string, value: any) => {
+    doc.setFillColor(...colors.white);
+    doc.setDrawColor(...colors.line);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(x, yy, w, h, 2, 2, 'FD');
+    doc.setFillColor(...colors.primary);
+    doc.rect(x, yy, 1.6, h, 'F');
+    addText(label, x + 3, yy + 4, 5.3, 'bold', colors.gray);
+    const valueLines = clampLines(doc, fmt(value), w - 6, 2);
+    valueLines.forEach((line, idx) => addText(line, x + 3, yy + 8.2 + (idx * 4), 8.2, 'bold', colors.dark));
+  };
 
-  // Title bar
-  doc.setFillColor(...colors.primary); doc.rect(lm, y, pw, 8, 'F');
-  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.white);
-  doc.text('Loan Application Details', lm + 4, y + 5.5);
-  doc.setFontSize(8); doc.text(fmt(loan.status).toUpperCase(), lm + pw - 4, y + 5.5, { align: 'right' });
-  y += 12;
+  const addSection = (title: string, fields: [string, any][]) => {
+    doc.setFillColor(...colors.soft);
+    doc.setDrawColor(...colors.line);
+    doc.rect(lm, y, pageW, 7, 'F');
+    doc.line(lm, y + 7, lm + pageW, y + 7);
+    addText(title, lm + 2.5, y + 4.8, 8.5, 'bold', colors.primary);
+    y += 9;
 
-  // Helper to draw a cleaner two-card section
-  function drawSection(title: string, fields: [string, string][]) {
-    const sectionHeader = () => {
-      if (y + 12 > 280) { doc.addPage(); y = 12; }
-      doc.setFillColor(237, 243, 250);
-      doc.rect(lm, y, pw, 8, 'F');
-      doc.setDrawColor(...colors.primary);
-      doc.setLineWidth(0.35);
-      doc.line(lm, y + 8, lm + pw, y + 8);
-      doc.setFontSize(8.5);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...colors.primary);
-      doc.text(title, lm + 2, y + 5.3);
-      y += 11;
-    };
-
-    const cardGap = 4;
-    const cardW = (pw - cardGap) / 2;
-    const minCardH = 16;
-    sectionHeader();
-
+    const gap = 4;
+    const colW = (pageW - gap) / 2;
+    const rowH = 14;
     for (let i = 0; i < fields.length; i += 2) {
-      const rowFields = fields.slice(i, i + 2);
-      const rowHeights = rowFields.map((field) => {
-        if (!field || !field[1]) return minCardH;
-        const lines = doc.splitTextToSize(field[1], cardW - 6);
-        return Math.max(minCardH, 9 + lines.length * 4.2);
-      });
-      const rowHeight = Math.max(...rowHeights, minCardH);
-
-      if (y + rowHeight > 280) {
-        doc.addPage();
-        y = 12;
-        sectionHeader();
-      }
-
-      for (let j = 0; j < 2; j++) {
-        const x = lm + j * (cardW + cardGap);
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.25);
-        doc.roundedRect(x, y, cardW, rowHeight, 2, 2, 'FD');
-        doc.setFillColor(...colors.primary);
-        doc.rect(x, y, 1.5, rowHeight, 'F');
-
-        if (rowFields[j]) {
-          const [label, value] = rowFields[j];
-          doc.setFontSize(5.8);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...colors.gray);
-          doc.text(label, x + 3, y + 4.5);
-
-          doc.setFontSize(8.5);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...colors.dark);
-          const lines = doc.splitTextToSize(value, cardW - 6);
-          lines.forEach((line: string, lineIndex: number) => {
-            doc.text(line, x + 3, y + 9 + (lineIndex * 4));
-          });
-        }
-      }
-
-      y += rowHeight + 4;
+      addField(lm, y, colW, rowH, fields[i][0], fields[i][1]);
+      if (fields[i + 1]) addField(lm + colW + gap, y, colW, rowH, fields[i + 1][0], fields[i + 1][1]);
+      y += rowH + 3;
     }
+  };
+
+  try {
+    const logoBase64 = await loadImageAsBase64(PDF_LOGO_PATH);
+    doc.addImage(logoBase64, 'PNG', lm, y, 44, 13);
+  } catch (logoError) {
+    console.warn('Could not load logo, using text fallback:', logoError);
+    addText('Finonest India', lm, y + 5, 18, 'bold', colors.primary);
+    addText('Vehicle Loan Solutions', lm, y + 10, 7.5, 'normal', colors.gray);
   }
 
-  drawSection('APPLICANT INFORMATION', [
-    ['LoanApp ID', fmt(loan.loan_number || loan.id)], ['Applicant Name', fmt(loan.applicant_name || loan.customer_name)], ['Mobile', fmt(loan.mobile || loan.phone)], ['Email', fmt(loan.email || loan._lead_email || loan.customer_email)],
-    ['Co-Applicant', fmt(loan.co_applicant_name)], ['Co-App Mobile', fmt(loan.co_applicant_mobile)], ['Guarantor', fmt(loan.guarantor_name)], ['Guarantor Mobile', fmt(loan.guarantor_mobile)],
-    ['Address', fmt(loan.current_address || loan.address || loan.customer_address)], ['Landmark', fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)], ['City & State', fmt((loan.city || loan.current_city || loan.current_district || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))], ['Pincode', fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)],
+  addText('Application ID', lm + pageW, y + 2, 7, 'normal', colors.gray, 'right');
+  addText(String(loan.loan_number || loan.id || '—'), lm + pageW, y + 7.2, 12, 'bold', colors.primary, 'right');
+  addText('Date', lm + pageW, y + 12, 7, 'normal', colors.gray, 'right');
+  addText(new Date().toLocaleDateString('en-IN'), lm + pageW, y + 17, 9.5, 'bold', colors.primary, 'right');
+
+  y += 16;
+  doc.setDrawColor(...colors.primary);
+  doc.setLineWidth(0.5);
+  doc.line(lm, y, lm + pageW, y);
+  y += 6;
+
+  doc.setFillColor(...colors.primary);
+  doc.rect(lm, y, pageW, 9, 'F');
+  addText('Loan Application Details', lm + 4, y + 5.7, 12, 'bold', colors.white);
+  addText(fmt(loan.status).toUpperCase(), lm + pageW - 4, y + 5.7, 8.5, 'bold', colors.white, 'right');
+  y += 13;
+
+  const applicantAddress = [loan.current_address || loan.address || loan.customer_address, loan.landmark || loan.current_landmark || loan.customer_landmark].filter(Boolean).join(', ');
+  const cityState = [loan.city || loan.current_city || loan.current_district, loan.state || loan.current_state].filter(Boolean).join(', ');
+  const summaryStatus = loan.existing_loan_status || loan.loan_status || loan.finance_status || loan.status || loan.application_stage;
+
+  addSection('APPLICANT INFORMATION', [
+    ['Applicant Name', loan.applicant_name || loan.customer_name], ['Mobile', loan.mobile || loan.phone],
+    ['Email', loan.email || loan.customer_email || loan._lead_email], ['Address', applicantAddress || '—'],
+    ['City & State', cityState || '—'], ['Pincode', loan.pincode || loan.current_pincode || loan.customer_pincode],
   ]);
 
-  drawSection('VEHICLE DETAILS', [
-    ['Reg. No', fmt(loan.vehicle_number || loan.registration_number)], ['Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant)], ['Engine Number', fmt(loan.engine_number)],
-    ['Chassis Number', fmt(loan.chassis_number)], ['Owner Name', fmt(loan.owner_name || loan.rc_owner_name)], ['Fuel Type', fmt(loan.fuel_type)], ['Mfg Date', formatDate(loan.manufacturing_date || loan.mfg_date)],
-    ['Ownership Type', fmt(loan.ownership_type)], ['Financer', fmt(loan.financer || loan.existing_financier)], ['Finance Status', fmt(loan.finance_status)], ['Insurance Company', fmt(loan.insurance_company)],
-    ['Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry)], ['PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry)], ['Case Type', fmt(loan.case_type)], ['', ''],
+  addSection('VEHICLE DETAILS', [
+    ['Reg. No', loan.vehicle_number || loan.registration_number], ['Maker', loan.maker_name || loan.car_make || loan.vehicle_make],
+    ['Model/Variant', loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant], ['Chassis No', loan.chassis_number],
+    ['Engine No', loan.engine_number], ['Fuel Type', loan.fuel_type],
   ]);
 
-  drawSection('EXISTING LOAN & EMI DETAILS', [
-    ['Loan Status', fmt(loan.existing_loan_status || loan.loan_status || loan.finance_status)], ['Loan Amount', loan.existing_loan_status === 'Active' ? fmtCur(loan.existing_loan_amount) : '—'], ['Tenure', loan.existing_loan_status === 'Active' && (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—'], ['EMI Amount', loan.existing_loan_status === 'Active' ? fmtCur(loan.existing_emi || loan.emi_amount || loan.emi) : '—'],
-    ...(loan.existing_loan_status === 'Active' ? [
-      ['No of EMI Paid', fmt(loan.no_of_emi_paid || 0)], ['Total Interest', fmtCur(loan.total_interest || 0)], ['Bouncing in Last 3M', fmt(loan.bouncing_3_months ?? loan.bouncing_last_3m ?? 0)], ['Bouncing in Last 6M', fmt(loan.bouncing_6_months ?? loan.bouncing_last_6m ?? 0)],
-      ['Financier Name', fmt(loan.financer || loan.rto_financier_name)], ['', ''], ['', ''], ['', ''],
-    ] as [string,string][] : [['Financier Name', fmt(loan.financer || loan.rto_financier_name)], ['', ''], ['', ''], ['', '']] as [string,string][]),
+  addSection('LOAN SUMMARY', [
+    ['Loan App ID', loan.loan_number || loan.id], ['Loan Amount Required', getCompactMoney(loan.loan_amount)],
+    ['Loan Status', summaryStatus], ['Tenure', loan.tenure ? `${loan.tenure} months` : '—'],
+    ['EMI Amount', loan.emi ? getCompactMoney(loan.emi) : loan.existing_emi ? getCompactMoney(loan.existing_emi) : '—'], ['Case Type', loan.case_type],
   ]);
 
-  const profFields: [string, string][] = [];
-  if (loan.income_source) profFields.push(['Income Source', fmt(loan.income_source)]);
-  if (loan.monthly_income || loan.net_monthly_salary) profFields.push(['Monthly Income', loan.monthly_income ? fmtCur(loan.monthly_income) : fmtCur(loan.net_monthly_salary)]);
-  if (loan.company_name) profFields.push(['Company Name', fmt(loan.company_name)]);
-  if (loan.designation) profFields.push(['Designation', fmt(loan.designation)]);
-  if (loan.current_job_years) profFields.push(['Current Job (Yrs)', fmt(loan.current_job_years)]);
-  if (loan.total_work_exp || loan.work_experience) profFields.push(['Total Work Exp (Yrs)', fmt(loan.total_work_exp || loan.work_experience)]);
-  if (loan.salary_credit_mode) profFields.push(['Salary Credit Mode', fmt(loan.salary_credit_mode.replace(/_/g, ' '))]);
-  if (loan.salary_slip_available != null) profFields.push(['Salary Slip', loan.salary_slip_available ? 'Available' : 'Not Available']);
-  if (loan.business_name) profFields.push(['Business Name', fmt(loan.business_name)]);
-  if (loan.business_type) profFields.push(['Business Type', fmt(loan.business_type)]);
-  if (loan.business_vintage) profFields.push(['Business Vintage (Yrs)', fmt(loan.business_vintage)]);
-  if (loan.annual_income_itr) profFields.push(['Annual Income (ITR)', fmtCur(loan.annual_income_itr)]);
-  if (loan.itr_available != null) profFields.push(['ITR Available', loan.itr_available ? 'Yes' : 'No']);
-  if (loan.professional_subtype) profFields.push(['Professional Sub Type', fmt(loan.professional_subtype)]);
-  if (loan.practice_experience) profFields.push(['Practice Exp (Yrs)', fmt(loan.practice_experience)]);
-  if (loan.freelancer_subtype) profFields.push(['Freelancer Type', fmt(loan.freelancer_subtype)]);
-  if (profFields.length > 0) {
-    while (profFields.length % 4 !== 0) profFields.push(['', '']);
-    drawSection('PROFESSIONAL DETAILS', profFields as [string, string][]);
-  }
-
-  drawSection('LENDER DETAILS', [
-    ['Lender', fmt(loan.financier_name || loan.selected_financier || loan.bank_name)], ['Branch', fmt(loan.financier_branch_name)], ['Sales Manager', fmt(loan.financier_executive_name)], ['SM Mobile', fmt(loan.financier_executive_mobile)],
-    ['Area Manager', fmt(loan.financier_area_manager_name)], ['AM Mobile', fmt(loan.financier_area_manager_mobile)], ['Loan Amount Required', fmtCur(loan.loan_amount)], ['Case Type', fmt(loan.case_type)],
+  addSection('LENDER & CREATOR', [
+    ['Lender', loan.financier_name || loan.selected_financier || loan.bank_name], ['Branch', loan.financier_branch_name],
+    ['Sales Manager', loan.financier_executive_name], ['Area Manager', loan.financier_area_manager_name],
+    ['Prepared By', loan.created_by_name || loan._hierarchy?.[0]?.name], ['Role', loan._hierarchy?.[0]?.designation || 'Creator'],
   ]);
 
-  // Only show Deductions & Disbursement section for approved/disbursed/cancelled loans
-  const showDisbursementSection = loan.application_stage === 'APPROVED' || 
-                                  loan.application_stage === 'DISBURSED' || 
-                                  loan.application_stage === 'CANCELLED' ||
-                                  loan.status === 'approved' ||
-                                  loan.status === 'disbursed' ||
-                                  loan.status === 'cancelled';
+  doc.setDrawColor(...colors.line);
+  doc.setLineWidth(0.3);
+  doc.line(lm, 276, lm + pageW, 276);
+  addText(`Generated ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, 281, 6.5, 'normal', colors.gray);
+  addText('System-generated document', lm + pageW, 281, 6.5, 'normal', colors.gray, 'right');
 
-  if (showDisbursementSection) {
-    drawSection('DEDUCTIONS & DISBURSEMENT', [
-      ['File Charge', fmtCur(loan.file_charge)], ['Loan Suraksha', fmtCur(loan.loan_suraksha)], ['Stamping', fmtCur(loan.stamping)], ['Processing Fee', fmtCur(loan.processing_fee)],
-      ['Total Deduction', fmtCur(loan.total_deduction)], ['Net Disbursement', fmtCur(loan.net_disbursement_amount)], ['Payment Recd.', formatDate(loan.payment_received_date)], ['Disburse Date', formatDate(loan.disbursement_date || loan.financier_disburse_date)],
-    ]);
-  }
+  return doc.output('blob');
+}
 
-  // Add document list (without embedding images)
-  if (docFiles.length > 0) {
-    if (y + 25 > 280) { doc.addPage(); y = 12; }
-    
-    doc.setFillColor(240, 244, 248); doc.rect(lm, y, pw, 6, 'F');
-    doc.setDrawColor(...colors.primary); doc.setLineWidth(0.4); doc.line(lm, y + 6, lm + pw, y + 6);
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-    doc.text('UPLOADED DOCUMENTS', lm + 2, y + 4.2);
-    y += 10;
-    
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.dark);
-    docFiles.forEach((docFile, index) => {
-      if (y > 280) { doc.addPage(); y = 12; }
-      const status = docFile.file.type.startsWith('image/') ? '(Attached as separate file)' : '(PDF document)';
-      doc.text(`${index + 1}. ${docFile.docType} - ${docFile.name} ${status}`, lm + 2, y);
-      y += 4;
-    });
-    y += 4;
-  }
-
-  // Signature area - References section
-  if (y + 35 > 280) { doc.addPage(); y = 12; }
-  y += 8;
-  
-  // References title
-  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-  doc.text('REFERENCES', lm, y);
-  y += 8;
-  
-  const refData: { name: string; designation: string }[] = loan._hierarchy || [
-    { name: fmt(loan.created_by_name), designation: 'Creator' }
-  ];
-  const sigWFinal = pw / refData.length;
-  refData.forEach((ref, i) => {
-    const x = lm + i * sigWFinal + sigWFinal / 2;
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
-    doc.text(ref.name, x, y + 10, { align: 'center' });
-    doc.setDrawColor(51, 51, 51); doc.setLineWidth(0.3);
-    doc.line(lm + i * sigWFinal + 5, y + 15, lm + (i + 1) * sigWFinal - 5, y + 15);
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(85, 85, 85);
-    doc.text(ref.designation, x, y + 19, { align: 'center' });
-  });
-  y += 24;
-
-  // Footer
-  doc.setDrawColor(...colors.light); doc.setLineWidth(0.3); doc.line(lm, y, lm + pw, y);
-  doc.setFontSize(6); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-  doc.text(`Generated on ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, y + 4);
-  doc.text('This is a system-generated document', lm + pw, y + 4, { align: 'right' });
-
-  resolve(doc.output('blob'));
-    } catch (error) {
-      reject(error);
-    }
-  });
+function generatePDFBlobWithoutImages(loan: LoanData, _docFiles: { file: File; name: string; docType: string }[] = []): Promise<Blob> {
+  return buildCompactLoanPdf(loan);
 }
 
 export async function buildLoanApplicationPdfBlob(loan: LoanData): Promise<Blob> {
-  return generatePDFBlobWithoutImages(loan, []);
+  return buildCompactLoanPdf(loan);
 }
 
-function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; docType: string }[] = []): Promise<Blob> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      const pw = 190;
-      const lm = 10;
-      let y = 12;
-
-      const colors = { primary: [26, 58, 107] as [number, number, number], dark: [26, 26, 46] as [number, number, number], gray: [136, 136, 136] as [number, number, number], light: [232, 236, 241] as [number, number, number], white: [255, 255, 255] as [number, number, number] };
-
-      // Try to load and add logo
-      try {
-        const logoBase64 = await loadImageAsBase64(PDF_LOGO_PATH);
-        doc.addImage(logoBase64, 'PNG', lm, y - 2, 40, 12); // x, y, width, height
-      } catch (logoError) {
-        console.warn('Could not load logo, using text fallback:', logoError);
-        // Fallback to text if logo fails
-        doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-        doc.text('Finonest India', lm, y);
-        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-        doc.text('Vehicle Loan Solutions • Since 2015', lm, y + 5);
-      }
-
-      doc.setFontSize(7); doc.setTextColor(...colors.gray);
-      doc.text('Application ID', lm + pw, y - 4, { align: 'right' });
-      doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-      doc.text(String(loan.id || ''), lm + pw, y + 1, { align: 'right' });
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-      doc.text('Date', lm + pw, y + 5, { align: 'right' });
-      doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-      doc.text(new Date().toLocaleDateString('en-IN'), lm + pw, y + 10, { align: 'right' });
-
-      y += 14;
-      doc.setDrawColor(...colors.primary); doc.setLineWidth(0.5); doc.line(lm, y, lm + pw, y);
-      y += 6;
-
-  // Title bar
-  doc.setFillColor(...colors.primary); doc.rect(lm, y, pw, 8, 'F');
-  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.white);
-  doc.text('Loan Application Details', lm + 4, y + 5.5);
-  doc.setFontSize(8); doc.text(fmt(loan.status).toUpperCase(), lm + pw - 4, y + 5.5, { align: 'right' });
-  y += 12;
-
-  // Helper to draw a cleaner two-card section
-  function drawSection(title: string, fields: [string, string][]) {
-    const sectionHeader = () => {
-      if (y + 12 > 280) { doc.addPage(); y = 12; }
-      doc.setFillColor(237, 243, 250);
-      doc.rect(lm, y, pw, 8, 'F');
-      doc.setDrawColor(...colors.primary);
-      doc.setLineWidth(0.35);
-      doc.line(lm, y + 8, lm + pw, y + 8);
-      doc.setFontSize(8.5);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...colors.primary);
-      doc.text(title, lm + 2, y + 5.3);
-      y += 11;
-    };
-
-    const cardGap = 4;
-    const cardW = (pw - cardGap) / 2;
-    const minCardH = 16;
-    sectionHeader();
-
-    for (let i = 0; i < fields.length; i += 2) {
-      const rowFields = fields.slice(i, i + 2);
-      const rowHeights = rowFields.map((field) => {
-        if (!field || !field[1]) return minCardH;
-        const lines = doc.splitTextToSize(field[1], cardW - 6);
-        return Math.max(minCardH, 9 + lines.length * 4.2);
-      });
-      const rowHeight = Math.max(...rowHeights, minCardH);
-
-      if (y + rowHeight > 280) {
-        doc.addPage();
-        y = 12;
-        sectionHeader();
-      }
-
-      for (let j = 0; j < 2; j++) {
-        const x = lm + j * (cardW + cardGap);
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.25);
-        doc.roundedRect(x, y, cardW, rowHeight, 2, 2, 'FD');
-        doc.setFillColor(...colors.primary);
-        doc.rect(x, y, 1.5, rowHeight, 'F');
-
-        if (rowFields[j]) {
-          const [label, value] = rowFields[j];
-          doc.setFontSize(5.8);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...colors.gray);
-          doc.text(label, x + 3, y + 4.5);
-
-          doc.setFontSize(8.5);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...colors.dark);
-          const lines = doc.splitTextToSize(value, cardW - 6);
-          lines.forEach((line: string, lineIndex: number) => {
-            doc.text(line, x + 3, y + 9 + (lineIndex * 4));
-          });
-        }
-      }
-
-      y += rowHeight + 4;
-    }
-  }
-
-  drawSection('APPLICANT INFORMATION', [
-    ['LoanApp ID', fmt(loan.loan_number || loan.id)], ['Applicant Name', fmt(loan.applicant_name || loan.customer_name)], ['Mobile', fmt(loan.mobile || loan.phone)], ['Email', fmt(loan.email || loan._lead_email || loan.customer_email)],
-    ['Co-Applicant', fmt(loan.co_applicant_name)], ['Co-App Mobile', fmt(loan.co_applicant_mobile)], ['Guarantor', fmt(loan.guarantor_name)], ['Guarantor Mobile', fmt(loan.guarantor_mobile)],
-    ['Address', fmt(loan.current_address || loan.address || loan.customer_address)], ['Landmark', fmt(loan.landmark || loan.current_landmark || loan.customer_landmark)], ['City & State', fmt((loan.city || loan.current_city || loan.current_district || '') + (loan.state || loan.current_state ? ', ' + (loan.state || loan.current_state) : ''))], ['Pincode', fmt(loan.pincode || loan.current_pincode || loan.customer_pincode)],
-  ]);
-
-  drawSection('VEHICLE DETAILS', [
-    ['Reg. No', fmt(loan.vehicle_number || loan.registration_number)], ['Maker', fmt(loan.maker_name || loan.car_make || loan.vehicle_make)], ['Model/Variant', fmt(loan.model_variant_name || loan.maker_model || loan.car_model || loan.vehicle_model || loan.variant)], ['Engine Number', fmt(loan.engine_number)],
-    ['Chassis Number', fmt(loan.chassis_number)], ['Owner Name', fmt(loan.owner_name || loan.rc_owner_name)], ['Fuel Type', fmt(loan.fuel_type)], ['Mfg Date', formatDate(loan.manufacturing_date || loan.mfg_date)],
-    ['Ownership Type', fmt(loan.ownership_type)], ['Financer', fmt(loan.financer || loan.existing_financier)], ['Finance Status', fmt(loan.finance_status)], ['Insurance Company', fmt(loan.insurance_company)],
-    ['Insurance Valid Upto', formatDate(loan.insurance_valid_upto || loan.insurance_expiry)], ['PUCC Valid Upto', formatDate(loan.pucc_valid_upto || loan.pucc_expiry)], ['Case Type', fmt(loan.case_type)], ['', ''],
-  ]);
-
-  drawSection('EXISTING LOAN & EMI DETAILS', [
-    ['Loan Status', fmt(loan.existing_loan_status || loan.loan_status || loan.finance_status)], ['Loan Amount', loan.existing_loan_status === 'Active' ? fmtCur(loan.existing_loan_amount) : '—'], ['Tenure', loan.existing_loan_status === 'Active' && (loan.existing_tenure || loan.tenure) ? (loan.existing_tenure || loan.tenure) + ' months' : '—'], ['EMI Amount', loan.existing_loan_status === 'Active' ? fmtCur(loan.existing_emi || loan.emi_amount || loan.emi) : '—'],
-    ...(loan.existing_loan_status === 'Active' ? [
-      ['No of EMI Paid', fmt(loan.no_of_emi_paid || 0)], ['Total Interest', fmtCur(loan.total_interest || 0)], ['Bouncing in Last 3M', fmt(loan.bouncing_3_months ?? loan.bouncing_last_3m ?? 0)], ['Bouncing in Last 6M', fmt(loan.bouncing_6_months ?? loan.bouncing_last_6m ?? 0)],
-      ['Financier Name', fmt(loan.financer || loan.rto_financier_name)], ['', ''], ['', ''], ['', ''],
-    ] as [string,string][] : [['Financier Name', fmt(loan.financer || loan.rto_financier_name)], ['', ''], ['', ''], ['', '']] as [string,string][]),
-  ]);
-
-  const profFields: [string, string][] = [];
-  if (loan.income_source) profFields.push(['Income Source', fmt(loan.income_source)]);
-  if (loan.monthly_income || loan.net_monthly_salary) profFields.push(['Monthly Income', loan.monthly_income ? fmtCur(loan.monthly_income) : fmtCur(loan.net_monthly_salary)]);
-  if (loan.company_name) profFields.push(['Company Name', fmt(loan.company_name)]);
-  if (loan.designation) profFields.push(['Designation', fmt(loan.designation)]);
-  if (loan.current_job_years) profFields.push(['Current Job (Yrs)', fmt(loan.current_job_years)]);
-  if (loan.total_work_exp || loan.work_experience) profFields.push(['Total Work Exp (Yrs)', fmt(loan.total_work_exp || loan.work_experience)]);
-  if (loan.salary_credit_mode) profFields.push(['Salary Credit Mode', fmt(loan.salary_credit_mode.replace(/_/g, ' '))]);
-  if (loan.salary_slip_available != null) profFields.push(['Salary Slip', loan.salary_slip_available ? 'Available' : 'Not Available']);
-  if (loan.business_name) profFields.push(['Business Name', fmt(loan.business_name)]);
-  if (loan.business_type) profFields.push(['Business Type', fmt(loan.business_type)]);
-  if (loan.business_vintage) profFields.push(['Business Vintage (Yrs)', fmt(loan.business_vintage)]);
-  if (loan.annual_income_itr) profFields.push(['Annual Income (ITR)', fmtCur(loan.annual_income_itr)]);
-  if (loan.itr_available != null) profFields.push(['ITR Available', loan.itr_available ? 'Yes' : 'No']);
-  if (loan.professional_subtype) profFields.push(['Professional Sub Type', fmt(loan.professional_subtype)]);
-  if (loan.practice_experience) profFields.push(['Practice Exp (Yrs)', fmt(loan.practice_experience)]);
-  if (loan.freelancer_subtype) profFields.push(['Freelancer Type', fmt(loan.freelancer_subtype)]);
-  if (profFields.length > 0) {
-    while (profFields.length % 4 !== 0) profFields.push(['', '']);
-    drawSection('PROFESSIONAL DETAILS', profFields as [string, string][]);
-  }
-
-  drawSection('LENDER DETAILS', [
-    ['Lender', fmt(loan.financier_name || loan.selected_financier || loan.bank_name)], ['Branch', fmt(loan.financier_branch_name)], ['Sales Manager', fmt(loan.financier_executive_name)], ['SM Mobile', fmt(loan.financier_executive_mobile)],
-    ['Area Manager', fmt(loan.financier_area_manager_name)], ['AM Mobile', fmt(loan.financier_area_manager_mobile)], ['Loan Amount Required', fmtCur(loan.loan_amount)], ['Case Type', fmt(loan.case_type)],
-  ]);
-
-  // Only show Deductions & Disbursement section for approved/disbursed/cancelled loans
-  const showDisbursementSection = loan.application_stage === 'APPROVED' || 
-                                  loan.application_stage === 'DISBURSED' || 
-                                  loan.application_stage === 'CANCELLED' ||
-                                  loan.status === 'approved' ||
-                                  loan.status === 'disbursed' ||
-                                  loan.status === 'cancelled';
-
-  if (showDisbursementSection) {
-    drawSection('DEDUCTIONS & DISBURSEMENT', [
-      ['File Charge', fmtCur(loan.file_charge)], ['Loan Suraksha', fmtCur(loan.loan_suraksha)], ['Stamping', fmtCur(loan.stamping)], ['Processing Fee', fmtCur(loan.processing_fee)],
-      ['Total Deduction', fmtCur(loan.total_deduction)], ['Net Disbursement', fmtCur(loan.net_disbursement_amount)], ['Payment Recd.', formatDate(loan.payment_received_date)], ['Disburse Date', formatDate(loan.disbursement_date || loan.financier_disburse_date)],
-    ]);
-  }
-
-  // Signature area - References section
-  if (y + 35 > 280) { doc.addPage(); y = 12; }
-  y += 8;
-  
-  // References title
-  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.primary);
-  doc.text('REFERENCES', lm, y);
-  y += 8;
-  
-  const refData: { name: string; designation: string }[] = loan._hierarchy || [
-    { name: fmt(loan.created_by_name), designation: 'Creator' }
-  ];
-  const sigWFinal = pw / refData.length;
-  refData.forEach((ref, i) => {
-    const x = lm + i * sigWFinal + sigWFinal / 2;
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...colors.dark);
-    doc.text(ref.name, x, y + 10, { align: 'center' });
-    doc.setDrawColor(51, 51, 51); doc.setLineWidth(0.3);
-    doc.line(lm + i * sigWFinal + 5, y + 15, lm + (i + 1) * sigWFinal - 5, y + 15);
-    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(85, 85, 85);
-    doc.text(ref.designation, x, y + 19, { align: 'center' });
-  });
-  y += 24;
-
-  // Footer
-  doc.setDrawColor(...colors.light); doc.setLineWidth(0.3); doc.line(lm, y, lm + pw, y);
-  doc.setFontSize(6); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-  doc.text(`Generated on ${new Date().toLocaleString('en-IN')} • Finonest India`, lm, y + 4);
-  doc.text('This is a system-generated document', lm + pw, y + 4, { align: 'right' });
-
-  // Embed documents as pages
-  if (docFiles.length > 0) {
-    for (const docFile of docFiles) {
-      try {
-        const fileType = docFile.file.type;
-
-        if (fileType === 'application/pdf') {
-          doc.addPage();
-          doc.setFillColor(248, 249, 251);
-          doc.rect(0, 0, 210, 297, 'F');
-          doc.setFillColor(...colors.primary);
-          doc.rect(0, 0, 210, 14, 'F');
-          doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-          doc.text(docFile.docType, 105, 9, { align: 'center' });
-          doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-          doc.text(docFile.name, 105, 150, { align: 'center' });
-          doc.setFontSize(8);
-          doc.text('(PDF document attached separately)', 105, 160, { align: 'center' });
-        } else if (fileType.startsWith('image/')) {
-          doc.addPage();
-          doc.setFillColor(...colors.primary);
-          doc.rect(0, 0, 210, 14, 'F');
-          doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-          doc.text(docFile.docType, 105, 9, { align: 'center' });
-
-          const imgFormat = fileType === 'image/png' ? 'PNG' : 'JPEG';
-          // Safe base64 conversion for large files
-          const arrayBuffer = await docFile.file.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          let binary = '';
-          const chunkSize = 8192;
-          for (let c = 0; c < uint8.length; c += chunkSize) {
-            binary += String.fromCharCode(...uint8.subarray(c, c + chunkSize));
-          }
-          const imgData = `data:${fileType};base64,${btoa(binary)}`;
-
-          const imgEl = await new Promise<HTMLImageElement>((res) => {
-            const i = new Image();
-            i.onload = () => res(i);
-            i.src = imgData;
-          });
-          const maxW = 190; const maxH = 265;
-          let imgW = imgEl.naturalWidth; let imgH = imgEl.naturalHeight;
-          const ratio = Math.min(maxW / imgW, maxH / imgH);
-          imgW = imgW * ratio; imgH = imgH * ratio;
-          doc.addImage(imgData, imgFormat, (210 - imgW) / 2, 18, imgW, imgH);
-          doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-          doc.text(docFile.name, 105, 18 + imgH + 5, { align: 'center' });
-        }
-      } catch (e) {
-        console.warn(`Could not embed document ${docFile.name}:`, e);
-      }
-    }
-  }
-
-  resolve(doc.output('blob'));
-    } catch (error) {
-      reject(error);
-    }
-  });
+function generatePDFBlob(loan: LoanData, _docFiles: { file: File; name: string; docType: string }[] = []): Promise<Blob> {
+  return buildCompactLoanPdf(loan);
 }
 
 const PDF_DOC_LABELS: Record<string, string> = {
