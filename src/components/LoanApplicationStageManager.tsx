@@ -2,7 +2,25 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, ShieldAlert, Loader2, CheckCircle, AlertTriangle, Building2, CreditCard } from 'lucide-react';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+function authHeaders() {
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('auth_token')}` };
+}
+function fmt(v: any) { return v || '—'; }
+function fmtCur(v: any) {
+  const n = Number(v);
+  return isNaN(n) || n === 0 ? '—' : `₹${n.toLocaleString('en-IN')}`;
+}
+function InfoCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+      <span className="text-xs font-bold text-foreground">{value}</span>
+    </div>
+  );
+}
 
 interface LoanApplicationStageManagerProps {
   loan: any;
@@ -26,6 +44,7 @@ interface StageFormData {
   agentMobile?: string;
   bankerName?: string;
   bankerMobile?: string;
+  linkLoanChecked?: 'Yes' | 'No';
 }
 
 export default function LoanApplicationStageManager({ loan, isOpen, onClose }: LoanApplicationStageManagerProps) {
@@ -35,6 +54,11 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
   const currentStage: ApplicationStage = loan?.application_stage || 'SUBMITTED';
   const currentIndex = STAGE_ORDER.indexOf(currentStage);
   const loginFilled = !!(loan?.app_score && loan?.credit_score);
+
+  // Link Loan auto-check state (shown after APPROVED)
+  const [llAutoLoans, setLlAutoLoans] = useState<any[]>([]);
+  const [llLoading, setLlLoading] = useState(false);
+  const [llChecked, setLlChecked] = useState(false)
 
   const getDefaultStage = (): ApplicationStage => {
     return currentStage;
@@ -55,7 +79,8 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
     agentName: loan?.rto_agent_name_rc || '',
     agentMobile: loan?.rto_agent_mobile || '',
     bankerName: loan?.banker_name || '',
-    bankerMobile: loan?.banker_mobile || ''
+    bankerMobile: loan?.banker_mobile || '',
+    linkLoanChecked: loan?.link_loan_checked || undefined,
   });
 
   // Reinitialize form every time modal opens with fresh loan data
@@ -77,10 +102,28 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
         agentName: loan.rto_agent_name_rc || '',
         agentMobile: loan.rto_agent_mobile || '',
         bankerName: loan.banker_name || '',
-        bankerMobile: loan.banker_mobile || ''
+        bankerMobile: loan.banker_mobile || '',
+        linkLoanChecked: loan.link_loan_checked || undefined,
       });
+      setLlAutoLoans([]);
+      setLlChecked(false);
     }
   }, [isOpen, loan?.id]);
+
+  // Auto-trigger link loan check when stage switches to APPROVED
+  useEffect(() => {
+    if (formData.stage === 'APPROVED' && loan?.id && !llChecked) {
+      setLlLoading(true);
+      fetch(`${API}/link-loan/auto-check/${loan.id}`, { headers: authHeaders() })
+        .then(r => r.json())
+        .then(data => {
+          if (data.auto_loans) setLlAutoLoans(data.auto_loans);
+          setLlChecked(true);
+        })
+        .catch(() => setLlChecked(true))
+        .finally(() => setLlLoading(false));
+    }
+  }, [formData.stage]);
 
   const updateStage = useMutation({
     mutationFn: async (data: StageFormData) => {
@@ -105,11 +148,29 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.stage === 'LOGIN' && (!formData.appScore || !formData.creditScore)) {
       toast.error('App Score and Credit Score are required for Login stage');
       return;
+    }
+    // DISBURSED: save link_loan_checked first, then update stage
+    if (formData.stage === 'DISBURSED') {
+      if (!formData.linkLoanChecked) {
+        toast.error('Link Loan Checked (Yes/No) is mandatory before disbursement');
+        return;
+      }
+      try {
+        const llRes = await fetch(`${API}/link-loan/link-loan-checked`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ loan_id: loan.id, checked: formData.linkLoanChecked }),
+        });
+        if (!llRes.ok) throw new Error('Failed to save Link Loan Checked');
+      } catch (err: any) {
+        toast.error(err.message);
+        return;
+      }
     }
     updateStage.mutate(formData);
   };
@@ -276,6 +337,76 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                 </div>
               </div>
             </div>
+
+            {/* Link Loan Auto-Check Results */}
+            <div className="border-t border-border pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldAlert size={15} className="text-primary" />
+                <span className="text-sm font-semibold text-foreground">Link Loan Check (Auto-triggered)</span>
+                {llLoading && <Loader2 size={13} className="animate-spin text-muted-foreground" />}
+              </div>
+              {llLoading && (
+                <p className="text-xs text-muted-foreground">Running link loan check in background…</p>
+              )}
+              {!llLoading && llChecked && llAutoLoans.length === 0 && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-700 dark:text-green-400 text-xs font-medium">
+                  <CheckCircle size={14} /> No active auto loans found. No link loan risk detected.
+                </div>
+              )}
+              {!llLoading && llAutoLoans.length > 0 && (() => {
+                // Group by lender and find duplicates
+                const lenderMap: Record<string, any[]> = {};
+                llAutoLoans.forEach(l => {
+                  const k = (l.subscriber_name || '').toLowerCase();
+                  if (!lenderMap[k]) lenderMap[k] = [];
+                  lenderMap[k].push(l);
+                });
+                const multiLenders = Object.entries(lenderMap).filter(([, arr]) => arr.length > 1);
+                return (
+                  <div className="space-y-3">
+                    {multiLenders.length > 0 && (
+                      <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700">
+                        <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-red-700 dark:text-red-400 text-xs">⚠ Multiple Loans Found from Same Lender</p>
+                          {multiLenders.map(([lender, loans]) => (
+                            <div key={lender} className="mt-2">
+                              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">{loans[0].subscriber_name}</p>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {loans.map((l, i) => (
+                                  <div key={i} className="p-2 rounded bg-red-100/60 dark:bg-red-900/30 grid grid-cols-2 gap-1">
+                                    <InfoCell label="Type" value={l.account_type || '—'} />
+                                    <InfoCell label="Sanctioned" value={`₹${Number(l.sanctioned_amount || 0).toLocaleString('en-IN')}`} />
+                                    <InfoCell label="Balance" value={`₹${Number(l.current_balance || 0).toLocaleString('en-IN')}`} />
+                                    <InfoCell label="Opened" value={l.open_date || '—'} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {multiLenders.length === 0 && (
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-700 dark:text-green-400 text-xs font-medium">
+                        <CheckCircle size={14} /> {llAutoLoans.length} auto loan(s) found — no duplicate lender detected.
+                      </div>
+                    )}
+                    <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><CreditCard size={12} /> All Active Auto Loans</p>
+                      <div className="space-y-1.5">
+                        {llAutoLoans.map((l, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-foreground">{l.subscriber_name || '—'}</span>
+                            <span className="text-muted-foreground">{l.account_type} · ₹{Number(l.current_balance || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         );
 
@@ -429,6 +560,37 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                     />
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Mandatory Link Loan Checked */}
+            <div className="border border-amber-300 dark:border-amber-700 rounded-lg p-4 bg-amber-50 dark:bg-amber-900/20">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldAlert size={15} className="text-amber-600" />
+                <label className="text-sm font-bold text-amber-800 dark:text-amber-400">Link Loan Checked *</label>
+                <span className="text-xs text-amber-600 dark:text-amber-500">(Mandatory before disbursement)</span>
+              </div>
+              <div className="flex gap-4">
+                {(['Yes', 'No'] as const).map(opt => (
+                  <label key={opt} className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
+                    formData.linkLoanChecked === opt
+                      ? 'border-primary bg-primary/10 text-primary font-semibold'
+                      : 'border-border hover:bg-muted'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="linkLoanChecked"
+                      value={opt}
+                      checked={formData.linkLoanChecked === opt}
+                      onChange={() => setFormData(prev => ({ ...prev, linkLoanChecked: opt }))}
+                      className="accent-primary"
+                    />
+                    <span className="text-sm">{opt}</span>
+                  </label>
+                ))}
+              </div>
+              {!formData.linkLoanChecked && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">⚠ You must confirm Link Loan has been checked before disbursement.</p>
               )}
             </div>
           </div>
