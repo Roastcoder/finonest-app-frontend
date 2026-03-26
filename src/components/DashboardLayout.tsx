@@ -56,8 +56,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
-  const expandedLogo = '/Finonest%20logo.png';
-  const collapsedLogo = '/logo.png';
+  const logo = '/Finonest%20logo.png';
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -131,16 +130,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Logo */}
         <div className={`flex items-center h-24 border-b border-white/20 dark:border-white/5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}>
           {collapsed ? (
+            /* In collapsed mode, the whole badge is the expand button */
             <button
               onClick={() => setCollapsed(false)}
               title="Expand sidebar"
-              className="h-12 w-12 rounded-2xl bg-white/70 dark:bg-white/10 border border-white/50 dark:border-white/10 flex items-center justify-center shadow-lg hover:scale-105 transition-transform overflow-hidden"
+              className="h-12 w-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
             >
-              <img src={collapsedLogo} alt="Finonest" className="h-9 w-9 object-contain" />
+              <span className="text-white font-black text-lg tracking-tight">FI</span>
             </button>
           ) : (
             <>
-              <img src={expandedLogo} alt="Finonest India" className="h-16 w-auto object-contain drop-shadow-md flex-1 min-w-0" />
+              <img src={logo} alt="Finonest India" className="h-16 w-auto object-contain drop-shadow-md flex-1 min-w-0" />
               <button
                 onClick={() => setCollapsed(true)}
                 className="hidden lg:flex shrink-0 p-2 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/5 transition-all duration-300"
@@ -346,7 +346,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <header className="h-12 lg:h-16 lg:mt-4 lg:mx-4 glass-panel border border-white/20 dark:border-white/5 rounded-xl lg:rounded-2xl flex items-center px-4 lg:px-6 gap-3 lg:gap-6 shrink-0 shadow-sm z-40 lg:mb-2 bg-white/5 dark:bg-black/10 backdrop-blur-xl">
           {/* Mobile: Logo Only */}
           <div className="lg:hidden flex items-center gap-3">
-            <img src={expandedLogo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
+            <img src={logo} alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />
           </div>
 
           {/* Page title / User greeting */}
