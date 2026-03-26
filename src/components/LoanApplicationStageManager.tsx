@@ -55,10 +55,11 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
   const currentIndex = STAGE_ORDER.indexOf(currentStage);
   const loginFilled = !!(loan?.app_score && loan?.credit_score);
 
-  // Link Loan auto-check state (shown after APPROVED)
+  // Link Loan auto-check state (shown at LOGIN)
   const [llAutoLoans, setLlAutoLoans] = useState<any[]>([]);
   const [llLoading, setLlLoading] = useState(false);
-  const [llChecked, setLlChecked] = useState(false)
+  const [llChecked, setLlChecked] = useState(false);
+  const [llAutoTagged, setLlAutoTagged] = useState(false);
 
   const getDefaultStage = (): ApplicationStage => {
     return currentStage;
@@ -110,15 +111,45 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
     }
   }, [isOpen, loan?.id]);
 
-  // Auto-trigger link loan check when stage switches to APPROVED
+  // Auto-trigger link loan check when stage switches to LOGIN
   useEffect(() => {
-    if (formData.stage === 'APPROVED' && loan?.id && !llChecked) {
+    if (formData.stage === 'LOGIN' && loan?.id && !llChecked) {
       setLlLoading(true);
       fetch(`${API}/link-loan/auto-check/${loan.id}`, { headers: authHeaders() })
         .then(r => r.json())
-        .then(data => {
-          if (data.auto_loans) setLlAutoLoans(data.auto_loans);
+        .then(async data => {
+          // Filter only ACTIVE loans (account_status === '11' or 'ACTIVE')
+          const activeLoans = (data.auto_loans || []).filter((l: any) => {
+            const status = String(l.account_status || '').toUpperCase();
+            return status === 'ACTIVE' || status === '11';
+          });
+          setLlAutoLoans(activeLoans);
+          // Auto-fill credit score from bureau
+          if (data.credit_score) {
+            setFormData(prev => ({ ...prev, creditScore: data.credit_score }));
+          }
           setLlChecked(true);
+
+          // Auto-tag link loans if multiple loans from same lender
+          if (activeLoans.length > 0) {
+            const lenderMap: Record<string, any[]> = {};
+            activeLoans.forEach((l: any) => {
+              const k = (l.subscriber_name || '').toLowerCase();
+              if (!lenderMap[k]) lenderMap[k] = [];
+              lenderMap[k].push(l);
+            });
+            const hasMultiple = Object.values(lenderMap).some(arr => arr.length > 1);
+            if (hasMultiple) {
+              try {
+                await fetch(`${API}/link-loan/tag-lead`, {
+                  method: 'POST',
+                  headers: authHeaders(),
+                  body: JSON.stringify({ loan_id: loan.id, link_loans: activeLoans, auto_tagged: true }),
+                });
+                setLlAutoTagged(true);
+              } catch { /* silent */ }
+            }
+          }
         })
         .catch(() => setLlChecked(true))
         .finally(() => setLlLoading(false));
@@ -150,27 +181,9 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.stage === 'LOGIN' && (!formData.appScore || !formData.creditScore)) {
-      toast.error('App Score and Credit Score are required for Login stage');
+    if (formData.stage === 'LOGIN' && !formData.appScore) {
+      toast.error('App Score is required for Login stage');
       return;
-    }
-    // DISBURSED: save link_loan_checked first, then update stage
-    if (formData.stage === 'DISBURSED') {
-      if (!formData.linkLoanChecked) {
-        toast.error('Link Loan Checked (Yes/No) is mandatory before disbursement');
-        return;
-      }
-      try {
-        const llRes = await fetch(`${API}/link-loan/link-loan-checked`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({ loan_id: loan.id, checked: formData.linkLoanChecked }),
-        });
-        if (!llRes.ok) throw new Error('Failed to save Link Loan Checked');
-      } catch (err: any) {
-        toast.error(err.message);
-        return;
-      }
     }
     updateStage.mutate(formData);
   };
@@ -207,23 +220,88 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Credit Score (300-900) *</label>
+                <label className="block text-sm font-medium mb-2">Credit Score (Bureau)</label>
                 <input
                   type="number"
-                  required
-                  min="300"
-                  max="900"
+                  readOnly
                   value={formData.creditScore || ''}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    if (e.target.value === '' || val <= 900)
-                      setFormData(prev => ({ ...prev, creditScore: e.target.value ? val : undefined }));
-                  }}
-                  onInput={e => { const t = e.target as HTMLInputElement; if(Number(t.value) > 900) t.value = '900'; }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent bg-background text-foreground"
-                  placeholder="Enter credit score (300-900)"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground cursor-not-allowed"
+                  placeholder={llLoading ? 'Fetching from bureau...' : 'Auto-filled from bureau'}
                 />
+                {!llLoading && !formData.creditScore && llChecked && (
+                  <p className="text-xs text-amber-500 mt-1">⚠ Bureau score not available</p>
+                )}
               </div>
+            </div>
+
+            {/* Link Loan Auto-Check at Login */}
+            <div className="border-t border-border pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldAlert size={15} className="text-primary" />
+                <span className="text-sm font-semibold text-foreground">Link Loan Check (Auto)</span>
+                {llLoading && <Loader2 size={13} className="animate-spin text-muted-foreground" />}
+              </div>
+              {llLoading && <p className="text-xs text-muted-foreground">Checking active loans from credit report…</p>}
+              {!llLoading && llChecked && llAutoLoans.length === 0 && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-700 dark:text-green-400 text-xs font-medium">
+                  <CheckCircle size={14} /> No active auto loans found. No link loan risk.
+                </div>
+              )}
+              {!llLoading && llAutoLoans.length > 0 && (() => {
+                const lenderMap: Record<string, any[]> = {};
+                llAutoLoans.forEach(l => {
+                  const k = (l.subscriber_name || '').toLowerCase();
+                  if (!lenderMap[k]) lenderMap[k] = [];
+                  lenderMap[k].push(l);
+                });
+                const multiLenders = Object.entries(lenderMap).filter(([, arr]) => arr.length > 1);
+                return (
+                  <div className="space-y-3">
+                    {multiLenders.length > 0 && (
+                      <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700">
+                        <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-bold text-red-700 dark:text-red-400 text-xs">⚠ Multiple Active Loans from Same Lender</p>
+                          {llAutoTagged && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold">✓ Auto-tagged as LINK LOAN EXIST</p>
+                          )}
+                          {multiLenders.map(([lender, loans]) => (
+                            <div key={lender} className="mt-2">
+                              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">{loans[0].subscriber_name}</p>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {loans.map((l, i) => (
+                                  <div key={i} className="p-2 rounded bg-red-100/60 dark:bg-red-900/30 grid grid-cols-2 gap-1">
+                                    <InfoCell label="Type" value={l.account_type || '—'} />
+                                    <InfoCell label="Sanctioned" value={`₹${Number(l.sanctioned_amount || 0).toLocaleString('en-IN')}`} />
+                                    <InfoCell label="Balance" value={`₹${Number(l.current_balance || 0).toLocaleString('en-IN')}`} />
+                                    <InfoCell label="Opened" value={l.open_date || '—'} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {multiLenders.length === 0 && (
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-700 dark:text-green-400 text-xs font-medium">
+                        <CheckCircle size={14} /> {llAutoLoans.length} active loan(s) found — no duplicate lender.
+                      </div>
+                    )}
+                    <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><CreditCard size={12} /> Active Auto Loans (Status: ACTIVE)</p>
+                      <div className="space-y-1.5">
+                        {llAutoLoans.map((l, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-foreground">{l.subscriber_name || '—'}</span>
+                            <span className="text-muted-foreground">{l.account_type} · ₹{Number(l.current_balance || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );
@@ -336,76 +414,6 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
                   <p>If not disbursed within 30 days, this application will automatically move to CANCELLED stage.</p>
                 </div>
               </div>
-            </div>
-
-            {/* Link Loan Auto-Check Results */}
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <ShieldAlert size={15} className="text-primary" />
-                <span className="text-sm font-semibold text-foreground">Link Loan Check (Auto-triggered)</span>
-                {llLoading && <Loader2 size={13} className="animate-spin text-muted-foreground" />}
-              </div>
-              {llLoading && (
-                <p className="text-xs text-muted-foreground">Running link loan check in background…</p>
-              )}
-              {!llLoading && llChecked && llAutoLoans.length === 0 && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-700 dark:text-green-400 text-xs font-medium">
-                  <CheckCircle size={14} /> No active auto loans found. No link loan risk detected.
-                </div>
-              )}
-              {!llLoading && llAutoLoans.length > 0 && (() => {
-                // Group by lender and find duplicates
-                const lenderMap: Record<string, any[]> = {};
-                llAutoLoans.forEach(l => {
-                  const k = (l.subscriber_name || '').toLowerCase();
-                  if (!lenderMap[k]) lenderMap[k] = [];
-                  lenderMap[k].push(l);
-                });
-                const multiLenders = Object.entries(lenderMap).filter(([, arr]) => arr.length > 1);
-                return (
-                  <div className="space-y-3">
-                    {multiLenders.length > 0 && (
-                      <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700">
-                        <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-bold text-red-700 dark:text-red-400 text-xs">⚠ Multiple Loans Found from Same Lender</p>
-                          {multiLenders.map(([lender, loans]) => (
-                            <div key={lender} className="mt-2">
-                              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">{loans[0].subscriber_name}</p>
-                              <div className="grid grid-cols-2 gap-1.5">
-                                {loans.map((l, i) => (
-                                  <div key={i} className="p-2 rounded bg-red-100/60 dark:bg-red-900/30 grid grid-cols-2 gap-1">
-                                    <InfoCell label="Type" value={l.account_type || '—'} />
-                                    <InfoCell label="Sanctioned" value={`₹${Number(l.sanctioned_amount || 0).toLocaleString('en-IN')}`} />
-                                    <InfoCell label="Balance" value={`₹${Number(l.current_balance || 0).toLocaleString('en-IN')}`} />
-                                    <InfoCell label="Opened" value={l.open_date || '—'} />
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {multiLenders.length === 0 && (
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-700 dark:text-green-400 text-xs font-medium">
-                        <CheckCircle size={14} /> {llAutoLoans.length} auto loan(s) found — no duplicate lender detected.
-                      </div>
-                    )}
-                    <div className="p-3 rounded-lg bg-muted/40 border border-border">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><CreditCard size={12} /> All Active Auto Loans</p>
-                      <div className="space-y-1.5">
-                        {llAutoLoans.map((l, i) => (
-                          <div key={i} className="flex items-center justify-between text-xs">
-                            <span className="font-medium text-foreground">{l.subscriber_name || '—'}</span>
-                            <span className="text-muted-foreground">{l.account_type} · ₹{Number(l.current_balance || 0).toLocaleString('en-IN')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           </div>
         );
@@ -563,36 +571,7 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
               )}
             </div>
 
-            {/* Mandatory Link Loan Checked */}
-            <div className="border border-amber-300 dark:border-amber-700 rounded-lg p-4 bg-amber-50 dark:bg-amber-900/20">
-              <div className="flex items-center gap-2 mb-2">
-                <ShieldAlert size={15} className="text-amber-600" />
-                <label className="text-sm font-bold text-amber-800 dark:text-amber-400">Link Loan Checked *</label>
-                <span className="text-xs text-amber-600 dark:text-amber-500">(Mandatory before disbursement)</span>
-              </div>
-              <div className="flex gap-4">
-                {(['Yes', 'No'] as const).map(opt => (
-                  <label key={opt} className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                    formData.linkLoanChecked === opt
-                      ? 'border-primary bg-primary/10 text-primary font-semibold'
-                      : 'border-border hover:bg-muted'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="linkLoanChecked"
-                      value={opt}
-                      checked={formData.linkLoanChecked === opt}
-                      onChange={() => setFormData(prev => ({ ...prev, linkLoanChecked: opt }))}
-                      className="accent-primary"
-                    />
-                    <span className="text-sm">{opt}</span>
-                  </label>
-                ))}
-              </div>
-              {!formData.linkLoanChecked && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">⚠ You must confirm Link Loan has been checked before disbursement.</p>
-              )}
-            </div>
+
           </div>
         );
 

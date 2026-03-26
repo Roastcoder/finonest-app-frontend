@@ -179,6 +179,7 @@ export default function CreateLoan() {
   });
 
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [linkLoanResult, setLinkLoanResult] = useState<{ loans: any[]; autoTagged: boolean } | null>(null);
   const [assignmentForm, setAssignmentForm] = useState({
     ledgerSelection: '',
     selectedBankId: '',
@@ -195,6 +196,50 @@ export default function CreateLoan() {
   const [branchOptions, setBranchOptions] = useState<any[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(false);
 
+  // Auto-check link loans when bank is selected
+  const checkLinkLoansForBank = async (lenderName: string) => {
+    if (!lenderName || lenderName === 'Others' || !form.vehicleNumber) return;
+    try {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
+      // Fetch credit report for the customer
+      const res = await fetch(`${API}/link-loan/credit-report`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          first_name: form.customerName.split(' ')[0] || form.customerName,
+          last_name: form.customerName.split(' ').slice(1).join(' ') || '',
+          mobile: form.mobile,
+          rc_number: form.vehicleNumber,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      // Filter only ACTIVE loans (account_status 11 or ACTIVE)
+      const activeLoans: any[] = (data.auto_loans || []).filter((l: any) => {
+        const status = String(l.account_status || '').toUpperCase();
+        return status === 'ACTIVE' || status === '11';
+      });
+      // Find loans from the selected bank
+      const bankLoans = activeLoans.filter(l =>
+        (l.subscriber_name || '').toLowerCase().includes(lenderName.toLowerCase())
+      );
+      let autoTagged = false;
+      if (bankLoans.length > 1) {
+        // Auto-tag as link loan
+        try {
+          await fetch(`${API}/link-loan/tag-lead`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ rc_number: form.vehicleNumber, lender: lenderName, link_loans: bankLoans, auto_tagged: true }),
+          });
+          autoTagged = true;
+        } catch { /* silent */ }
+      }
+      if (bankLoans.length > 0) setLinkLoanResult({ loans: bankLoans, autoTagged });
+    } catch { /* silent */ }
+  };
+
   // When lender is selected, find matching bank and fetch its branches
   const handleLenderChange = async (lenderName: string) => {
     setAssignmentForm(f => ({
@@ -209,7 +254,10 @@ export default function CreateLoan() {
       areaManagerMobile: '',
     }));
     setBranchOptions([]);
+    setLinkLoanResult(null);
     if (!lenderName || lenderName === 'Others') return;
+    // Auto-check link loans for selected bank
+    checkLinkLoansForBank(lenderName);
     const matchedBank = (banks as any[]).find(b => b.name.toLowerCase() === lenderName.toLowerCase());
     if (!matchedBank) return;
     setLoadingBranches(true);
@@ -965,6 +1013,32 @@ export default function CreateLoan() {
                   placeholder="Add any additional remarks..."
                 />
               </div>
+
+              {/* Link Loan Auto-Check Result */}
+              {linkLoanResult && linkLoanResult.loans.length > 0 && (
+                <div className={`p-3 rounded-lg border-2 text-xs ${
+                  linkLoanResult.loans.length > 1
+                    ? 'bg-red-50 dark:bg-red-900/20 border-red-400 dark:border-red-700'
+                    : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                }`}>
+                  <p className={`font-bold mb-1 ${
+                    linkLoanResult.loans.length > 1 ? 'text-red-700 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'
+                  }`}>
+                    {linkLoanResult.loans.length > 1
+                      ? `⚠ ${linkLoanResult.loans.length} Active Loans Found from ${assignmentForm.ledgerSelection}`
+                      : `ℹ 1 Active Loan Found from ${assignmentForm.ledgerSelection}`}
+                  </p>
+                  {linkLoanResult.autoTagged && (
+                    <p className="text-red-600 dark:text-red-400 font-semibold mb-1">✓ Auto-tagged as LINK LOAN EXIST</p>
+                  )}
+                  {linkLoanResult.loans.map((l: any, i: number) => (
+                    <div key={i} className="flex justify-between mt-1">
+                      <span className="text-foreground">{l.account_type || '—'}</span>
+                      <span className="text-muted-foreground">₹{Number(l.current_balance || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             <div className="flex justify-end gap-3 mt-6">
