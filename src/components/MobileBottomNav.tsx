@@ -16,11 +16,12 @@ const MOBILE_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['admin', 'manager', 'sales_manager', 'executive', 'team_leader', 'branch_manager', 'dsa'] },
   { label: 'Leads', path: '/leads-list', icon: <UserPlus size={20} />, roles: ['admin', 'manager', 'sales_manager', 'executive', 'team_leader', 'branch_manager', 'dsa'] },
   { label: 'Loans', path: '/loans', icon: <FileText size={20} />, roles: ['admin', 'manager', 'sales_manager', 'team_leader', 'branch_manager', 'dsa'] },
+  { label: 'Team', path: '/team', icon: <Users size={20} />, roles: ['manager', 'sales_manager', 'team_leader', 'dsa', 'branch_manager'] },
 ];
 
 const MORE_ITEMS: NavItem[] = [
   { label: 'Reports', path: '/reports', icon: <BarChart3 size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
-  { label: 'Users', path: '/users', icon: <Users size={18} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager'] },
+  { label: 'Users', path: '/users', icon: <Users size={18} />, roles: ['admin', 'manager', 'sales_manager'] },
   { label: 'Banks / NBFC', path: '/banks', icon: <Building2 size={18} />, roles: ['admin'] },
   { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={18} />, roles: ['admin'] },
   { label: 'Branches', path: '/branches', icon: <MapPin size={18} />, roles: ['admin', 'manager', 'sales_manager'] },

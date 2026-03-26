@@ -139,4 +139,52 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Mobile-first responsive utilities */
+  .stat-card {
+    @apply bg-card border border-border rounded-xl p-4 shadow-sm transition-all duration-200;
+  }
+
+  .stat-card:hover {
+    @apply shadow-md;
+  }
+
+  /* Touch-friendly mobile interactions */
+  @media (max-width: 1024px) {
+    .stat-card {
+      @apply p-3;
+    }
+    
+    .mobile-touch {
+      min-height: 44px;
+      min-width: 44px;
+      @apply flex items-center justify-center;
+    }
+    
+    .mobile-text {
+      font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    /* Ensure buttons are touch-friendly */
+    button {
+      min-height: 44px;
+    }
+
+    /* Better select dropdowns on mobile */
+    select {
+      min-height: 44px;
+      font-size: 16px;
+    }
+  }
+
+  /* Smooth animations for mobile */
+  .mobile-expand {
+    transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out;
+  }
+
+  /* Better mobile scrolling */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }

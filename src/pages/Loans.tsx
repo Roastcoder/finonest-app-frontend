@@ -33,7 +33,7 @@ export default function Loans() {
     queryKey: ['loans', user?.branch_id],
     queryFn: async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           }
@@ -54,7 +54,7 @@ export default function Loans() {
 
   const deleteLoan = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -218,7 +218,7 @@ export default function Loans() {
       let imported = 0;
       for (const row of rows) {
         const id = row['Loan ID'] || `IMP-${Date.now()}-${imported}`;
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

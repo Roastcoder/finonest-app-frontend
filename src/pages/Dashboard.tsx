@@ -26,7 +26,7 @@ export default function Dashboard() {
           params.append('startDate', dateRange.start);
           params.append('endDate', dateRange.end);
         }
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/dashboard/stats?${params}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/dashboard/stats?${params}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
         });
         if (!response.ok) return null;

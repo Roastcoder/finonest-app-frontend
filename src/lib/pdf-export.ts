@@ -1218,3 +1218,54 @@ export async function downloadLoanPDF(loan: LoanData, docs: any[] = []) {
     alert('Error generating PDF. Please try again.');
   }
 }
+
+// Missing export function for building loan application PDF blob
+export async function buildLoanApplicationPdfBlob(loan: LoanData, docs: any[] = []): Promise<Blob> {
+  try {
+    const leadId = loan.lead_id || loan.id;
+    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+    return await generatePDFBlob(loanH, docFileObjs);
+  } catch (error) {
+    console.error('Error generating PDF blob:', error);
+    throw error;
+  }
+}
+
+// Missing export function for preparing loan share bundle
+export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
+  try {
+    const leadId = loan.lead_id || loan.id;
+    const [hierarchy, docFileObjs, profile] = await Promise.all([fetchHierarchy(loan), fetchDocumentFiles(docs), fetchLeadProfile(leadId)]);
+    const loanH = { ...loan, _hierarchy: hierarchy.length > 0 ? hierarchy : undefined, _profile: profile };
+    const pdfBlob = await generatePDFBlobWithoutImages(loanH, docFileObjs);
+    const pdfFile = new File([pdfBlob], `Loan-${loan.id}.pdf`, { type: 'application/pdf' });
+    
+    return {
+      title: `Loan Application - ${loan.id}`,
+      text: `Loan application for ${loan.applicant_name || 'Customer'} (ID: ${loan.id})`,
+      files: [pdfFile],
+    };
+  } catch (error) {
+    console.error('Error preparing loan share bundle:', error);
+    throw error;
+  }
+}
+
+// Missing export function for preparing document share bundle
+export async function prepareDocumentShareBundle(docs: any[] = []) {
+  try {
+    const docFileObjs = await fetchDocumentFiles(docs);
+    const files = docFileObjs.map(docFile => docFile.file);
+    
+    return {
+      title: 'Loan Documents',
+      text: `${docFileObjs.length} loan documents`,
+      files: files,
+      docCount: docFileObjs.length,
+    };
+  } catch (error) {
+    console.error('Error preparing document share bundle:', error);
+    throw error;
+  }
+}
