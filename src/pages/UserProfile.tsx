@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, CreditCard, FileText, MapPin, CheckCircle, XCircle, Eye, EyeOff, Calendar, Users, Pencil, Check, X, Camera } from 'lucide-react';
+import { User, CreditCard, FileText, MapPin, CheckCircle, XCircle, Eye, EyeOff, Pencil, Check, X, Camera, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
@@ -16,6 +16,17 @@ export default function UserProfile() {
   const [savingPhone, setSavingPhone] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [verifyingPan, setVerifyingPan] = useState(false);
+  const [panInput, setPanInput] = useState('');
+  const [showPanForm, setShowPanForm] = useState(false);
+  // Aadhaar OTP flow
+  const [showAadhaarForm, setShowAadhaarForm] = useState(false);
+  const [aadhaarInput, setAadhaarInput] = useState('');
+  const [aadhaarStep, setAadhaarStep] = useState<'number' | 'otp'>('number');
+  const [aadhaarSessionId, setAadhaarSessionId] = useState('');
+  const [aadhaarOtp, setAadhaarOtp] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingAadhaar, setVerifyingAadhaar] = useState(false);
 
   useEffect(() => {
     api.get('/auth/profile')
@@ -68,6 +79,88 @@ export default function UserProfile() {
       toast.error('Failed to update mobile number');
     } finally {
       setSavingPhone(false);
+    }
+  };
+
+  const handleVerifyPan = async () => {
+    if (!panInput || panInput.length !== 10) { toast.error('Enter a valid 10-character PAN'); return; }
+    setVerifyingPan(true);
+    try {
+      const data = await api.post('/kyc/verify-and-save-pan', { pan_number: panInput.toUpperCase() });
+      // Merge returned pan data directly into profile kyc
+      setProfile((prev: any) => ({
+        ...prev,
+        kyc: {
+          ...prev.kyc,
+          pan_number: data.data?.pan_number || panInput.toUpperCase(),
+          pan_verified: true,
+          pan_details: {
+            full_name: data.data?.full_name || '',
+            dob: data.data?.dob || '',
+            gender: data.data?.gender || '',
+            category: data.data?.category || '',
+          }
+        }
+      }));
+      setShowPanForm(false);
+      setPanInput('');
+      toast.success('PAN verified successfully!');
+    } catch (err: any) {
+      toast.error(err.message || 'PAN verification failed');
+    } finally {
+      setVerifyingPan(false);
+    }
+  };
+
+  const handleSendAadhaarOtp = async () => {
+    if (!aadhaarInput || aadhaarInput.length !== 12) { toast.error('Enter a valid 12-digit Aadhaar number'); return; }
+    setSendingOtp(true);
+    try {
+      const data = await api.post('/kyc/send-aadhaar-otp', { aadhaar_number: aadhaarInput });
+      setAadhaarSessionId(data.session_id || data.client_id || '');
+      setAadhaarStep('otp');
+      toast.success('OTP sent to your Aadhaar-linked mobile!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send OTP');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyAadhaarOtp = async () => {
+    if (!aadhaarOtp || aadhaarOtp.length !== 6) { toast.error('Enter the 6-digit OTP'); return; }
+    setVerifyingAadhaar(true);
+    try {
+      const data = await api.post('/kyc/verify-aadhaar-otp', { session_id: aadhaarSessionId, otp: aadhaarOtp });
+      // Save aadhaar data to backend
+      await api.post('/kyc/save-aadhaar-data', { aadhaar_data: data.data, user_id: user?.id });
+      const addr = data.data?.address || data.data?.full_address || '';
+      setProfile((prev: any) => ({
+        ...prev,
+        kyc: {
+          ...prev.kyc,
+          aadhaar_number: data.data?.aadhaar_number || aadhaarInput,
+          aadhaar_verified: true,
+          aadhaar_details: {
+            full_name: data.data?.full_name || data.data?.name || '',
+            date_of_birth: data.data?.date_of_birth || data.data?.dob || '',
+            gender: data.data?.gender || '',
+            father_name: data.data?.father_name || '',
+            phone: data.data?.phone || data.data?.mobile || '',
+            address: addr,
+          }
+        }
+      }));
+      setShowAadhaarForm(false);
+      setAadhaarInput('');
+      setAadhaarOtp('');
+      setAadhaarStep('number');
+      setAadhaarSessionId('');
+      toast.success('Aadhaar verified successfully!');
+    } catch (err: any) {
+      toast.error(err.message || 'OTP verification failed');
+    } finally {
+      setVerifyingAadhaar(false);
     }
   };
 
@@ -188,15 +281,44 @@ export default function UserProfile() {
           <CreditCard size={16} /> PAN Details
           {kyc.pan_verified
             ? <span className="ml-auto flex items-center gap-1 text-xs text-green-600 font-semibold"><CheckCircle size={14} /> Verified</span>
-            : <span className="ml-auto flex items-center gap-1 text-xs text-red-500 font-semibold"><XCircle size={14} /> Not Verified</span>}
+            : (
+              <div className="ml-auto flex items-center gap-2">
+                <span className="flex items-center gap-1 text-xs text-red-500 font-semibold"><XCircle size={14} /> Not Verified</span>
+                <button
+                  onClick={() => setShowPanForm(v => !v)}
+                  className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <ShieldCheck size={13} /> Get Verified
+                </button>
+              </div>
+            )}
         </h2>
+        {showPanForm && !kyc.pan_verified && (
+          <div className="mb-4 flex items-center gap-2">
+            <input
+              type="text"
+              value={panInput}
+              onChange={e => setPanInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
+              placeholder="Enter PAN (e.g. ABCDE1234F)"
+              className="flex-1 text-sm font-mono px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+              maxLength={10}
+            />
+            <button
+              onClick={handleVerifyPan}
+              disabled={verifyingPan}
+              className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors"
+            >
+              {verifyingPan ? 'Verifying…' : 'Verify'}
+            </button>
+            <button onClick={() => { setShowPanForm(false); setPanInput(''); }} className="p-2 rounded-lg text-gray-400 hover:text-red-500 transition-colors"><X size={14} /></button>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InfoRow label="PAN Number" value={kyc.pan_number || '—'} mono />
-          <InfoRow label="Full Name" value={kyc.pan_details?.full_name || profile.name || '—'} />
+          <InfoRow label="Full Name" value={kyc.pan_details?.full_name || '—'} />
           {kyc.pan_details?.dob && <InfoRow label="Date of Birth" value={kyc.pan_details.dob} />}
           {kyc.pan_details?.gender && <InfoRow label="Gender" value={kyc.pan_details.gender} />}
           {kyc.pan_details?.category && <InfoRow label="Category" value={kyc.pan_details.category} />}
-
         </div>
       </div>
 
@@ -206,8 +328,63 @@ export default function UserProfile() {
           <FileText size={16} /> Aadhaar Details
           {kyc.aadhaar_verified
             ? <span className="ml-auto flex items-center gap-1 text-xs text-green-600 font-semibold"><CheckCircle size={14} /> Verified</span>
-            : <span className="ml-auto flex items-center gap-1 text-xs text-red-500 font-semibold"><XCircle size={14} /> Not Verified</span>}
+            : (
+              <div className="ml-auto flex items-center gap-2">
+                <span className="flex items-center gap-1 text-xs text-red-500 font-semibold"><XCircle size={14} /> Not Verified</span>
+                <button
+                  onClick={() => setShowAadhaarForm(v => !v)}
+                  className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <ShieldCheck size={13} /> Get Verified
+                </button>
+              </div>
+            )}
         </h2>
+        {showAadhaarForm && !kyc.aadhaar_verified && (
+          <div className="mb-4 space-y-2">
+            {aadhaarStep === 'number' ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={aadhaarInput}
+                  onChange={e => setAadhaarInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                  placeholder="Enter 12-digit Aadhaar number"
+                  className="flex-1 text-sm font-mono px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  maxLength={12}
+                />
+                <button
+                  onClick={handleSendAadhaarOtp}
+                  disabled={sendingOtp}
+                  className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {sendingOtp ? 'Sending…' : 'Send OTP'}
+                </button>
+                <button onClick={() => { setShowAadhaarForm(false); setAadhaarInput(''); setAadhaarStep('number'); }} className="p-2 rounded-lg text-gray-400 hover:text-red-500 transition-colors"><X size={14} /></button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={aadhaarOtp}
+                  onChange={e => setAadhaarOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Enter 6-digit OTP"
+                  className="flex-1 text-sm font-mono px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  maxLength={6}
+                  autoFocus
+                />
+                <button
+                  onClick={handleVerifyAadhaarOtp}
+                  disabled={verifyingAadhaar}
+                  className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {verifyingAadhaar ? 'Verifying…' : 'Verify OTP'}
+                </button>
+                <button onClick={() => setAadhaarStep('number')} className="text-xs text-primary underline">Resend</button>
+                <button onClick={() => { setShowAadhaarForm(false); setAadhaarInput(''); setAadhaarOtp(''); setAadhaarStep('number'); }} className="p-2 rounded-lg text-gray-400 hover:text-red-500 transition-colors"><X size={14} /></button>
+              </div>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Masked Aadhaar with toggle */}
           <div className="flex flex-col gap-1">
@@ -223,7 +400,7 @@ export default function UserProfile() {
               )}
             </div>
           </div>
-          <InfoRow label="Full Name" value={kyc.aadhaar_details?.full_name || profile.name || '—'} />
+          <InfoRow label="Full Name" value={kyc.aadhaar_details?.full_name || '—'} />
           {kyc.aadhaar_details?.date_of_birth && <InfoRow label="Date of Birth" value={kyc.aadhaar_details.date_of_birth} />}
           {kyc.aadhaar_details?.gender && <InfoRow label="Gender" value={kyc.aadhaar_details.gender} />}
           {kyc.aadhaar_details?.father_name && <InfoRow label="Father's Name" value={kyc.aadhaar_details.father_name} />}
@@ -231,19 +408,30 @@ export default function UserProfile() {
         </div>
       </div>
 
-      {/* Address */}
-      {(kyc.address?.line1 || kyc.aadhaar_details?.address) && (
-        <div className="glass-card p-6">
-          <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <MapPin size={16} /> Address
-          </h2>
-          <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-            {kyc.address?.line1
-              ? [kyc.address.line1, kyc.address.line2, kyc.address.city, kyc.address.state, kyc.address.pincode, kyc.address.country].filter(Boolean).join(', ')
-              : kyc.aadhaar_details?.address}
-          </p>
-        </div>
-      )}
+      {/* Address — always shown, sourced from Aadhaar details */}
+      <div className="glass-card p-6">
+        <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <MapPin size={16} /> Address
+        </h2>
+        {(() => {
+          const a = kyc.aadhaar_details?.address;
+          const structured = kyc.address;
+          // Priority 1: structured address from kyc.address
+          if (structured?.line1) {
+            return <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{[structured.line1, structured.line2, structured.city, structured.state, structured.pincode, structured.country].filter(Boolean).join(', ')}</p>;
+          }
+          // Priority 2: address object from Aadhaar (Neokred returns house/street/vtc/district/state/pincode)
+          if (typeof a === 'object' && a !== null) {
+            const parts = [a.house, a.street, a.street2, a.landmark, a.locality, a.vtc, a.po, a.subdist, a.dist, a.district, a.state, a.pc, a.pincode, a.zip, a.country].filter(Boolean);
+            if (parts.length > 0) return <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{parts.join(', ')}</p>;
+          }
+          // Priority 3: flat string address
+          if (typeof a === 'string' && a.trim()) {
+            return <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{a}</p>;
+          }
+          return <p className="text-sm text-gray-400 italic">Address will appear after Aadhaar verification</p>;
+        })()}
+      </div>
     </div>
   );
 }
