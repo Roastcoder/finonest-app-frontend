@@ -95,7 +95,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
       } else if (role === 'team_leader') {
         return users.filter((u: any) => ['branch_manager', 'dsa'].includes(u.role));
       } else if (role === 'executive') {
-        return users.filter((u: any) => ['sales_manager', 'team_leader', 'branch_manager', 'dsa'].includes(u.role));
+        return users.filter((u: any) => ['team_leader', 'branch_manager', 'dsa'].includes(u.role));
       }
       return users.filter((u: any) => ['admin', 'operation_team'].includes(u.role));
     },
@@ -146,15 +146,15 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
     e.preventDefault();
     setError('');
     
-    // Validate phone number if provided
+    // Validate mobile number if provided
     if (!phone || phone.length !== 10) {
-      setError('Phone number is required and must be exactly 10 digits');
+      setError('Mobile number is required and must be exactly 10 digits');
       return;
     }
     
-    // Validate phone number contains only digits
+    // Validate mobile number contains only digits
     if (phone && !/^\d{10}$/.test(phone)) {
-      setError('Phone number must contain only digits');
+      setError('Mobile number must contain only digits');
       return;
     }
     
@@ -203,7 +203,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
           },
           body: JSON.stringify({ 
             full_name: fullName, 
-            phone,
+            phone, 
             mpin,
             role, 
             branch_id: branchId || null,
@@ -256,7 +256,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Phone Number *</label>
+                <label className="block text-sm font-medium mb-1.5">Mobile Number *</label>
                 <input
                   type="tel"
                   required
@@ -421,7 +421,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
 
           {role === 'executive' && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">Reporting To (Sales Manager / Team Leader / BM / DSA)</label>
+              <label className="block text-sm font-medium mb-1.5">Reporting To (Team Leader / BM / DSA)</label>
               <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
                 <option value="">Select reporting person</option>
                 {managers.map((manager: any) => (
