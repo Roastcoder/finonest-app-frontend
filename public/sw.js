@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finonest-pwa-v2';
+const CACHE_NAME = 'finonest-pwa-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -28,6 +28,20 @@ self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
   if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  // Skip caching for Vite HMR, dev server assets, and JS/CSS modules so hot reload works
+  if (
+    requestUrl.pathname.startsWith('/@') ||
+    requestUrl.pathname.startsWith('/node_modules') ||
+    requestUrl.search.includes('t=') ||
+    requestUrl.pathname.endsWith('.tsx') ||
+    requestUrl.pathname.endsWith('.ts') ||
+    requestUrl.pathname.endsWith('.jsx') ||
+    requestUrl.pathname.endsWith('.js') ||
+    requestUrl.pathname.endsWith('.css')
+  ) {
     return;
   }
 
