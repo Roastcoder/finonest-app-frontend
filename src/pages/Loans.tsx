@@ -383,13 +383,20 @@ export default function Loans() {
               onClick={() => navigate(`/loans/${loan.id}`)}
               className="bg-card w-full shadow-sm hover:shadow-md border border-border/50 rounded-2xl overflow-hidden p-5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground text-lg tracking-tight truncate">{loan.applicant_name}</p>
-                  <p className="text-xs font-semibold text-primary/70 bg-primary/5 border border-primary/10 px-2 py-0.5 rounded-md inline-block mt-2 font-mono">{loan.loan_number || loan.id}</p>
+                  <p className="text-xs font-semibold text-primary/70 bg-primary/5 border border-primary/10 px-2 py-0.5 rounded-md font-mono inline-block mt-1.5">{loan.loan_number || loan.id}</p>
                 </div>
                 <LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} />
               </div>
+              {(loan as any).link_loan_tag === 'LINK LOAN EXIST' && (
+                <div className="mb-3">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-300 dark:border-red-700">
+                    ⚠ LINK LOAN EXIST
+                  </span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4 py-3 border-y border-border">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-1">Amount</p>
@@ -545,7 +552,14 @@ export default function Loans() {
               <tbody>
                 {filtered.map((loan: any) => (
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
-                    <td className="py-2 px-2 font-mono text-xs text-primary font-semibold whitespace-nowrap">{loan.loan_number || loan.id}</td>
+                    <td className="py-2 px-2 whitespace-nowrap">
+                      <p className="font-mono text-xs text-primary font-semibold">{loan.loan_number || loan.id}</p>
+                      {(loan as any).link_loan_tag === 'LINK LOAN EXIST' && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-300 dark:border-red-700 mt-0.5">
+                          ⚠ LINK LOAN
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2 px-2 whitespace-nowrap">
                       <p className="font-medium text-foreground text-xs">{loan.applicant_name}</p>
                       <p className="text-[10px] text-muted-foreground">{loan.mobile}</p>

@@ -335,6 +335,11 @@ export default function LoanDetail() {
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground truncate leading-tight">{loan.id}</p>
                 <p className="text-[10px] text-muted-foreground truncate">{loan.applicant_name} • {(loan as any).maker_name || loan.car_make}</p>
+                {(loan as any).link_loan_tag === 'LINK LOAN EXIST' && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-300 mt-0.5">
+                    ⚠ LINK LOAN
+                  </span>
+                )}
               </div>
             </div>
             <LoanStatusBadge status={loan.status as any} />
@@ -448,6 +453,11 @@ export default function LoanDetail() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">{loan.id}</h1>
             <LoanStatusBadge status={loan.status as any} />
+            {(loan as any).link_loan_tag === 'LINK LOAN EXIST' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-300 dark:border-red-700 animate-pulse">
+                ⚠ LINK LOAN EXIST
+              </span>
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">{loan.applicant_name} • {(loan as any).maker_name || loan.car_make} {(loan as any).model_variant_name || loan.car_model}</p>
         </div>

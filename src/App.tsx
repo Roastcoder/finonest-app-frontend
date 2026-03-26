@@ -32,6 +32,7 @@ import InsuranceModule from "@/pages/InsuranceModule";
 import SystemConfig from "@/pages/SystemConfig";
 import AuditLogPage from "@/pages/AuditLogPage";
 import TeamUsers from "@/pages/TeamUsers";
+import LinkLoanFinder from "@/pages/LinkLoanFinder";
 import CustomerPortal from "@/pages/CustomerPortal";
 import CustomerLogin from "@/pages/CustomerLogin";
 import CustomerDashboard from "@/pages/CustomerDashboard";
@@ -90,6 +91,7 @@ function AppRoutes() {
       <Route path="/expenses" element={<ProtectedRoute><ExpenseManagement /></ProtectedRoute>} />
       <Route path="/rc-limits" element={<ProtectedRoute><RCLimitModule /></ProtectedRoute>} />
       <Route path="/insurance" element={<ProtectedRoute><InsuranceModule /></ProtectedRoute>} />
+      <Route path="/link-loan-finder" element={<ProtectedRoute><LinkLoanFinder /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SystemConfig /></ProtectedRoute>} />
       <Route path="/audit-logs" element={<ProtectedRoute><AuditLogPage /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><TeamUsers /></ProtectedRoute>} />
