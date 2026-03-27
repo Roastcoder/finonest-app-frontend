@@ -41,6 +41,8 @@ import FolioAccounts from "@/pages/FolioAccounts";
 import AccountPayments from "@/pages/AccountPayments";
 import BankAccounts from "@/pages/BankAccounts";
 import ApplicationStageManagement from "@/pages/ApplicationStageManagement";
+import RCTemplatePage from "@/pages/RCTemplatePage";
+import RCTemplateViewer from "@/pages/RCTemplateViewer";
 import UserProfile from "@/pages/UserProfile";
 import NotFound from "./pages/NotFound";
 
@@ -95,8 +97,8 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><SystemConfig /></ProtectedRoute>} />
       <Route path="/audit-logs" element={<ProtectedRoute><AuditLogPage /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><TeamUsers /></ProtectedRoute>} />
-      <Route path="/application-stages" element={<ProtectedRoute><ApplicationStageManagement /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+      <Route path="/rc-template/:loanId" element={<ProtectedRoute><RCTemplatePage /></ProtectedRoute>} />
+      <Route path="/rc-template-viewer" element={<RCTemplateViewer />} />
 
       {/* External Portals */}
       {/* Accountant Portal */}
