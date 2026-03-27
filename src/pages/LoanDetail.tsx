@@ -11,6 +11,7 @@ import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocument
 import { downloadRCTemplatePDF, exportRCTemplatePDF, shareRCTemplatePDF } from '@/lib/rc-template';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
+import CibilCreditReport from '@/components/CibilCreditReport';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const DOC_TYPES: { value: string; label: string }[] = [
@@ -117,6 +118,7 @@ export default function LoanDetail() {
   });
 
 
+  const [activeTab, setActiveTab] = useState<'details' | 'credit'>('details');
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string } | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [showReapplyModal, setShowReapplyModal] = useState(false);
@@ -678,7 +680,33 @@ export default function LoanDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-1 mb-4">
+      {/* Tab switcher */}
+      <div className="flex gap-1 mb-4 bg-muted/40 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('details')}
+          className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'details' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Loan Details
+        </button>
+        <button
+          onClick={() => setActiveTab('credit')}
+          className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'credit' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Credit Report
+        </button>
+      </div>
+
+      {activeTab === 'credit' && (
+        <div className="bg-card border border-border rounded-xl p-4 mb-4">
+          <CibilCreditReport loan={loan} />
+        </div>
+      )}
+
+      {activeTab === 'details' && <div className="grid grid-cols-1 gap-1 mb-4">
         <Section title="Applicant Details" icon={<User size={18} />}>
           <div className="grid grid-cols-2 gap-1">
             <Field label="Customer ID" value={(loan as any).customer_id} />
@@ -850,7 +878,8 @@ export default function LoanDetail() {
             <div className="col-span-1"><Field label="Remark" value={(loan as any).remark || '—'} /></div>
           </div>
         </Section>
-      </div>
+      </div>}
+
 
       {/* Documents Section (Read-only) */}
       <div className="stat-card">
