@@ -30,6 +30,7 @@ interface AutoLoan {
   sanctioned_amount?: number;
   current_balance?: number;
   open_date?: string;
+  close_date?: string;
   account_holder_type?: string;
   ownership_indicator?: string;
   account_status?: string;
@@ -356,6 +357,7 @@ export default function LinkLoanFinder() {
                   <InfoCell label="Sanctioned" value={fmtCur(loan.sanctioned_amount)} small />
                   <InfoCell label="Balance" value={fmtCur(loan.current_balance)} small />
                   <InfoCell label="Opened" value={fmt(loan.open_date)} small />
+                  <InfoCell label="Closed" value={fmt(loan.close_date)} small />
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); setExpanded(prev => ({ ...prev, [i]: !prev[i] })); }}
@@ -418,6 +420,7 @@ export default function LinkLoanFinder() {
                     <InfoCell label="Sanctioned Amount" value={fmtCur(loan.sanctioned_amount)} />
                     <InfoCell label="Balance Amount" value={fmtCur(loan.current_balance)} />
                     <InfoCell label="Account Opening Date" value={fmt(loan.open_date)} />
+                    <InfoCell label="Account Closing Date" value={fmt(loan.close_date)} />
                     <InfoCell label="Account Holder Type" value={fmt(loan.account_holder_type || loan.ownership_indicator)} />
                   </div>
                 </div>

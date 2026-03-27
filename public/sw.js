@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finonest-pwa-v3';
+const CACHE_NAME = 'finonest-pwa-v4';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -62,7 +62,7 @@ self.addEventListener('fetch', (event) => {
         const responseClone = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         return networkResponse;
-      });
+      }).catch(() => caches.match('/index.html'));
     })
   );
 });
