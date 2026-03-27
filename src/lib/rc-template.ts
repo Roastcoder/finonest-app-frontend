@@ -303,6 +303,13 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     doc.setFontSize(5);
     const fatherText = fatherName ? fatherName.substring(0, 50) : '------';
     doc.text(fatherText, 28, 48);
+
+     doc.setFontSize(5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Body Type:', 75, 93.8);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5);
+    doc.text(bodyType || "------", 75, 96.5);
     
     doc.setFontSize(5);
     doc.setFont('helvetica', 'bold');
