@@ -225,12 +225,9 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
       vehicle_class: rcData?.vehicle_category_description || loan.vehicle_category_description || 'MOTOR CAR (LMV)',
     };
 
-    // Generate QR code URL that links to the viewer page
-    const baseUrl = window.location.origin;
-    const viewerUrl = `${baseUrl}/rc-template-viewer?data=${encodeURIComponent(JSON.stringify(rcDetailsForQR))}`;
-    
-    const qrCodeImage = await generateQRCode(viewerUrl);
-    console.log('✅ QR Code generated with viewer URL');
+    // Generate QR code with JSON data (not URL)
+    const qrCodeImage = await generateQRCode(JSON.stringify(rcDetailsForQR));
+    console.log('✅ QR Code generated with RC data');
 
     console.log('=== RC TEMPLATE DATA ===');
     console.log('Regn:', regn);
