@@ -513,7 +513,8 @@ export async function shareRCTemplatePDF(loan: LoanData) {
     }
 
     const blob = await generateRCTemplatePDF(loan);
-    const file = new File([blob], `RC-${loan.regn_no || loan.vehicle_number}.pdf`, { type: 'application/pdf' });
+    const fileName = `RC-${loan.regn_no || loan.vehicle_number || 'Template'}.pdf`;
+    const file = new File([blob], fileName, { type: 'application/pdf' });
 
     if (navigator.canShare && !navigator.canShare({ files: [file] })) {
       toast.error('This device cannot share PDF files');

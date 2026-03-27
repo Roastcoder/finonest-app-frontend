@@ -8,6 +8,7 @@ import { formatCurrency, APPLICATION_STAGES, LEAD_STATUSES } from '@/lib/mock-da
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, Share2, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
 import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
+import { downloadRCTemplatePDF, exportRCTemplatePDF, shareRCTemplatePDF } from '@/lib/rc-template';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -121,6 +122,7 @@ export default function LoanDetail() {
   const [showReapplyModal, setShowReapplyModal] = useState(false);
   const [showStageManager, setShowStageManager] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showRCMenu, setShowRCMenu] = useState(false);
   const [shareBundle, setShareBundle] = useState<Awaited<ReturnType<typeof prepareLoanShareBundle>> | null>(null);
   const [shareBundleLoading, setShareBundleLoading] = useState(false);
   const [documentShareBundle, setDocumentShareBundle] = useState<Awaited<ReturnType<typeof prepareDocumentShareBundle>> | null>(null);
@@ -360,6 +362,9 @@ export default function LoanDetail() {
             <button onClick={() => setShowShareMenu(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share options">
               <Share2 size={12} className="text-blue-500" /> Share
             </button>
+            <button onClick={() => setShowRCMenu(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="RC Template options">
+              <FileText size={12} className="text-cyan-500" /> RC
+            </button>
             {canDelete && (
               <button onClick={() => { if (confirm('Delete this loan?')) deleteLoan.mutate(); }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
                 Delete
@@ -425,6 +430,63 @@ export default function LoanDetail() {
                 <Download size={18} className="text-accent shrink-0" />
               </div>
             </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={showRCMenu} onOpenChange={setShowRCMenu}>
+        <SheetContent side="bottom" className="h-auto rounded-t-3xl px-5 pb-6 pt-5">
+          <SheetHeader>
+            <SheetTitle>RC Template</SheetTitle>
+          </SheetHeader>
+          <div className="mt-5 space-y-3">
+            <button
+              onClick={() => {
+                setShowRCMenu(false);
+                downloadRCTemplatePDF(loan);
+              }}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Download</p>
+                  <p className="text-xs text-muted-foreground">Save RC template on device</p>
+                </div>
+                <Download size={18} className="text-cyan-500 shrink-0" />
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setShowRCMenu(false);
+                exportRCTemplatePDF(loan);
+              }}
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">View</p>
+                  <p className="text-xs text-muted-foreground">Preview RC template</p>
+                </div>
+                <Eye size={18} className="text-indigo-500 shrink-0" />
+              </div>
+            </button>
+            {navigator.share && (
+              <button
+                onClick={() => {
+                  setShowRCMenu(false);
+                  shareRCTemplatePDF(loan);
+                }}
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Share</p>
+                    <p className="text-xs text-muted-foreground">Share RC template natively</p>
+                  </div>
+                  <Share2 size={18} className="text-blue-500 shrink-0" />
+                </div>
+              </button>
+            )}
           </div>
         </SheetContent>
       </Sheet>
@@ -522,6 +584,43 @@ export default function LoanDetail() {
               Share Docs
             </button>
           )}
+          <div className="relative group">
+            <button
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-cyan-500/10 hover:border-cyan-500 transition-colors"
+              title="RC Template options"
+            >
+              <FileText size={14} className="text-cyan-500" />
+              RC Template
+              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
+            <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              <button
+                onClick={() => downloadRCTemplatePDF(loan)}
+                className="w-full text-left px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 border-b border-border/50"
+              >
+                <Download size={12} className="text-cyan-500" />
+                Download
+              </button>
+              <button
+                onClick={() => exportRCTemplatePDF(loan)}
+                className="w-full text-left px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 border-b border-border/50"
+              >
+                <Eye size={12} className="text-indigo-500" />
+                View
+              </button>
+              {navigator.share && (
+                <button
+                  onClick={() => shareRCTemplatePDF(loan)}
+                  className="w-full text-left px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2"
+                >
+                  <Share2 size={12} className="text-blue-500" />
+                  Share
+                </button>
+              )}
+            </div>
+          </div>
           {canDelete && (
                 <button
                   onClick={() => {
