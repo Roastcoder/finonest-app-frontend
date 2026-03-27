@@ -252,7 +252,7 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     doc.text('RJ', 86.5, 16);
     
     doc.setFontSize(6);
-    doc.text('Issued by GOVERNMENT OF RAJASTHAN', 50, 18, { align: 'center' });
+    doc.text('Sourced by mParivahan Api', 50, 18, { align: 'center' });
 
     // Add QR Code to the right side of the front page
    
@@ -273,13 +273,7 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     doc.text(validUpto || "------", 54, 28);
     doc.text(ownerSerial || "------", 83, 24);
 
-    doc.setFontSize(5);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Card Issue Date', 91, 60, { angle: 90 });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5);
-    doc.text(cardIssueDate || "(28-Nov-2024)", 91, 46, { angle: 90 });
-
+    
     doc.setFontSize(5);
     doc.setFont('helvetica', 'bold');
     doc.text('Chassis No', 28, 32);
@@ -336,11 +330,11 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     doc.setFontSize(5);
     doc.text(fuel || "------", 12, 50);
     
-    doc.setFontSize(5);
+    doc.setFontSize(4);
     doc.setFont('helvetica', 'bold');
-    doc.text('Emission Norms', 12, 53);
+    doc.text('Emission Norms', 11.5, 53);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5);
+    doc.setFontSize(4);
     doc.text(emission || "------", 12, 56);
 
     doc.addImage(backImgProps.data, 'PNG', 10, 70, backImgProps.width / 8, backImgProps.height / 8);
@@ -391,13 +385,7 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     doc.setFontSize(5);
     doc.text(colorVal || "------", 35, 96.5);
     
-    doc.setFontSize(5);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Body Type:', 77, 93.8);
-    doc.text('Form 23 A:', 92, 110, { angle: 90 });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5);
-    doc.text(bodyType || "------", 77, 96.5);
+   
     
     doc.setFontSize(5);
     doc.setFont('helvetica', 'bold');
@@ -415,14 +403,12 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     
     doc.setFontSize(5);
     doc.setFont('helvetica', 'bold');
-    doc.text('Cubic Cap. / Horse Power (BHP/Kw) / Wheel Base(mm):', 35, 110);
+    doc.text('Cubic Cap. /  Wheel Base(mm):', 35, 110);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5);
     const cubicCapVal = cubicCap || "------";
-    const horsePowerVal = rcData?.horse_power || rcData?.bhp || loan.horse_power || loan.bhp || "------";
     const wheelBaseVal = wheelBase || "------";
     doc.text(`${cubicCapVal}`, 35, 112.7);
-    doc.text(`${horsePowerVal}`, 47, 112.7);
     doc.text(`${wheelBaseVal}`, 67, 112.7);
     
     doc.setFontSize(5);
@@ -446,13 +432,7 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     doc.setFontSize(5);
     doc.text(rcData?.no_cylinders || rcData?.no_of_cylinders || loan.no_of_cylinders || "0", 12, 116.7);
     
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'bold');
-    doc.text('FINONEST INDIA', 73, 118);
-    
-    doc.setFontSize(5);
-    doc.setFont('helvetica', 'normal');
-    doc.text('CHANDRMAULI MG', 74, 121);
+  
 
 
      if (qrCodeImage) {
