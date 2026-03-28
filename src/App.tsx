@@ -99,6 +99,7 @@ function AppRoutes() {
       <Route path="/team" element={<ProtectedRoute><TeamUsers /></ProtectedRoute>} />
       <Route path="/rc-template/:loanId" element={<ProtectedRoute><RCTemplatePage /></ProtectedRoute>} />
       <Route path="/rc-template-viewer" element={<RCTemplateViewer />} />
+      <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
 
       {/* External Portals */}
       {/* Accountant Portal */}

@@ -104,7 +104,7 @@ export default function LeadsList() {
           if (lead.converted_to_loan) {
             try {
               // Fetch loan data for this lead
-              const loanResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans?lead_id=${lead.id}`, {
+              const loanResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans?lead_id=${lead.id}`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
               });
               if (loanResponse.ok) {

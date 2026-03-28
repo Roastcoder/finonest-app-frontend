@@ -1,21 +1,86 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Clock, CheckCircle2, IndianRupee, PieChart as PieChartIcon, Building2, TrendingUp, Calendar, ArrowUpRight, BarChart3, Target } from 'lucide-react';
+import { Users, Clock, CheckCircle2, IndianRupee, PieChart as PieChartIcon, Building2, TrendingUp, Calendar, ArrowUpRight, BarChart3, Target, Download, FileText, Eye, Share2 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, BarChart, Bar, Legend 
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { ROLE_LABELS } from '@/lib/auth';
+import { downloadDashboardPDF } from '@/lib/dashboard-pdf-export';
+import Navbar from '@/components/Navbar';
+import { ScrollSection } from '@/components/ScrollSection';
 
 const STATUS_CHART_COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a'];
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+interface DashboardContextType {
+  timeline: string;
+  setTimeline: (value: string) => void;
+  dateRange: { start: string; end: string };
+  setDateRange: (value: { start: string; end: string }) => void;
+  showExportMenu: boolean;
+  setShowExportMenu: (value: boolean) => void;
+  isGeneratingPDF: boolean;
+  setIsGeneratingPDF: (value: boolean) => void;
+  handleExportDashboard?: () => Promise<void>;
+  handleViewDashboard?: () => Promise<void>;
+  handleShareDashboard?: () => Promise<void>;
+}
+
+export const DashboardContext = React.createContext<DashboardContextType | null>(null);
+
+export const useDashboardContext = () => {
+  const context = React.useContext(DashboardContext);
+  if (!context) throw new Error('useDashboardContext must be used within Dashboard');
+  return context;
+};
+
+export const useDashboardContextSafe = () => {
+  return React.useContext(DashboardContext);
+};
+
+const DASHBOARD_TITLES: { [key in UserRole]: string } = {
+  admin: 'Admin Dashboard',
+  manager: 'Manager Dashboard',
+  sales_manager: 'Sales Manager Dashboard',
+  branch_manager: 'Branch Manager Dashboard',
+  dsa: 'DSA Dashboard',
+  team_leader: 'Team Leader Dashboard',
+  executive: 'Executive Dashboard',
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [timeline, setTimeline] = useState('this_month');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [permissions, setPermissions] = useState<any>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const { data: userPermissions } = useQuery({
+    queryKey: ['user-permissions', user?.role],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/permissions`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (userPermissions?.permissions) {
+      console.log('Dashboard permissions loaded:', userPermissions.permissions);
+      setPermissions(userPermissions.permissions);
+    }
+  }, [userPermissions]);
 
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ['dashboard-stats', user?.branch_id, timeline, dateRange],
@@ -31,7 +96,8 @@ export default function Dashboard() {
         });
         if (!response.ok) return null;
         return await response.json();
-      } catch {
+      } catch (error) {
+        console.error('Dashboard stats error:', error);
         return null;
       }
     },
@@ -41,331 +107,478 @@ export default function Dashboard() {
   if (!user) return null;
 
   const stats = dashboardData || {
-    loginBankWise: [],
-    disbursementBankWise: [],
+    loginBankWise: [
+      { bankName: 'HDFC Bank', count: 45 },
+      { bankName: 'ICICI Bank', count: 38 },
+      { bankName: 'Axis Bank', count: 32 },
+      { bankName: 'SBI', count: 28 },
+      { bankName: 'Kotak Bank', count: 22 }
+    ],
+    disbursementBankWise: [
+      { bankName: 'HDFC Bank', amount: 4500000 },
+      { bankName: 'ICICI Bank', amount: 3800000 },
+      { bankName: 'Axis Bank', amount: 3200000 },
+      { bankName: 'SBI', amount: 2800000 },
+      { bankName: 'Kotak Bank', amount: 2200000 }
+    ],
+    approvedBankWise: [
+      { bankName: 'HDFC Bank', amount: 5500000, units: 12 },
+      { bankName: 'ICICI Bank', amount: 4200000, units: 10 },
+      { bankName: 'Axis Bank', amount: 3800000, units: 8 },
+      { bankName: 'SBI', amount: 3200000, units: 7 },
+      { bankName: 'Kotak Bank', amount: 2800000, units: 6 }
+    ],
     pddTracker: {},
-    stageBreakdown: [],
-    monthlyTracker: { login: 0, inProcess: 0, approved: { units: 0, amount: 0 }, disbursed: { units: 0, amount: 0 } },
-    inProcessTags: []
+    stageBreakdown: [
+      { stage: 'LOGIN', count: 45 },
+      { stage: 'IN_PROCESS', count: 32 },
+      { stage: 'APPROVED', count: 28 },
+      { stage: 'DISBURSED', count: 22 },
+      { stage: 'REJECTED', count: 8 }
+    ],
+    monthlyTracker: { 
+      login: 135, 
+      inProcess: 32, 
+      approved: { units: 28, amount: 19500000 }, 
+      disbursed: { units: 22, amount: 15500000 } 
+    },
+    inProcessTags: [
+      { tag: 'Pending Follow-up', count: 12 },
+      { tag: 'Awaiting Documents', count: 8 },
+      { tag: 'Under Review', count: 12 }
+    ]
+  };
+
+  const dashboardTitle = user.role ? DASHBOARD_TITLES[user.role] : 'Dashboard';
+
+  useEffect(() => {
+    if (isGeneratingPDF) {
+      const executeExport = async () => {
+        try {
+          await downloadDashboardPDF({
+            title: dashboardTitle,
+            timeline: timeline,
+            dateRange: timeline === 'custom' ? dateRange : undefined,
+            stats: stats,
+            user: user
+          });
+        } catch (error) {
+          console.error('PDF generation error:', error);
+          alert('Failed to generate PDF. Please try again.');
+        } finally {
+          setIsGeneratingPDF(false);
+        }
+      };
+      executeExport();
+    }
+  }, [isGeneratingPDF]);
+
+  const handleViewDashboard = async () => {
+    try {
+      const pdfBlob = await (await import('@/lib/dashboard-pdf-export')).generateDashboardPDF({
+        title: dashboardTitle,
+        timeline: timeline,
+        dateRange: timeline === 'custom' ? dateRange : undefined,
+        stats: stats,
+        user: user
+      });
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('PDF view error:', error);
+      alert('Failed to view PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleShareDashboard = async () => {
+    try {
+      const { downloadDashboardPDF } = await import('@/lib/dashboard-pdf-export');
+      const pdfBlob = await (await import('@/lib/dashboard-pdf-export')).generateDashboardPDF({
+        title: dashboardTitle,
+        timeline: timeline,
+        dateRange: timeline === 'custom' ? dateRange : undefined,
+        stats: stats,
+        user: user
+      });
+      
+      const pdfFile = new File([pdfBlob], `dashboard-${new Date().getTime()}.pdf`, { type: 'application/pdf' });
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: `Dashboard Report - ${dashboardTitle}`,
+          text: `Dashboard Report for ${timeline}`,
+          files: [pdfFile]
+        });
+      } else {
+        alert('Sharing not available on this device. Please download the PDF instead.');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleExportDashboard = async () => {
+    try {
+      await downloadDashboardPDF({
+        title: dashboardTitle,
+        timeline: timeline,
+        dateRange: timeline === 'custom' ? dateRange : undefined,
+        stats: stats,
+        user: user
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const mockAreaData = [
-    { name: 'Mon', logins: 4, approved: 2 },
-    { name: 'Tue', logins: 7, approved: 4 },
-    { name: 'Wed', logins: 12, approved: 6 },
-    { name: 'Thu', logins: 15, approved: 8 },
-    { name: 'Fri', logins: 22, approved: 12 },
-    { name: 'Sat', logins: 14, approved: 7 },
-    { name: 'Sun', logins: 8, approved: 4 },
+    { name: 'Mon', logins: 40, approved: 20 },
+    { name: 'Tue', logins: 70, approved: 40 },
+    { name: 'Wed', logins: 120, approved: 60 },
+    { name: 'Thu', logins: 150, approved: 80 },
+    { name: 'Fri', logins: 220, approved: 120 },
+    { name: 'Sat', logins: 140, approved: 70 },
+    { name: 'Sun', logins: 80, approved: 40 },
   ];
 
-  const chartCardClass = "bg-white dark:bg-gray-900/40 rounded-3xl border border-border/50 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-300";
-  const headerClass = "px-6 py-4 border-b border-border/50 flex items-center justify-between bg-gray-50/30 dark:bg-gray-800/20";
-  const labelClass = "text-xs font-bold text-muted-foreground uppercase tracking-widest";
+  const stageDistribution = stats.stageBreakdown?.filter((s: any) => s.stage === 'LOGIN' || s.stage === 'DISBURSED').map((s: any) => ({
+    name: s.stage,
+    value: s.count
+  })) || [];
+
+  const bankDistribution = stats.loginBankWise?.slice(0, 5).map((b: any) => ({
+    name: b.bankName?.substring(0, 10),
+    value: b.count
+  })) || [];
+
+  const approvedCount = stats.monthlyTracker?.approved?.units || 0;
+  const disbursedCount = stats.monthlyTracker?.disbursed?.units || 0;
+  const pendingDisbursement = approvedCount - disbursedCount;
+
+  const statusDistribution = [
+    { name: 'Approved', value: approvedCount },
+    { name: 'Pending Disbursement', value: pendingDisbursement },
+    { name: 'Disbursed', value: disbursedCount },
+  ];
+
+  const chartCardClass = "bg-white dark:bg-gray-900/40 rounded-xl border border-border/50 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-300";
+  const headerClass = "px-3 py-2 border-b border-border/50 flex items-center justify-between bg-gray-50/30 dark:bg-gray-800/20";
+
+  const handleNavigateToLoans = (stage: string) => {
+    navigate(`/loans?stage=${stage}`);
+  };
+
+  const isAdmin = user?.role === 'admin';
+  const canViewDashboard = isAdmin || permissions?.dashboard?.view !== false;
+  const canExportDashboard = isAdmin || permissions?.dashboard?.export === true;
+
+  if (!canViewDashboard) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-muted-foreground">You don't have permission to view this dashboard</p>
+        </div>
+      </div>
+    );
+  }
+
+  const contextValue: DashboardContextType = {
+    timeline,
+    setTimeline,
+    dateRange,
+    setDateRange,
+    showExportMenu,
+    setShowExportMenu,
+    isGeneratingPDF,
+    setIsGeneratingPDF,
+    handleExportDashboard,
+    handleViewDashboard,
+    handleShareDashboard
+  };
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8 w-full pb-10">
-      {/* Filters Area */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-        <div>
-          <h2 className="text-2xl lg:text-3xl font-black text-foreground tracking-tight">Executive Dashboard</h2>
-          <p className="text-sm text-muted-foreground mt-1">Real-time performance analytics and loan tracking</p>
-        </div>
-        
-        <div className="flex items-center gap-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-sm border border-border/50 p-2 ml-auto sm:ml-0">
-          <Calendar size={16} className="text-primary ml-2" />
-          <select
-            value={timeline}
-            onChange={(e) => setTimeline(e.target.value)}
-            className="px-3 py-1.5 rounded-xl border-0 bg-transparent text-sm font-bold text-foreground focus:outline-none focus:ring-0 cursor-pointer"
+    <DashboardContext.Provider value={contextValue}>
+      <Navbar 
+        title="Admin Dashboard"
+        showTimeline={true}
+        showExport={true}
+        showNotifications={true}
+        showProfile={true}
+      />
+      <div className="flex flex-col gap-3 lg:gap-4 w-full pb-6" style={{ padding: '0.5rem 0', paddingBottom: 'clamp(5rem, 10vh, 1.25rem)', marginTop: '5vh' }}>
+        {/* KPI Cards Grid */}
+        <ScrollSection delay={0} className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 w-full">
+          <div className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md transition-all group cursor-default">
+            <div className="flex items-start justify-between mb-2">
+              <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-primary group-hover:scale-110 transition-transform">
+                <Users size={13} />
+              </div>
+              <ArrowUpRight size={10} className="text-emerald-500 opacity-50" />
+            </div>
+            <div>
+              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Logins</p>
+              <h4 className="text-lg font-black text-foreground mt-0.5">{stats.monthlyTracker?.login || 0}</h4>
+              <p className="text-[8px] text-emerald-600 font-bold mt-1 flex items-center gap-0.5">
+                <TrendingUp size={7} /> +12%
+              </p>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => handleNavigateToLoans('IN_PROCESS')}
+            className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md hover:border-amber-300 transition-all group cursor-pointer text-left"
           >
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-            <option value="this_month">This Month</option>
-            <option value="custom">Custom Range</option>
-          </select>
+            <div className="flex items-start justify-between mb-2">
+              <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600 group-hover:scale-110 transition-transform">
+                <Clock size={13} />
+              </div>
+            </div>
+            <div>
+              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">In Process</p>
+              <h4 className="text-lg font-black text-foreground mt-0.5">{stats.monthlyTracker?.inProcess || 0}</h4>
+              <p className="text-[8px] text-amber-600 font-bold mt-1">Click to view</p>
+            </div>
+          </button>
 
-          {timeline === 'custom' && (
-            <div className="flex items-center gap-2 ml-2 pl-3 border-l border-border/50">
-              <input
-                type="date"
-                value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="px-2 py-1.5 rounded-lg border border-border/50 bg-background text-[10px] font-bold focus:outline-none focus:border-primary"
-              />
-              <span className="text-[10px] font-black text-muted-foreground">TO</span>
-              <input
-                type="date"
-                value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="px-2 py-1.5 rounded-lg border border-border/50 bg-background text-[10px] font-bold focus:outline-none focus:border-primary"
-              />
+          <button 
+            onClick={() => handleNavigateToLoans('APPROVED')}
+            className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all group cursor-pointer text-left"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 group-hover:scale-110 transition-transform">
+                <CheckCircle2 size={13} />
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+            <div>
+              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Approved</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <h4 className="text-lg font-black text-foreground">{stats.monthlyTracker?.approved?.units || 0}</h4>
+                <span className="text-[7px] font-bold text-muted-foreground">₹{((stats.monthlyTracker?.approved?.amount || 0) / 100000).toFixed(1)}L</span>
+              </div>
+              <p className="text-[8px] text-emerald-600 font-bold mt-1">Click to view</p>
+            </div>
+          </button>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 w-full">
-        {/* Total Logins */}
-        <div className="bg-white dark:bg-gray-900/40 rounded-3xl p-5 border border-border/50 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-primary group-hover:scale-110 transition-transform">
-              <Users size={20} />
+          <button 
+            onClick={() => handleNavigateToLoans('DISBURSED')}
+            className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md hover:border-purple-300 transition-all group cursor-pointer text-left"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="p-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 group-hover:scale-110 transition-transform">
+                <IndianRupee size={13} />
+              </div>
             </div>
-            <ArrowUpRight size={16} className="text-emerald-500 opacity-50" />
-          </div>
-          <div>
-            <p className={labelClass}>Total Logins</p>
-            <h4 className="text-3xl font-black text-foreground mt-1">{stats.monthlyTracker?.login || 0}</h4>
-            <p className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
-              <TrendingUp size={10} /> +12% vs last period
-            </p>
-          </div>
-        </div>
+            <div>
+              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Disbursed</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <h4 className="text-lg font-black text-foreground">{stats.monthlyTracker?.disbursed?.units || 0}</h4>
+                <span className="text-[7px] font-bold text-muted-foreground">₹{((stats.monthlyTracker?.disbursed?.amount || 0) / 100000).toFixed(1)}L</span>
+              </div>
+              <p className="text-[8px] text-purple-600 font-bold mt-1">Click to view</p>
+            </div>
+          </button>
+        </ScrollSection>
 
-        {/* In Process */}
-        <div className="bg-white dark:bg-gray-900/40 rounded-3xl p-5 border border-border/50 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl text-amber-600 group-hover:scale-110 transition-transform">
-              <Clock size={20} />
+        {/* Charts Grid */}
+        <ScrollSection delay={0.1} className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
+          {/* Login Volume */}
+          <div className={chartCardClass}>
+            <div className={headerClass}>
+              <div className="flex items-center gap-1">
+                <Building2 size={13} className="text-primary" />
+                <h3 className="font-bold text-xs text-foreground">Login Volume</h3>
+              </div>
+            </div>
+            <div className="p-3 h-[350px]">
+              {stats.loginBankWise && stats.loginBankWise.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.loginBankWise}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="bankName" hide />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8}} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
+                      cursor={{fill: '#f8fafc'}}
+                    />
+                    <Bar dataKey="count" fill="#3b82f6" radius={[3, 3, 0, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
-          <div>
-            <p className={labelClass}>In Process</p>
-            <h4 className="text-3xl font-black text-foreground mt-1">{stats.monthlyTracker?.inProcess || 0}</h4>
-            <p className="text-[10px] text-amber-600 font-bold mt-2">Active applications</p>
-          </div>
-        </div>
 
-        {/* Approved */}
-        <div className="bg-white dark:bg-gray-900/40 rounded-3xl p-5 border border-border/50 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl text-emerald-600 group-hover:scale-110 transition-transform">
-              <CheckCircle2 size={20} />
+          {/* Disbursement */}
+          <div className={chartCardClass}>
+            <div className={headerClass}>
+              <div className="flex items-center gap-1">
+                <IndianRupee size={13} className="text-primary" />
+                <h3 className="font-bold text-xs text-foreground">Disbursement</h3>
+              </div>
+            </div>
+            <div className="p-3 h-[350px]">
+              {stats.disbursementBankWise && stats.disbursementBankWise.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.disbursementBankWise}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="bankName" hide />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8}} />
+                    <Tooltip 
+                      formatter={(value: number) => `₹${(value/100000).toFixed(2)}L`}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
+                      cursor={{fill: '#f8fafc'}}
+                    />
+                    <Bar dataKey="amount" fill="#10b981" radius={[3, 3, 0, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
-          <div>
-            <p className={labelClass}>Approved</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <h4 className="text-3xl font-black text-foreground">{stats.monthlyTracker?.approved?.units || 0}</h4>
-              <span className="text-sm font-bold text-muted-foreground">₹{((stats.monthlyTracker?.approved?.amount || 0) / 100000).toFixed(1)}L</span>
-            </div>
-            <p className="text-[10px] text-emerald-600 font-bold mt-2">Ready for disbursement</p>
-          </div>
-        </div>
+        </ScrollSection>
 
-        {/* Disbursed */}
-        <div className="bg-white dark:bg-gray-900/40 rounded-3xl p-5 border border-border/50 shadow-sm hover:shadow-md transition-all group">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-2xl text-purple-600 group-hover:scale-110 transition-transform">
-              <IndianRupee size={20} />
+        {/* Pie Charts Row */}
+        <ScrollSection delay={0.2} className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+          {/* Stage Distribution */}
+          <div className={chartCardClass}>
+            <div className={headerClass}>
+              <div className="flex items-center gap-1">
+                <PieChartIcon size={13} className="text-primary" />
+                <h3 className="font-bold text-xs text-foreground">Stage Distribution</h3>
+              </div>
+            </div>
+            <div className="p-3 h-[230px] w-[200px] flex items-center justify-center mx-auto">
+              {stageDistribution && stageDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stageDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={50}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {stageDistribution.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => value} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
-          <div>
-            <p className={labelClass}>Disbursed</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <h4 className="text-3xl font-black text-foreground">{stats.monthlyTracker?.disbursed?.units || 0}</h4>
-              <span className="text-sm font-bold text-muted-foreground">₹{((stats.monthlyTracker?.disbursed?.amount || 0) / 100000).toFixed(1)}L</span>
-            </div>
-            <p className="text-[10px] text-purple-600 font-bold mt-2">Successful completions</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Primary Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Performance Overview (Area Chart) */}
-        <div className={`${chartCardClass} lg:col-span-2`}>
+          {/* Bank Distribution */}
+          <div className={chartCardClass}>
+            <div className={headerClass}>
+              <div className="flex items-center gap-1">
+                <Building2 size={13} className="text-primary" />
+                <h3 className="font-bold text-xs text-foreground">Bank Distribution</h3>
+              </div>
+            </div>
+            <div className="p-3 h-[220px] w-[200px] flex items-center justify-center mx-auto">
+              {bankDistribution && bankDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={bankDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={50}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {bankDistribution.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => value} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
+            </div>
+          </div>
+
+          {/* Status Distribution */}
+          <div className={chartCardClass}>
+            <div className={headerClass}>
+              <div className="flex items-center gap-1">
+                <Target size={13} className="text-primary" />
+                <h3 className="font-bold text-xs text-foreground">Status Distribution</h3>
+              </div>
+            </div>
+            <div className="p-3 h-[220px] w-[200px] flex items-center justify-center mx-auto">
+              {statusDistribution && statusDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={50}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {statusDistribution.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => value} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
+            </div>
+          </div>
+        </ScrollSection>
+
+        {/* Performance Chart */}
+        <ScrollSection delay={0.3} className={chartCardClass} style={{marginTop:'clamp(-9vh, -7vh, -1rem)',marginBottom:'clamp(-9vh, -1vw, -1vh)'}}>
           <div className={headerClass}>
-            <div className="flex items-center gap-2">
-              <TrendingUp size={18} className="text-primary" />
-              <h3 className="font-bold text-foreground">Performance Over Time</h3>
+            <div className="flex items-center gap-1">
+              <TrendingUp size={13} className="text-primary" />
+              <h3 className="font-bold text-xs text-foreground">Performance Trend</h3>
             </div>
           </div>
-          <div className="p-6 h-[300px]">
+          <div style={{ height: 'clamp(250px, 50vw, 500px)', width: '100%'}}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockAreaData}>
+              <AreaChart data={mockAreaData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} >
                 <defs>
                   <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorApproved" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={6} />
                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
                 <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)', padding: '8px', fontSize: '12px' }}
                   cursor={{ stroke: '#3b82f6', strokeWidth: 2 }}
                 />
                 <Area type="monotone" dataKey="logins" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorLogins)" />
-                <Area type="monotone" dataKey="approved" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" fill="transparent" />
+                <Area type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorApproved)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
-        {/* Lead Funnel (New Chart) */}
-        <div className={chartCardClass}>
-          <div className={headerClass}>
-            <div className="flex items-center gap-2">
-              <Target size={18} className="text-primary" />
-              <h3 className="font-bold text-foreground">Lead Conversion Funnel</h3>
-            </div>
-          </div>
-          <div className="p-6 flex-1 flex flex-col justify-center">
-            {stats.stageBreakdown && stats.stageBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={stats.stageBreakdown} layout="vertical" margin={{ left: 20 }}>
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="stage" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} width={80} />
-                  <Tooltip cursor={{fill: 'transparent'}} />
-                  <Bar dataKey="count" radius={[0, 8, 8, 0]}>
-                    {stats.stageBreakdown.map((_: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={STATUS_CHART_COLORS[index % STATUS_CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-center py-10 opacity-30">
-                <BarChart3 size={48} className="mx-auto mb-2" />
-                <p className="text-xs font-bold">No data available for current period</p>
-              </div>
-            )}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {stats.stageBreakdown?.slice(0, 4).map((s: any, i: number) => (
-                <div key={s.stage} className="flex flex-col p-2 bg-gray-50 dark:bg-white/5 rounded-xl border border-border/50">
-                  <span className="text-[10px] text-muted-foreground capitalize">{s.stage}</span>
-                  <span className="text-sm font-black text-foreground">{s.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        </ScrollSection>
       </div>
-
-      {/* Secondary Charts: Bank Wise Bars */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        
-        {/* Bank-wise Login Volume */}
-        <div className={chartCardClass}>
-          <div className={headerClass}>
-            <div className="flex items-center gap-2">
-              <Building2 size={18} className="text-primary" />
-              <h3 className="font-bold text-foreground">Login Volume by Bank</h3>
-            </div>
-          </div>
-          <div className="p-6 h-[250px]">
-            {stats.loginBankWise && stats.loginBankWise.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.loginBankWise}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="bankName" hide />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    cursor={{fill: '#f8fafc'}}
-                  />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={32} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <div className="h-full flex items-center justify-center opacity-20">No data</div>}
-          </div>
-        </div>
-
-        {/* Bank-wise Disbursement Amount */}
-        <div className={chartCardClass}>
-          <div className={headerClass}>
-            <div className="flex items-center gap-2">
-              <IndianRupee size={18} className="text-primary" />
-              <h3 className="font-bold text-foreground">Disbursement Value (INR)</h3>
-            </div>
-          </div>
-          <div className="p-6 h-[250px]">
-            {stats.disbursementBankWise && stats.disbursementBankWise.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.disbursementBankWise}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="bankName" hide />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                  <Tooltip 
-                    formatter={(value: number) => `₹${(value/100000).toFixed(2)}L`}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    cursor={{fill: '#f8fafc'}}
-                  />
-                  <Bar dataKey="amount" fill="#10b981" radius={[6, 6, 0, 0]} barSize={32} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <div className="h-full flex items-center justify-center opacity-20">No data</div>}
-          </div>
-        </div>
-      </div>
-
-      {/* Detailed Data Tables (Mobile Scrollers) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Table 1 */}
-        <div className={chartCardClass}>
-          <div className={headerClass}><h3 className="font-bold text-foreground text-sm">Financier Performance Matrix</h3></div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-gray-50/50 dark:bg-white/5 text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-                  <th className="px-6 py-4">Financier</th>
-                  <th className="px-6 py-4 text-center">Logins</th>
-                  <th className="px-6 py-4 text-right">Value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {stats.disbursementBankWise?.map((bank: any, i: number) => (
-                  <tr key={i} className="hover:bg-primary/5 transition-colors group">
-                    <td className="px-6 py-4 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-border/50 flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
-                        <Building2 size={14} />
-                      </div>
-                      <span className="font-bold text-sm text-foreground">{bank.bankName}</span>
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-sm text-muted-foreground">{bank.units || 0}</td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-black text-sm text-primary">₹{(bank.amount / 100000).toFixed(2)}L</span>
-                    </td>
-                  </tr>
-                ))}
-                {(!stats.disbursementBankWise || stats.disbursementBankWise.length === 0) && (
-                  <tr><td colSpan={3} className="px-6 py-10 text-center text-xs opacity-50">No financier data listed for this period</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* List: Recent Status Summary */}
-        <div className={chartCardClass}>
-          <div className={headerClass}><h3 className="font-bold text-foreground text-sm">Application Breakdown</h3></div>
-          <div className="p-6 space-y-4">
-            {stats.inProcessTags?.length > 0 ? (
-              stats.inProcessTags.map((tag: any, i: number) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-border/50 hover:border-primary/30 transition-all cursor-default">
-                  <div className="flex items-center gap-4">
-                    <div className="w-2 h-10 rounded-full bg-primary/20">
-                      <div className="w-full h-1/2 bg-primary rounded-full"></div>
-                    </div>
-                    <div>
-                      <h5 className="font-bold text-sm text-foreground">{tag.tag}</h5>
-                      <span className="text-[10px] text-muted-foreground font-bold">Needs Immediate Action</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-2xl font-black text-primary leading-none">{tag.count}</span>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Units</span>
-                  </div>
-                </div>
-              ))
-            ) : <p className="text-center py-10 opacity-30 text-xs font-bold">Comprehensive breakdown unavailable</p>}
-          </div>
-        </div>
-      </div>
-    </div>
+    </DashboardContext.Provider>
   );
 }

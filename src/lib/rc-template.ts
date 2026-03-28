@@ -391,6 +391,10 @@ export async function generateRCTemplatePDF(loan: LoanData): Promise<Blob> {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5);
     doc.text(bodyType || "------", 72, 96.5);
+    
+    doc.setFontSize(5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Seating(in all) Capacity:', 35, 99.2);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5);
     doc.text(seating || "------", 35, 101.9);
