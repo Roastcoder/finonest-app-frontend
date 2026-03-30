@@ -200,7 +200,9 @@ export default function Signup() {
       if (error.message.includes('already registered')) {
         toast.error(error.message);
       } else {
-        toast.error('Failed to send OTP. Please try again.');
+        toast.error('Aadhaar service is currently unavailable. You can skip this step and verify later.');
+        // Auto-show skip option
+        setOtpSent(false);
       }
     } finally {
       setLoading(false);
@@ -244,8 +246,8 @@ export default function Signup() {
       return;
     }
 
-    if (!panVerified || !aadhaarVerified) {
-      toast.error('Please complete PAN and Aadhaar verification');
+    if (!panVerified) {
+      toast.error('Please complete PAN verification');
       return;
     }
 
@@ -529,6 +531,7 @@ export default function Signup() {
             </div>
 
             {!otpSent ? (
+              <>
               <button
                 onClick={handleSendAadhaarOtp}
                 disabled={loading || !aadhaarNumber || aadhaarNumber.length !== 12}
@@ -546,6 +549,14 @@ export default function Signup() {
                   </>
                 )}
               </button>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(4)}
+                className="w-full py-2.5 px-4 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              >
+                Skip Aadhaar (Verify Later)
+              </button>
+              </>
             ) : (
               <>
                 <div>
@@ -763,7 +774,7 @@ export default function Signup() {
 
             <button
               onClick={handleSignup}
-              disabled={loading || !panVerified || !aadhaarVerified}
+              disabled={loading || !panVerified}
               className="w-full flex items-center justify-center gap-2 font-bold py-3 px-4 rounded-xl text-white text-sm transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 bg-gradient-to-r from-secondary to-primary border border-white/20"
             >
               {loading ? (

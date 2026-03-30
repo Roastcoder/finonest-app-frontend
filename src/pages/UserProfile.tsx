@@ -505,7 +505,7 @@ export default function UserProfile() {
                 )}
               </div>
             </div>
-            <InfoRow label="Full Name" value={kyc.aadhaar_details?.full_name || profile.name || '—'} />
+            <InfoRow label="Full Name" value={kyc.aadhaar_details?.full_name || kyc.aadhaar_details?.name || '—'} />
             {kyc.aadhaar_details?.date_of_birth && <InfoRow label="Date of Birth" value={kyc.aadhaar_details.date_of_birth} />}
             {kyc.aadhaar_details?.gender && <InfoRow label="Gender" value={kyc.aadhaar_details.gender} />}
             {kyc.aadhaar_details?.father_name && <InfoRow label="Father's Name" value={kyc.aadhaar_details.father_name} />}
