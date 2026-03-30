@@ -39,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Expenses', path: '/expenses', icon: <CreditCard size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
       { label: 'Insurance', path: '/insurance', icon: <ShieldCheck size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager'] },
       { label: 'Link Loan Finder', path: '/link-loan-finder', icon: <Shield size={16} />, roles: ['admin', 'sales_manager', 'branch_manager'] },
+      { label: 'Find My Lender', path: '/find-lender', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'] },
     ]
   },
   {
@@ -50,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Banks / NBFC', path: '/banks', icon: <Building2 size={16} />, roles: ['admin'] },
       { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={16} />, roles: ['admin'] },
       { label: 'Branches', path: '/branches', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'sales_manager'] },
+      { label: 'Lender Coordinates', path: '/admin/lender-coordinates', icon: <MapPin size={16} />, roles: ['admin'] },
       { label: 'Permissions', path: '/permissions', icon: <Settings size={16} />, roles: ['admin'] },
       { label: 'Audit Logs', path: '/audit-logs', icon: <FileText size={16} />, roles: ['admin'] },
       { label: 'System Config', path: '/settings', icon: <Sliders size={16} />, roles: ['admin'] },
