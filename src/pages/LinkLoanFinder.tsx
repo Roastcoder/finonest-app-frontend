@@ -101,6 +101,10 @@ export default function LinkLoanFinder() {
   const [manualMobile, setManualMobile] = useState('');
   const [manualFirstName, setManualFirstName] = useState('');
   const [manualLastName, setManualLastName] = useState('');
+  const [manualPan, setManualPan] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualDob, setManualDob] = useState('');
+  const [manualPincode, setManualPincode] = useState('');
   const [loadingCredit, setLoadingCredit] = useState(false);
   const [autoLoans, setAutoLoans] = useState<AutoLoan[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<AutoLoan | null>(null);
@@ -114,6 +118,7 @@ export default function LinkLoanFinder() {
     setLoadingRc(true);
     setVehicle(null); setAutoLoans([]); setSelectedLoan(null); setSameLenderLoans([]);
     setManualMobile(''); setManualFirstName(''); setManualLastName('');
+    setManualPan(''); setManualEmail(''); setManualDob(''); setManualPincode('');
     try {
       const res = await fetch(`${API}/link-loan/rc-lookup`, {
         method: 'POST',
@@ -127,6 +132,7 @@ export default function LinkLoanFinder() {
       setManualMobile(data.mobile || '');
       setManualFirstName(data.first_name || '');
       setManualLastName(data.last_name || '');
+      setManualPan(data.pan || '');
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -144,6 +150,10 @@ export default function LinkLoanFinder() {
       toast.error('Customer first name is required. Please enter it above.');
       return;
     }
+    if (!manualPan.trim() || manualPan.trim().length !== 10) {
+      toast.error('PAN number is required (10 characters).');
+      return;
+    }
     setLoadingCredit(true);
     setAutoLoans([]); setSelectedLoan(null); setSameLenderLoans([]);
     try {
@@ -156,6 +166,10 @@ export default function LinkLoanFinder() {
           last_name: lastName,
           rc_number: rc.trim().toUpperCase(),
           force_refresh: forceRefresh,
+          pan: manualPan.trim() || undefined,
+          email: manualEmail.trim() || undefined,
+          dob: manualDob.trim() || undefined,
+          pincode: manualPincode.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -249,36 +263,29 @@ export default function LinkLoanFinder() {
                       <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">
                         First Name {vehicle.name_missing && <span className="text-red-500">*</span>}
                       </label>
-                      <input
-                        type="text"
-                        value={manualFirstName}
-                        onChange={e => setManualFirstName(e.target.value)}
-                        placeholder="First name"
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
+                      <input type="text" value={manualFirstName} onChange={e => setManualFirstName(e.target.value)} placeholder="First name" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Last Name</label>
-                      <input
-                        type="text"
-                        value={manualLastName}
-                        onChange={e => setManualLastName(e.target.value)}
-                        placeholder="Last name"
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
+                      <input type="text" value={manualLastName} onChange={e => setManualLastName(e.target.value)} placeholder="Last name" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                     <div>
                       <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">
                         Mobile {vehicle.mobile_missing && <span className="text-amber-500">(optional)</span>}
                       </label>
-                      <input
-                        type="tel"
-                        value={manualMobile}
-                        onChange={e => setManualMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="10-digit mobile"
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
-                        maxLength={10}
-                      />
+                      <input type="tel" value={manualMobile} onChange={e => setManualMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" maxLength={10} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">PAN <span className="text-red-500">*</span></label>
+                      <input type="text" value={manualPan} onChange={e => setManualPan(e.target.value.toUpperCase().slice(0, 10))} placeholder="ABCDE1234F" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" maxLength={10} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Date of Birth <span className="text-muted-foreground normal-case">(optional)</span></label>
+                      <input type="text" value={manualDob} onChange={e => setManualDob(e.target.value)} placeholder="DD-MM-YYYY" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Pincode <span className="text-muted-foreground normal-case">(optional)</span></label>
+                      <input type="text" value={manualPincode} onChange={e => setManualPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit pincode" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" maxLength={6} />
                     </div>
                   </div>
                 </div>
@@ -302,7 +309,7 @@ export default function LinkLoanFinder() {
                     )}
                     <button
                       onClick={() => handleFetchCredit(false)}
-                      disabled={loadingCredit || !manualFirstName.trim()}
+                      disabled={loadingCredit || !manualFirstName.trim() || manualPan.trim().length !== 10}
                       className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-secondary font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-all"
                     >
                       {loadingCredit ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}

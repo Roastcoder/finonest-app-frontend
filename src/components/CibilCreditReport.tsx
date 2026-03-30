@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CreditCard, RefreshCw, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle, User, Building2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 function authHeaders() {
   return {
@@ -261,6 +261,7 @@ export default function CibilCreditReport({ loan }: Props) {
           first_name: firstName,
           last_name: lastName,
           mobile: loan.mobile || '',
+          pan: loan.pan_number || '',
           rc_number: loan.vehicle_number || '',
           force_refresh: forceRefresh,
         }),
@@ -443,11 +444,10 @@ export default function CibilCreditReport({ loan }: Props) {
 
           {/* ── Enquiries ── */}
           {enquiries.length > 0 && (
-            <div className="bg-card border border-border rounded-xl p-4">
-              <p className="text-xs font-bold text-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
-                <Search size={13} className="text-primary" />
-                Credit Enquiries ({enquiries.length})
-              </p>
+            <CollapsibleSection
+              label={`Credit Enquiries (${enquiries.length})`}
+              dot="bg-blue-500"
+            >
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -470,7 +470,7 @@ export default function CibilCreditReport({ loan }: Props) {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
 
