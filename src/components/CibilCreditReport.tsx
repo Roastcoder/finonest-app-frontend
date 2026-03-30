@@ -251,6 +251,8 @@ export default function CibilCreditReport({ loan }: Props) {
     const firstName = parts[0] || '';
     const lastName = parts.slice(1).join(' ') || '';
     if (!firstName) { toast.error('Applicant name required'); return; }
+    const rcNumber = (loan.vehicle_number || '').trim();
+    if (!rcNumber) { toast.error('Vehicle RC number not found on this loan'); return; }
 
     setLoading(true);
     try {
@@ -262,7 +264,7 @@ export default function CibilCreditReport({ loan }: Props) {
           last_name: lastName,
           mobile: loan.mobile || '',
           pan: loan.pan_number || '',
-          rc_number: loan.vehicle_number || '',
+          rc_number: rcNumber,
           force_refresh: forceRefresh,
         }),
       });
@@ -332,6 +334,8 @@ export default function CibilCreditReport({ loan }: Props) {
           <CreditCard size={28} className="mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">Fetch the Experian credit report for</p>
           <p className="text-sm font-semibold text-foreground">{loan.applicant_name} · {loan.mobile}</p>
+          {!loan.vehicle_number && <p className="text-xs text-red-500 font-semibold mt-1">⚠ RC number missing on this loan</p>}
+          {loan.vehicle_number && !loan.pan_number && <p className="text-xs text-amber-500 font-semibold mt-1">⚠ PAN number missing — add it for better match accuracy</p>}
         </div>
       )}
 

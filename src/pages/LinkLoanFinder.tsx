@@ -354,7 +354,7 @@ export default function LinkLoanFinder() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     loan.account_status === 'Active'
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-muted text-muted-foreground'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                   }`}>
                     {fmt(loan.account_status)}
                   </span>
@@ -365,6 +365,7 @@ export default function LinkLoanFinder() {
                   <InfoCell label="Balance" value={fmtCur(loan.current_balance)} small />
                   <InfoCell label="Opened" value={fmt(loan.open_date)} small />
                   <InfoCell label="Closed" value={fmt(loan.close_date)} small />
+                  <InfoCell label="Status" value={fmt(loan.account_status)} small />
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); setExpanded(prev => ({ ...prev, [i]: !prev[i] })); }}
