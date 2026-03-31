@@ -4,7 +4,9 @@ import { MapPin, Search, Phone, User, Building2, Loader2, AlertCircle, CheckCirc
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const HARDCODED_API = 'http://localhost:5001/api';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBMkTPRdi-YeWJO-tLIdQ44hNLKsV-YfAE';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 function authHeaders() {
   return {
@@ -55,11 +57,16 @@ async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]
   if (!trimmedInput || trimmedInput.length < 2) return [];
   
   try {
-    const response = await fetch(`${API}/google-maps/autocomplete`, {
+    const response = await fetch(`${API_BASE_URL}/google-maps/autocomplete`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ input })
     });
+    
+    if (!response.ok) {
+      console.error('Backend API error:', response.status);
+      return [];
+    }
     
     const data = await response.json();
     return data.predictions || [];
@@ -72,7 +79,7 @@ async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]
 // Get coordinates from place_id via backend proxy
 async function getPlaceDetails(placeId: string): Promise<{ lat: number; lng: number; address: string } | null> {
   try {
-    const response = await fetch(`${API}/google-maps/place-details`, {
+    const response = await fetch(`${API_BASE_URL}/google-maps/place-details`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ place_id: placeId })
@@ -92,7 +99,7 @@ async function getPlaceDetails(placeId: string): Promise<{ lat: number; lng: num
 // Geocode address for branch locations via backend proxy
 async function geocodeAddress(addr: string) {
   try {
-    const response = await fetch(`${API}/google-maps/geocode`, {
+    const response = await fetch(`${API_BASE_URL}/google-maps/geocode`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ address: addr })
@@ -310,7 +317,7 @@ export default function FindMyLender() {
     setLoading(true);
     try {
       // Call API to find lenders
-      const response = await fetch(`${API}/find-lender/search-by-address`, {
+      const response = await fetch(`${API_BASE_URL}/find-lender/search-by-address`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
@@ -350,7 +357,7 @@ export default function FindMyLender() {
         toast.success(`Found ${data.lenders.length} lenders`);
       }
 
-      await fetch(`${API}/find-lender/save-search`, {
+      await fetch(`${API_BASE_URL}/find-lender/save-search`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({

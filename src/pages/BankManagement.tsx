@@ -13,6 +13,25 @@ function BranchDialog({ branch, onClose, onSuccess }: { branch: any; onClose: ()
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(branch);
   const [loading, setLoading] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>(
+    branch.product ? branch.product.split(', ').map((p: string) => p.trim()) : []
+  );
+
+  const productOptions = [
+    'New Car - Purchase',
+    'Used Car - Purchase',
+    'Used Car - Refinance',
+    'Used Car - Top-up',
+    'Used Car - BT'
+  ];
+
+  const handleProductToggle = (product: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(product)
+        ? prev.filter(p => p !== product)
+        : [...prev, product]
+    );
+  };
 
   useEffect(() => {
     setFormData(branch);
@@ -23,10 +42,14 @@ function BranchDialog({ branch, onClose, onSuccess }: { branch: any; onClose: ()
     setLoading(true);
     try {
       const { bank_id, ...branchData } = formData;
+      const updatedData = {
+        ...branchData,
+        product: selectedProducts.length > 0 ? selectedProducts.join(', ') : ''
+      };
       const res = await fetch(`${API}/banks/${branch.bank_id}/branches/${branch.id}`, {
         method: 'PUT',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(branchData)
+        body: JSON.stringify(updatedData)
       });
       if (!res.ok) throw new Error('Failed to update branch');
       toast.success('Branch updated successfully');
@@ -92,14 +115,21 @@ function BranchDialog({ branch, onClose, onSuccess }: { branch: any; onClose: ()
                 className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground">Product</label>
-              <input
-                type="text"
-                value={formData.product || ''}
-                onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
-              />
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-muted-foreground mb-2 block">Products</label>
+              <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/20">
+                {productOptions.map(product => (
+                  <label key={product} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.includes(product)}
+                      onChange={() => handleProductToggle(product)}
+                      className="w-4 h-4 rounded border-border cursor-pointer"
+                    />
+                    <span className="text-sm text-foreground">{product}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground">Sales Manager Name</label>
