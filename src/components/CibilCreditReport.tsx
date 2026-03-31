@@ -250,7 +250,10 @@ export default function CibilCreditReport({ loan }: Props) {
     const parts = (loan.applicant_name || '').trim().split(' ');
     const firstName = parts[0] || '';
     const lastName = parts.slice(1).join(' ') || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    
     if (!firstName) { toast.error('Applicant name required'); return; }
+    
     const rcNumber = (loan.vehicle_number || '').trim();
     if (!rcNumber) { toast.error('Vehicle RC number not found on this loan'); return; }
 
@@ -260,12 +263,13 @@ export default function CibilCreditReport({ loan }: Props) {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
+          name: fullName,
+          id_number: loan.pan_number || '',
+          id_type: 'pan',
           mobile: loan.mobile || '',
-          pan: loan.pan_number || '',
           rc_number: rcNumber,
           force_refresh: forceRefresh,
+          pan: loan.pan_number || '',
         }),
       });
       const data = await res.json();

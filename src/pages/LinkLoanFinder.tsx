@@ -142,10 +142,11 @@ export default function LinkLoanFinder() {
 
   const handleFetchCredit = async (forceRefresh = false) => {
     if (!vehicle) return;
-    // Use manual inputs (which are pre-filled from RC data, or user-entered if missing)
     const firstName = manualFirstName.trim();
     const lastName = manualLastName.trim();
     const mobile = manualMobile.trim();
+    const name = `${firstName} ${lastName}`.trim();
+    
     if (!firstName) {
       toast.error('Customer first name is required. Please enter it above.');
       return;
@@ -161,15 +162,13 @@ export default function LinkLoanFinder() {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          mobile,
-          first_name: firstName,
-          last_name: lastName,
+          name: name,
+          id_number: manualPan.trim(),
+          id_type: 'pan',
+          mobile: mobile,
           rc_number: rc.trim().toUpperCase(),
           force_refresh: forceRefresh,
-          pan: manualPan.trim() || undefined,
-          email: manualEmail.trim() || undefined,
-          dob: manualDob.trim() || undefined,
-          pincode: manualPincode.trim() || undefined,
+          pan: manualPan.trim()
         }),
       });
       const data = await res.json();

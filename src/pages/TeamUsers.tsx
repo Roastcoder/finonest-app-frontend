@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Search, Shield, ChevronDown, ChevronRight, UserPlus, X, Edit2, Save, Phone, User } from 'lucide-react';
+import { Users, Search, Shield, ChevronDown, ChevronRight, UserPlus, X, Edit2, Save, Phone, User, Copy } from 'lucide-react';
 import { ROLE_LABELS, UserRole } from '@/lib/auth';
 import { toast } from 'sonner';
 
 const UserHierarchyNode = ({ user, childrenMap, level = 0, onUpdateReporting, availableManagers }: any) => {
-  const [expanded, setExpanded] = useState(true); // Keep expanded by default like desktop
+  const [expanded, setExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [newReportingTo, setNewReportingTo] = useState(user.reporting_to || '');
   const children = childrenMap[user.id] || [];
@@ -20,7 +20,6 @@ const UserHierarchyNode = ({ user, childrenMap, level = 0, onUpdateReporting, av
 
   return (
     <div className="w-full">
-      {/* Unified View - Same for Desktop and Mobile */}
       <div className="block">
         <div
           className={`flex items-center justify-between p-3 border-b border-border/50 hover:bg-muted/30 transition-colors ${level > 0 ? 'border-l-2 border-l-accent' : ''}`}
@@ -48,6 +47,23 @@ const UserHierarchyNode = ({ user, childrenMap, level = 0, onUpdateReporting, av
                   <Shield size={10} /> {ROLE_LABELS[user.role as UserRole]}
                 </span>
               </div>
+              {user.refer_code && (
+                <div className="flex items-center gap-2 text-xs mt-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-800 w-fit">
+                  <span className="text-green-600 dark:text-green-400 font-semibold">Ref:</span>
+                  <span className="text-green-700 dark:text-green-300 font-mono font-bold tracking-wider text-sm">{user.refer_code}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(user.refer_code);
+                      toast.success('Referral code copied!');
+                    }}
+                    className="ml-1 p-1 rounded hover:bg-green-200 dark:hover:bg-green-700 text-green-600 dark:text-green-400 transition-colors"
+                    title="Copy referral code"
+                  >
+                    <Copy size={12} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -159,7 +175,8 @@ export default function TeamUsers() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
       });
       if (!response.ok) throw new Error('Failed to fetch team');
-      return await response.json();
+      const data = await response.json();
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -236,7 +253,6 @@ export default function TeamUsers() {
     }
   });
 
-  // Flatten team data for filtering
   const flattenTeam = (data: any[]): any[] => {
     let flat: any[] = [];
     data.forEach(item => {
@@ -263,7 +279,6 @@ export default function TeamUsers() {
       return acc;
     }, {});
 
-    // Rebuild hierarchy with filtered items
     const filteredSet = new Set(filtered.map((u: any) => u.id));
     const hierarchy = teamData
       .filter((leader: any) => filteredSet.has(leader.id))
@@ -275,16 +290,13 @@ export default function TeamUsers() {
     return { filteredHierarchy: hierarchy, roleCounts: counts };
   }, [teamData, search, roleFilter]);
 
-  // Get available managers for reporting change (only team leaders under current user)
   const availableManagers = useMemo(() => {
     if (user?.role === 'branch_manager' || user?.role === 'dsa') {
-      // BM/DSA can assign to team leaders under them
       const teamLeaders = flatTeam.filter((u: any) => 
         u.role === 'team_leader' && u.reporting_to === user.id
       );
       return teamLeaders;
     } else if (user?.role === 'team_leader') {
-      // Team leaders can assign to themselves or other team leaders at same level
       const teamLeaders = flatTeam.filter((u: any) => 
         u.role === 'team_leader' && (u.id === user.id || u.reporting_to === user.reporting_to)
       );
@@ -297,12 +309,28 @@ export default function TeamUsers() {
 
   return (
     <div className="mobile-scroll">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">My Team</h1>
           <p className="text-muted-foreground text-sm mt-1">
             {isManager ? 'View your team leaders and their team members' : 'View and manage your team members'}
           </p>
+          {user?.refer_code && ['team_leader', 'branch_manager', 'dsa', 'sales_manager', 'manager'].includes(user?.role || '') && (
+            <div className="flex items-center gap-2 text-xs mt-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-800 w-fit">
+              <span className="text-green-600 dark:text-green-400 font-semibold">Your Ref Code:</span>
+              <span className="text-green-700 dark:text-green-300 font-mono font-bold tracking-wider text-sm">{user.refer_code}</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(user.refer_code);
+                  toast.success('Referral code copied!');
+                }}
+                className="ml-1 p-1 rounded hover:bg-green-200 dark:hover:bg-green-700 text-green-600 dark:text-green-400 transition-colors"
+                title="Copy referral code"
+              >
+                <Copy size={12} />
+              </button>
+            </div>
+          )}
         </div>
         {isManager && (
           <button
@@ -314,8 +342,7 @@ export default function TeamUsers() {
         )}
       </div>
 
-      {/* Role summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4">
         {Object.entries(ROLE_LABELS).map(([role, label]) => {
           const count = roleCounts[role] || 0;
           return count > 0 ? (
@@ -331,8 +358,7 @@ export default function TeamUsers() {
         })}
       </div>
 
-      {/* Search */}
-      <div className="stat-card mb-4">
+      <div className="stat-card mb-6">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -345,7 +371,6 @@ export default function TeamUsers() {
         </div>
       </div>
 
-      {/* Hierarchy View */}
       <div className="stat-card">
         <h3 className="text-md font-semibold mb-4 text-foreground flex items-center gap-2">
           <Shield size={18} className="text-accent" /> Team Structure
@@ -364,7 +389,6 @@ export default function TeamUsers() {
         ) : (
           <div className="bg-background rounded-lg border border-border overflow-hidden">
             {isManager ? (
-              // Manager view: show team leaders with their members
               filteredHierarchy.map((leader: any) => {
                 const childrenMap = { [leader.id]: leader.team_members || [] };
                 return (
@@ -379,7 +403,6 @@ export default function TeamUsers() {
                 );
               })
             ) : (
-              // Team leader view: show direct team members
               filteredHierarchy.map((member: any) => (
                 <UserHierarchyNode 
                   key={member.id} 
@@ -395,7 +418,6 @@ export default function TeamUsers() {
         )}
       </div>
 
-      {/* Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-xl shadow-2xl max-w-md w-full p-6">
@@ -476,7 +498,6 @@ export default function TeamUsers() {
                       {manager.full_name} ({ROLE_LABELS[manager.role as UserRole]})
                     </option>
                   ))}
-                  {/* Also show current user as option for managers */}
                   {['manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader'].includes(user?.role || '') && (
                     <option value={user?.id}>
                       {user?.name || user?.full_name} (You - {ROLE_LABELS[user?.role as UserRole]})

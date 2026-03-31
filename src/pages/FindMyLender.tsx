@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 function authHeaders() {
   return {
@@ -43,180 +44,155 @@ interface Lender {
 
 async function geocodeAddress(addr: string) {
   try {
-    const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
-    const variations = [
-      addr,
-      parts.slice(-2).join(', '),
-      parts.slice(-3).join(', '),
-      parts[parts.length - 1]
-    ].filter(Boolean);
-
-    for (const searchAddr of variations) {
-      try {
-        const params = new URLSearchParams({
-          q: searchAddr,
-          format: 'json',
-          limit: '1'
-        });
-
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-          headers: { 'User-Agent': 'Finonest-App' }
-        });
-
-        const data = await response.json();
-        if (data && data.length > 0) {
-          return {
-            lat: parseFloat(data[0].lat),
-            lng: parseFloat(data[0].lon)
-          };
-        }
-      } catch (e) {
-        continue;
-      }
+    console.log('🔍 Starting geocoding for address:', addr);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${GOOGLE_MAPS_API_KEY}`;
+    console.log('📍 Geocoding API URL:', url);
+    
+    const response = await fetch(url);
+    console.log('📡 Geocoding API Response Status:', response.status);
+    
+    const data = await response.json();
+    console.log('📊 Geocoding API Response Data:', data);
+    
+    if (data.results && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      console.log('✅ Geocoding Success! Coordinates:', location);
+      console.log('   Latitude:', location.lat);
+      console.log('   Longitude:', location.lng);
+      return {
+        lat: location.lat,
+        lng: location.lng
+      };
     }
+    console.log('❌ No results found from geocoding API');
     return null;
   } catch (error) {
-    console.error('Geocoding error:', error);
+    console.error('❌ Geocoding error:', error);
     return null;
   }
 }
 
-function SimpleMap({ customerLat, customerLng, branches }: { customerLat: number; customerLng: number; branches: LenderBranch[] }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number; customerLng: number; branches: LenderBranch[] }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
 
   useEffect(() => {
-    if (!canvasRef.current || !branches.length) return;
+    if (!mapRef.current || !branches.length) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    let minLat = customerLat, maxLat = customerLat;
-    let minLng = customerLng, maxLng = customerLng;
-
-    branches.forEach(b => {
-      if (b.latitude && b.longitude) {
-        minLat = Math.min(minLat, b.latitude);
-        maxLat = Math.max(maxLat, b.latitude);
-        minLng = Math.min(minLng, b.longitude);
-        maxLng = Math.max(maxLng, b.longitude);
-      }
+    const map = new google.maps.Map(mapRef.current, {
+      zoom: 12,
+      center: { lat: customerLat, lng: customerLng },
+      mapTypeId: 'roadmap'
     });
 
-    const latPadding = (maxLat - minLat) * 0.1 || 0.1;
-    const lngPadding = (maxLng - minLng) * 0.1 || 0.1;
-    minLat -= latPadding;
-    maxLat += latPadding;
-    minLng -= lngPadding;
-    maxLng += lngPadding;
+    mapInstanceRef.current = map;
 
-    const latRange = maxLat - minLat;
-    const lngRange = maxLng - minLng;
-    const scaleX = canvas.width / lngRange;
-    const scaleY = canvas.height / latRange;
-
-    const toCanvasX = (lng: number) => (lng - minLng) * scaleX;
-    const toCanvasY = (lat: number) => canvas.height - (lat - minLat) * scaleY;
-
-    branches.forEach(branch => {
-      if (branch.latitude && branch.longitude && branch.geo_limit_km) {
-        const x = toCanvasX(branch.longitude);
-        const y = toCanvasY(branch.latitude);
-        const radius = (branch.geo_limit_km / 111) * scaleX;
-
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
+    // Add customer location marker
+    new google.maps.Marker({
+      position: { lat: customerLat, lng: customerLng },
+      map: map,
+      title: 'Your Location',
+      icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
     });
 
+    // Add branch markers and service areas
     branches.forEach(branch => {
       if (branch.latitude && branch.longitude) {
-        const x = toCanvasX(branch.longitude);
-        const y = toCanvasY(branch.latitude);
+        // Draw service area circle
+        if (branch.geo_limit_km) {
+          new google.maps.Circle({
+            map: map,
+            center: { lat: branch.latitude, lng: branch.longitude },
+            radius: branch.geo_limit_km * 1000,
+            fillColor: '#3b82f6',
+            fillOpacity: 0.1,
+            strokeColor: '#3b82f6',
+            strokeWeight: 2
+          });
+        }
 
-        ctx.fillStyle = '#16a136';
-        ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // Add branch marker
+        new google.maps.Marker({
+          position: { lat: branch.latitude, lng: branch.longitude },
+          map: map,
+          title: branch.branch_name,
+          icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+          infoWindow: new google.maps.InfoWindow({
+            content: `
+              <div style="font-size: 12px;">
+                <strong>${branch.branch_name}</strong><br/>
+                ${branch.location}<br/>
+                Distance: ${branch.distance} km<br/>
+                Service Area: ${branch.geo_limit_km} km
+              </div>
+            `
+          })
+        }).addListener('click', function() {
+          this.infoWindow.open(map, this);
+        });
       }
     });
 
-    const custX = toCanvasX(customerLng);
-    const custY = toCanvasY(customerLat);
-
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath();
-    ctx.arc(custX, custY, 8, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = '#1f2937';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('🔴 Your Location', 10, 20);
-    ctx.fillText('🟢 Bank Branch', 10, 40);
-    ctx.fillText('🔵 Service Area', 10, 60);
+    // Fit bounds
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: customerLat, lng: customerLng });
+    branches.forEach(b => {
+      if (b.latitude && b.longitude) {
+        bounds.extend({ lat: b.latitude, lng: b.longitude });
+      }
+    });
+    map.fitBounds(bounds);
   }, [customerLat, customerLng, branches]);
 
-  return <canvas ref={canvasRef} width={600} height={400} className="w-full rounded-xl border border-border" />;
+  return <div ref={mapRef} className="w-full h-96 rounded-xl border border-border" />;
 }
 
 export default function FindMyLender() {
   const { user } = useAuth();
   const [address, setAddress] = useState('');
   const [caseType, setCaseType] = useState('');
-  const [radius, setRadius] = useState(50);
   const [loading, setLoading] = useState(false);
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [searched, setSearched] = useState(false);
   const [branchesWithCoords, setBranchesWithCoords] = useState<LenderBranch[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  useEffect(() => {
+    // Set default coordinates to Jaipur location
+    setCoordinates({ lat: 26.8925, lng: 75.8048 });
+  }, []);
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   const handleSearch = async () => {
-    if (!address.trim()) {
+    let customerCoords = coordinates;
+    
+    // If address is provided, geocode it to get exact coordinates
+    if (address.trim()) {
+      const geocodedCoords = await geocodeAddress(address);
+      if (!geocodedCoords) {
+        toast.error('Could not find your address. Please try another location.');
+        return;
+      }
+      customerCoords = geocodedCoords;
+      setCoordinates(geocodedCoords);
+    } else if (!coordinates) {
       toast.error('Please enter an address');
       return;
     }
 
     setLoading(true);
     try {
-      // Geocode customer address
-      const customerCoords = await geocodeAddress(address);
-      if (!customerCoords) {
-        toast.error('Could not find your address. Please try another location.');
-        setLoading(false);
-        return;
-      }
-
-      setCoordinates(customerCoords);
-
       // Call API to find lenders
       const response = await fetch(`${API}/find-lender/search-by-address`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
           address: address.trim(),
-          case_type: caseType || null,
-          radius
+          case_type: caseType || null
         })
       });
 
@@ -283,129 +259,100 @@ export default function FindMyLender() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <div className="glass-card p-6 sticky top-24 space-y-4">
-              <h2 className="text-lg font-bold text-foreground mb-4">Search Lenders</h2>
+        {/* Search Bar - Full Width */}
+        <div className="glass-card p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Enter Your Location
+              </label>
+              <textarea
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && e.ctrlKey && handleSearch()}
+                placeholder="e.g., 3rd Floor, Besides Jaipur Hospital, BL Tower, 1, Tonk Rd, Jaipur"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                rows={2}
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Enter Your Location
-                </label>
-                <textarea
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && e.ctrlKey && handleSearch()}
-                  placeholder="e.g., 3rd Floor, Besides Jaipur Hospital, BL Tower, 1, Tonk Rd, Jaipur"
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Ctrl+Enter to search</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Loan Type (Optional)
-                </label>
-                <select
-                  value={caseType}
-                  onChange={e => setCaseType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="">All Types</option>
-                  <option value="purchase">Purchase</option>
-                  <option value="refinance">Refinance</option>
-                  <option value="bt">Balance Transfer</option>
-                  <option value="credit card">Credit Card</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Search Radius: {radius} km
-                </label>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  step="10"
-                  value={radius}
-                  onChange={e => setRadius(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-
-              <button
-                onClick={handleSearch}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-secondary font-semibold hover:opacity-90 disabled:opacity-60 transition-all"
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Loan Type (Optional)
+              </label>
+              <select
+                value={caseType}
+                onChange={e => setCaseType(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
-                {loading ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Searching...
-                  </>
-                ) : (
-                  <>
-                    <Search size={18} />
-                    Find Lenders
-                  </>
-                )}
-              </button>
-
-              <div className="mt-6 pt-6 border-t border-border">
-                <h3 className="text-sm font-bold text-foreground mb-3">Map Legend</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                    <span>Your Location</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full border-2 border-blue-500"></div>
-                    <span>Service Area (km)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-green-600"></div>
-                    <span>Bank Branch</span>
-                  </div>
-                </div>
-              </div>
+                <option value="">All Types</option>
+                <option value="purchase">Purchase</option>
+                <option value="refinance">Refinance</option>
+                <option value="bt">Balance Transfer</option>
+                <option value="credit card">Credit Card</option>
+              </select>
             </div>
-          </div>
 
-          <div className="lg:col-span-2">
-            <div className="glass-card p-6 space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Map size={20} className="text-primary" />
-                <h2 className="text-lg font-bold text-foreground">Map View</h2>
-              </div>
-
-              {searched && coordinates && branchesWithCoords.length > 0 ? (
-                <SimpleMap
-                  customerLat={coordinates.lat}
-                  customerLng={coordinates.lng}
-                  branches={branchesWithCoords}
-                />
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-secondary font-semibold hover:opacity-90 disabled:opacity-60 transition-all h-12"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Searching...
+                </>
               ) : (
-                <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
-                  <p className="text-muted-foreground">Search for lenders to see the map</p>
-                </div>
+                <>
+                  <Search size={18} />
+                  Find Lenders
+                </>
               )}
-
-              {searched && coordinates && (
-                <div className="p-4 rounded-xl bg-muted/40 border border-border">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Location:</strong> {coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <strong>Results:</strong> {lenders.length} lender{lenders.length !== 1 ? 's' : ''} found
-                  </p>
-                </div>
-              )}
-            </div>
+            </button>
           </div>
         </div>
 
+        {/* Map - Full Width */}
+        {(searched || coordinates) && (
+          <div className="glass-card p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Map size={20} className="text-primary" />
+              <h2 className="text-lg font-bold text-foreground">Map View</h2>
+            </div>
+
+            {coordinates && branchesWithCoords.length > 0 ? (
+              <GoogleMap
+                customerLat={coordinates.lat}
+                customerLng={coordinates.lng}
+                branches={branchesWithCoords}
+              />
+            ) : coordinates && !searched ? (
+              <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
+                <p className="text-muted-foreground">Search for lenders to see branches on map</p>
+              </div>
+            ) : (
+              <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
+                <p className="text-muted-foreground">No branches found in your area</p>
+              </div>
+            )}
+
+            {coordinates && (
+              <div className="p-4 rounded-xl bg-muted/40 border border-border mt-4">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Your Location:</strong> {coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}
+                </p>
+                {searched && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>Results:</strong> {lenders.length} lender{lenders.length !== 1 ? 's' : ''} found
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Lenders List */}
         {searched && (
           <div className="mt-8">
             {lenders.length === 0 ? (

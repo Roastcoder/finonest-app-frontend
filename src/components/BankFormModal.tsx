@@ -229,28 +229,13 @@ export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalP
                 <button
                   type="button"
                   onClick={handleAddNewBranch}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-colors"
                 >
                   <Plus size={13} /> Add New Branch
                 </button>
               </div>
 
-              {/* Branch dropdown */}
-              {branches.length > 0 && !isNewBranch && (
-                <div>
-                  <label className={labelClass}>Select Branch to Edit</label>
-                  <select
-                    className={inputClass}
-                    value={selectedBranchId}
-                    onChange={e => handleBranchSelect(e.target.value)}
-                  >
-                    <option value="">— Select a branch —</option>
-                    {branches.map(b => (
-                      <option key={b.id} value={String(b.id)}>{b.branch_name}{b.location ? ` (${b.location})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+
 
               {/* Branch form */}
               {activeBranch && (
