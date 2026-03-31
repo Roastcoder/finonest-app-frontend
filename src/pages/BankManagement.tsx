@@ -341,6 +341,7 @@ export default function BankManagement() {
           {filtered.map((bank: any) => {
             const bankLoans = (loans as any[]).filter(l => l.assigned_bank_id === bank.id);
             const disbursed = bankLoans.filter(l => l.status === 'disbursed').length;
+            const branchCount = bank.branches ? bank.branches.length : 0;
             return (
               <div key={bank.id} className="stat-card">
                 <div className="flex items-start justify-between mb-3">
@@ -370,7 +371,7 @@ export default function BankManagement() {
                   <div><p className="text-lg font-bold text-foreground">{bankLoans.length}</p><p className="text-[10px] text-muted-foreground">Cases</p></div>
                   <div><p className="text-lg font-bold text-foreground">{disbursed}</p><p className="text-[10px] text-muted-foreground">Disbursed</p></div>
                   <div><p className="text-lg font-bold text-accent">—</p><p className="text-[10px] text-muted-foreground">Status</p></div>
-                  <div><p className="text-lg font-bold text-foreground">0</p><p className="text-[10px] text-muted-foreground">Branches</p></div>
+                  <div><p className="text-lg font-bold text-foreground">{branchCount}</p><p className="text-[10px] text-muted-foreground">Branches</p></div>
                 </div>
                 {/* View Branches Button */}
                 <button

@@ -1,17 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { MapPin, Search, Phone, User, Building2, Loader2, AlertCircle, CheckCircle2, Map } from 'lucide-react';
+import { MapPin, Search, Phone, User, Building2, Loader2, AlertCircle, CheckCircle2, Map, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 function authHeaders() {
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
   };
+}
+
+interface AddressSuggestion {
+  place_id: string;
+  description: string;
+  main_text: string;
+  secondary_text: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface LenderBranch {
@@ -38,36 +46,65 @@ interface Lender {
     purchase: boolean;
     refinance: boolean;
     bt: boolean;
-    credit_card?: boolean;
   };
 }
 
-async function geocodeAddress(addr: string) {
+// Get address suggestions from backend proxy
+async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]> {
+  const trimmedInput = input.trim();
+  if (!trimmedInput || trimmedInput.length < 2) return [];
+  
   try {
-    console.log('🔍 Starting geocoding for address:', addr);
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${GOOGLE_MAPS_API_KEY}`;
-    console.log('📍 Geocoding API URL:', url);
-    
-    const response = await fetch(url);
-    console.log('📡 Geocoding API Response Status:', response.status);
+    const response = await fetch(`${API}/google-maps/autocomplete`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ input })
+    });
     
     const data = await response.json();
-    console.log('📊 Geocoding API Response Data:', data);
+    return data.predictions || [];
+  } catch (error) {
+    console.error('Address suggestions error:', error);
+    return [];
+  }
+}
+
+// Get coordinates from place_id via backend proxy
+async function getPlaceDetails(placeId: string): Promise<{ lat: number; lng: number; address: string } | null> {
+  try {
+    const response = await fetch(`${API}/google-maps/place-details`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ place_id: placeId })
+    });
     
-    if (data.results && data.results.length > 0) {
-      const location = data.results[0].geometry.location;
-      console.log('✅ Geocoding Success! Coordinates:', location);
-      console.log('   Latitude:', location.lat);
-      console.log('   Longitude:', location.lng);
-      return {
-        lat: location.lat,
-        lng: location.lng
-      };
+    const data = await response.json();
+    if (response.ok) {
+      return data;
     }
-    console.log('❌ No results found from geocoding API');
     return null;
   } catch (error) {
-    console.error('❌ Geocoding error:', error);
+    console.error('Place details error:', error);
+    return null;
+  }
+}
+
+// Geocode address for branch locations via backend proxy
+async function geocodeAddress(addr: string) {
+  try {
+    const response = await fetch(`${API}/google-maps/geocode`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ address: addr })
+    });
+    
+    const data = await response.json();
+    if (response.ok) {
+      return data;
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
     return null;
   }
 }
@@ -78,6 +115,11 @@ function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number
 
   useEffect(() => {
     if (!mapRef.current || !branches.length) return;
+    
+    if (typeof customerLat !== 'number' || typeof customerLng !== 'number' || isNaN(customerLat) || isNaN(customerLng)) {
+      console.error('Invalid customer coordinates:', { customerLat, customerLng });
+      return;
+    }
 
     const map = new google.maps.Map(mapRef.current, {
       zoom: 12,
@@ -95,51 +137,58 @@ function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number
       icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
     });
 
-    // Add branch markers and service areas
-    branches.forEach(branch => {
-      if (branch.latitude && branch.longitude) {
-        // Draw service area circle
-        if (branch.geo_limit_km) {
-          new google.maps.Circle({
-            map: map,
-            center: { lat: branch.latitude, lng: branch.longitude },
-            radius: branch.geo_limit_km * 1000,
-            fillColor: '#3b82f6',
-            fillOpacity: 0.1,
-            strokeColor: '#3b82f6',
-            strokeWeight: 2
-          });
-        }
+    // Filter branches with valid coordinates (must be numbers)
+    const validBranches = branches.filter(b => 
+      typeof b.latitude === 'number' && 
+      typeof b.longitude === 'number' && 
+      !isNaN(b.latitude) && 
+      !isNaN(b.longitude)
+    );
 
-        // Add branch marker
-        new google.maps.Marker({
-          position: { lat: branch.latitude, lng: branch.longitude },
+    // Add branch markers and service areas
+    validBranches.forEach(branch => {
+      const lat = branch.latitude as number;
+      const lng = branch.longitude as number;
+      
+      // Draw service area circle
+      if (branch.geo_limit_km) {
+        new google.maps.Circle({
           map: map,
-          title: branch.branch_name,
-          icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-          infoWindow: new google.maps.InfoWindow({
-            content: `
-              <div style="font-size: 12px;">
-                <strong>${branch.branch_name}</strong><br/>
-                ${branch.location}<br/>
-                Distance: ${branch.distance} km<br/>
-                Service Area: ${branch.geo_limit_km} km
-              </div>
-            `
-          })
-        }).addListener('click', function() {
-          this.infoWindow.open(map, this);
+          center: { lat, lng },
+          radius: branch.geo_limit_km * 1000,
+          fillColor: '#3b82f6',
+          fillOpacity: 0.1,
+          strokeColor: '#3b82f6',
+          strokeWeight: 2
         });
       }
+
+      // Add branch marker
+      new google.maps.Marker({
+        position: { lat, lng },
+        map: map,
+        title: branch.branch_name,
+        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        infoWindow: new google.maps.InfoWindow({
+          content: `
+            <div style="font-size: 12px;">
+              <strong>${branch.branch_name}</strong><br/>
+              ${branch.location}<br/>
+              Distance: ${branch.distance} km<br/>
+              Service Area: ${branch.geo_limit_km} km
+            </div>
+          `
+        })
+      }).addListener('click', function() {
+        this.infoWindow.open(map, this);
+      });
     });
 
     // Fit bounds
     const bounds = new google.maps.LatLngBounds();
     bounds.extend({ lat: customerLat, lng: customerLng });
-    branches.forEach(b => {
-      if (b.latitude && b.longitude) {
-        bounds.extend({ lat: b.latitude, lng: b.longitude });
-      }
+    validBranches.forEach(b => {
+      bounds.extend({ lat: b.latitude!, lng: b.longitude! });
     });
     map.fitBounds(bounds);
   }, [customerLat, customerLng, branches]);
@@ -150,17 +199,91 @@ function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number
 export default function FindMyLender() {
   const { user } = useAuth();
   const [address, setAddress] = useState('');
-  const [caseType, setCaseType] = useState('');
+  const [caseType, setCaseType] = useState('New Car - Purchase');
   const [loading, setLoading] = useState(false);
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [searched, setSearched] = useState(false);
   const [branchesWithCoords, setBranchesWithCoords] = useState<LenderBranch[]>([]);
-  const [geoLoading, setGeoLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Set default coordinates to Jaipur location
     setCoordinates({ lat: 26.8925, lng: 75.8048 });
+  }, []);
+
+  // Handle address input with debounce
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    const trimmedValue = value.trim();
+    if (trimmedValue.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    // Count words (split by spaces)
+    const words = trimmedValue.split(/\s+/).filter(w => w.length > 0);
+    const wordCount = words.length;
+    
+    // Call API after 1 word and space, then after every 2 more words
+    const shouldCallApi = wordCount >= 1 && value.endsWith(' ');
+    
+    if (!shouldCallApi) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    
+    setSuggestionsLoading(true);
+    debounceTimer.current = setTimeout(async () => {
+      console.log(`API called for: "${value}" (${wordCount} words)`);
+      const results = await getAddressSuggestions(value);
+      console.log(`API response received:`, results);
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+      setSuggestionsLoading(false);
+    }, 300);
+  };
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = async (suggestion: AddressSuggestion) => {
+    setSuggestionsLoading(true);
+    try {
+      const details = await getPlaceDetails(suggestion.place_id);
+      if (details) {
+        setAddress(details.address);
+        setCoordinates({ lat: details.lat, lng: details.lng });
+        setSuggestions([]);
+        setShowSuggestions(false);
+        toast.success('Address selected');
+      }
+    } catch (error) {
+      toast.error('Failed to get address details');
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   if (!user) {
@@ -204,20 +327,20 @@ export default function FindMyLender() {
         return;
       }
 
-      // Geocode all branch addresses to get coordinates for map
+      // Branches already have coordinates from backend
       const allBranches = data.lenders.flatMap((lender: Lender) => lender.branches);
-      const branchesWithCoordinates = await Promise.all(
-        allBranches.map(async (branch: LenderBranch) => {
-          const coords = await geocodeAddress(branch.location);
-          return {
-            ...branch,
-            latitude: coords?.lat,
-            longitude: coords?.lng
-          };
-        })
+      
+      // Log branches for debugging
+      console.log('All branches received:', allBranches);
+      const branchesWithCoords = allBranches.filter(b => 
+        typeof b.latitude === 'number' && 
+        typeof b.longitude === 'number' && 
+        !isNaN(b.latitude) && 
+        !isNaN(b.longitude)
       );
-
-      setBranchesWithCoords(branchesWithCoordinates);
+      console.log('Branches with valid coordinates:', branchesWithCoords);
+      
+      setBranchesWithCoords(branchesWithCoords);
       setLenders(data.lenders || []);
       setSearched(true);
 
@@ -259,21 +382,64 @@ export default function FindMyLender() {
           </div>
         </div>
 
-        {/* Search Bar - Full Width */}
-        <div className="glass-card p-4 mb-6">
+        {/* Search Bar - Full Width - At Top */}
+        <div className="glass-card p-4 mb-6 relative z-[1000]">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 relative" ref={suggestionsRef}>
               <label className="block text-sm font-semibold text-foreground mb-2">
                 Enter Your Location
               </label>
-              <textarea
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && e.ctrlKey && handleSearch()}
-                placeholder="e.g., 3rd Floor, Besides Jaipur Hospital, BL Tower, 1, Tonk Rd, Jaipur"
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-                rows={2}
-              />
+              <div className="relative">
+                <textarea
+                  value={address}
+                  onChange={e => handleAddressChange(e.target.value)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  onKeyDown={e => e.key === 'Enter' && e.ctrlKey && handleSearch()}
+                  placeholder="e.g., 3rd Floor, Besides Jaipur Hospital, BL Tower, 1, Tonk Rd, Jaipur"
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                  rows={2}
+                />
+                {address && (
+                  <button
+                    onClick={() => {
+                      setAddress('');
+                      setSuggestions([]);
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute top-3 right-3 p-1 hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <X size={18} className="text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+
+              {/* Address Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-[9999] max-h-64 overflow-y-auto">
+                  {suggestionsLoading ? (
+                    <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
+                      <Loader2 size={16} className="animate-spin" />
+                      Loading suggestions...
+                    </div>
+                  ) : (
+                    suggestions.map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSelectSuggestion(suggestion)}
+                        className="w-full text-left px-4 py-3 hover:bg-muted transition-colors border-b border-border last:border-b-0 flex items-start gap-3"
+                      >
+                        <MapPin size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{suggestion.main_text}</p>
+                          {suggestion.secondary_text && (
+                            <p className="text-xs text-muted-foreground truncate">{suggestion.secondary_text}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -285,11 +451,11 @@ export default function FindMyLender() {
                 onChange={e => setCaseType(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
-                <option value="">All Types</option>
-                <option value="purchase">Purchase</option>
-                <option value="refinance">Refinance</option>
-                <option value="bt">Balance Transfer</option>
-                <option value="credit card">Credit Card</option>
+                <option value="New Car - Purchase">New Car - Purchase</option>
+                <option value="Used Car - Purchase">Used Car - Purchase</option>
+                <option value="Used Car - Refinance">Used Car - Refinance</option>
+                <option value="Used Car - Top-up">Used Car - Top-up</option>
+                <option value="Used Car - BT">Used Car - BT</option>
               </select>
             </div>
 
@@ -327,26 +493,17 @@ export default function FindMyLender() {
                 customerLng={coordinates.lng}
                 branches={branchesWithCoords}
               />
+            ) : coordinates && searched && branchesWithCoords.length === 0 ? (
+              <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
+                <p className="text-muted-foreground">No branches with coordinates found in your area</p>
+              </div>
             ) : coordinates && !searched ? (
               <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
                 <p className="text-muted-foreground">Search for lenders to see branches on map</p>
               </div>
             ) : (
               <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
-                <p className="text-muted-foreground">No branches found in your area</p>
-              </div>
-            )}
-
-            {coordinates && (
-              <div className="p-4 rounded-xl bg-muted/40 border border-border mt-4">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Your Location:</strong> {coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}
-                </p>
-                {searched && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <strong>Results:</strong> {lenders.length} lender{lenders.length !== 1 ? 's' : ''} found
-                  </p>
-                )}
+                <p className="text-muted-foreground">Unable to load map</p>
               </div>
             )}
           </div>
@@ -373,7 +530,6 @@ export default function FindMyLender() {
                         <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">Purchase</th>
                         <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">Refinance</th>
                         <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">BT</th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">Credit Card</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Branches</th>
                       </tr>
                     </thead>
@@ -408,13 +564,6 @@ export default function FindMyLender() {
                           </td>
                           <td className="px-4 py-4 text-center">
                             {lender.supports.bt ? (
-                              <CheckCircle2 size={20} className="mx-auto text-green-500" />
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            {lender.supports.credit_card ? (
                               <CheckCircle2 size={20} className="mx-auto text-green-500" />
                             ) : (
                               <span className="text-muted-foreground">—</span>
