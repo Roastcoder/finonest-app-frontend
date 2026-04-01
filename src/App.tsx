@@ -25,6 +25,7 @@ import AddLead from "@/pages/AddLead";
 import LeadsList from "@/pages/LeadsList";
 import LeadDetail from "@/pages/LeadDetail";
 import FieldPermissions from "@/pages/FieldPermissions";
+import DashboardPermissions from "@/pages/DashboardPermissions";
 import PayoutManagement from "@/pages/PayoutManagement";
 import ExpenseManagement from "@/pages/ExpenseManagement";
 import RCLimitModule from "@/pages/RCLimitModule";
@@ -89,6 +90,7 @@ function AppRoutes() {
       <Route path="/commission" element={<ProtectedRoute><Commission /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/permissions" element={<ProtectedRoute><FieldPermissions /></ProtectedRoute>} />
+      <Route path="/dashboard-permissions" element={<ProtectedRoute><DashboardPermissions /></ProtectedRoute>} />
 
       {/* New PRD Modules */}
       <Route path="/payouts" element={<ProtectedRoute><PayoutManagement /></ProtectedRoute>} />

@@ -50,6 +50,16 @@ const DASHBOARD_TITLES: { [key in UserRole]: string } = {
   executive: 'Executive Dashboard',
 };
 
+const ROLE_BASED_COMPONENTS: { [key in UserRole]: string[] } = {
+  admin: ['loginVolume', 'disbursement', 'approvedLoans', 'performanceChart', 'stageDistribution', 'bankDistribution', 'statusDistribution'],
+  manager: ['loginVolume', 'disbursement', 'approvedLoans', 'performanceChart', 'stageDistribution'],
+  sales_manager: ['loginVolume', 'approvedLoans', 'performanceChart'],
+  branch_manager: ['loginVolume', 'disbursement', 'approvedLoans', 'stageDistribution'],
+  dsa: ['approvedLoans', 'performanceChart'],
+  team_leader: ['loginVolume', 'approvedLoans', 'performanceChart'],
+  executive: ['disbursement', 'approvedLoans', 'statusDistribution', 'bankDistribution'],
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -275,6 +285,29 @@ export default function Dashboard() {
     navigate(`/loans?stage=${stage}`);
   };
 
+  const canViewComponent = (componentKey: string): boolean => {
+    if (isAdmin) return true;
+    if (!permissions?.dashboard?.components) return false;
+    return permissions.dashboard.components[componentKey] === true;
+  };
+
+  const getRoleBasedStats = () => {
+    if (!user?.role) return stats;
+    const roleStats = { ...stats };
+    if (user.role === 'dsa') {
+      roleStats.loginBankWise = stats.loginBankWise?.slice(0, 2) || [];
+      roleStats.disbursementBankWise = stats.disbursementBankWise?.slice(0, 2) || [];
+    } else if (user.role === 'team_leader') {
+      roleStats.loginBankWise = stats.loginBankWise?.slice(0, 3) || [];
+    } else if (user.role === 'branch_manager') {
+      roleStats.loginBankWise = stats.loginBankWise?.slice(0, 4) || [];
+    }
+    return roleStats;
+  };
+
+  const roleBasedStats = getRoleBasedStats();
+  const roleBasedComponents = ROLE_BASED_COMPONENTS[user?.role || 'dsa'] || [];
+
   const isAdmin = user?.role === 'admin';
   const canViewDashboard = isAdmin || permissions?.dashboard?.view !== false;
   const canExportDashboard = isAdmin || permissions?.dashboard?.export === true;
@@ -389,6 +422,7 @@ export default function Dashboard() {
         {/* Charts Grid */}
         <ScrollSection delay={0.1} className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
           {/* Login Volume */}
+          {(canViewComponent('loginVolume') || isAdmin) && (
           <div className={chartCardClass}>
             <div className={headerClass}>
               <div className="flex items-center gap-1">
@@ -397,9 +431,9 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="p-3 h-[350px]">
-              {stats.loginBankWise && stats.loginBankWise.length > 0 ? (
+              {roleBasedStats.loginBankWise && roleBasedStats.loginBankWise.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.loginBankWise}>
+                  <BarChart data={roleBasedStats.loginBankWise}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                     <XAxis dataKey="bankName" hide />
                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8}} />
@@ -413,8 +447,10 @@ export default function Dashboard() {
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
+          )}
 
           {/* Disbursement */}
+          {(canViewComponent('disbursement') || isAdmin) && (
           <div className={chartCardClass}>
             <div className={headerClass}>
               <div className="flex items-center gap-1">
@@ -423,9 +459,9 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="p-3 h-[350px]">
-              {stats.disbursementBankWise && stats.disbursementBankWise.length > 0 ? (
+              {roleBasedStats.disbursementBankWise && roleBasedStats.disbursementBankWise.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.disbursementBankWise}>
+                  <BarChart data={roleBasedStats.disbursementBankWise}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                     <XAxis dataKey="bankName" hide />
                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8}} />
@@ -440,11 +476,13 @@ export default function Dashboard() {
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
+          )}
         </ScrollSection>
 
         {/* Pie Charts Row */}
         <ScrollSection delay={0.2} className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
           {/* Stage Distribution */}
+          {(canViewComponent('stageDistribution') || isAdmin) && (
           <div className={chartCardClass}>
             <div className={headerClass}>
               <div className="flex items-center gap-1">
@@ -476,8 +514,10 @@ export default function Dashboard() {
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
+          )}
 
           {/* Bank Distribution */}
+          {(canViewComponent('bankDistribution') || isAdmin) && (
           <div className={chartCardClass}>
             <div className={headerClass}>
               <div className="flex items-center gap-1">
@@ -509,8 +549,10 @@ export default function Dashboard() {
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
+          )}
 
           {/* Status Distribution */}
+          {(canViewComponent('statusDistribution') || isAdmin) && (
           <div className={chartCardClass}>
             <div className={headerClass}>
               <div className="flex items-center gap-1">
@@ -542,9 +584,11 @@ export default function Dashboard() {
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
+          )}
         </ScrollSection>
 
         {/* Performance Chart */}
+        {(canViewComponent('performanceChart') || isAdmin) && (
         <ScrollSection delay={0.3} className={chartCardClass} style={{marginTop:'clamp(-9vh, -7vh, -1rem)',marginBottom:'clamp(-9vh, -1vw, -1vh)'}}>
           <div className={headerClass}>
             <div className="flex items-center gap-1">
@@ -578,6 +622,7 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
         </ScrollSection>
+        )}
       </div>
     </DashboardContext.Provider>
   );
