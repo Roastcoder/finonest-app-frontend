@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { downloadDashboardPDF } from '@/lib/dashboard-pdf-export';
-import MobileNavbarWrapper from '@/components/MobileNavbarWrapper';
+import Navbar from '@/components/Navbar';
 import { ScrollSection } from '@/components/ScrollSection';
 
 const STATUS_CHART_COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a'];
@@ -368,14 +368,14 @@ export default function Dashboard() {
 
   return (
     <DashboardContext.Provider value={contextValue}>
-      <MobileNavbarWrapper 
+      <Navbar 
         title={dashboardTitle}
         showTimeline={true}
         showExport={true}
         showNotifications={true}
         showProfile={true}
-      >
-        <div className="flex flex-col gap-3 lg:gap-4 w-full pb-6" style={{ padding: '0.5rem 0', paddingBottom: 'clamp(5rem, 10vh, 1.25rem)' }}>
+      />
+      <div className="flex flex-col gap-3 lg:gap-4 w-full pb-6" style={{ padding: '0.5rem 0', paddingBottom: 'clamp(5rem, 10vh, 1.25rem)', marginTop: '5vh' }}>
         {/* KPI Cards Grid */}
         <ScrollSection delay={0} className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 w-full">
           <div className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md transition-all group cursor-default">
@@ -702,8 +702,7 @@ export default function Dashboard() {
           </div>
         </ScrollSection>
         )}
-        </div>
-      </MobileNavbarWrapper>
+      </div>
     </DashboardContext.Provider>
   );
 }

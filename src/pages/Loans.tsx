@@ -6,14 +6,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
 import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
-import { shareLoanWithDocumentsAndroid, shareDocumentsAndroid } from '@/lib/android-share';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings, Share2, FileText } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import MobileNavbarWrapper from '@/components/MobileNavbarWrapper';
-
 
 type ApplicationStageFilter = ApplicationStage | 'all';
 
@@ -89,14 +86,29 @@ export default function Loans() {
         return;
       }
 
-      // Use Android-optimized sharing
-      const success = await shareLoanWithDocumentsAndroid(loan, bundle.files);
-      if (success) {
-        console.log('Successfully shared loan PDF');
+      if (!navigator.share) {
+        toast.error('Sharing not available on this device');
+        return;
       }
+
+      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
+        toast.error('This device cannot share the prepared PDF');
+        return;
+      }
+
+      await navigator.share({
+        title: bundle.title,
+        text: bundle.text,
+        files: bundle.files,
+      });
+      toast.success('Shared PDF!');
     } catch (error: any) {
       console.error('Share loan error:', error);
-      toast.error(error?.message || 'Failed to share loan application');
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share loan application');
+      }
     } finally {
       setSharingLoanId(current => current === loanId ? null : current);
     }
@@ -146,14 +158,8 @@ export default function Loans() {
   const handleShareDocs = async (loan: any) => {
     const loanId = String(loan.id);
     const bundle = documentBundles[loanId];
-    
     if (!bundle) {
-      toast.info('Documents are still loading. Please wait a moment and try again.');
-      return;
-    }
-
-    if (bundle.files.length === 0) {
-      toast.error('No document files could be loaded. Please check your internet connection.');
+      toast.info('Documents are still loading. Please try again in a moment.');
       return;
     }
 
@@ -163,12 +169,9 @@ export default function Loans() {
     }
 
     try {
-      if (navigator.canShare) {
-        const canShare = await navigator.canShare({ files: bundle.files });
-        if (!canShare) {
-          toast.error('This device cannot share these documents');
-          return;
-        }
+      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
+        toast.error('This device cannot share the prepared documents');
+        return;
       }
 
       await navigator.share({
@@ -296,7 +299,7 @@ export default function Loans() {
   }, [sharePrefetchKey]);
 
   return (
-    <MobileNavbarWrapper title="Loan Applications" showTimeline={false} showExport={false} showNotifications={true} showProfile={true}>
+    <div className="pb-24 lg:pb-0">
       <div className="hidden sm:flex flex-row items-center justify-between gap-2 mb-4">
         <div className="min-w-0">
           <h1 className="text-base sm:text-2xl font-bold text-foreground leading-tight truncate">Loan Applications</h1>
@@ -421,14 +424,11 @@ export default function Loans() {
                     </button>
                   )}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShareDocs(loan);
-                    }}
-                    disabled={documentBundles[String(loan.id)]?.files.length === 0}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors disabled:opacity-60">
-                    <FileText size={14} className="text-green-500" />
-                    Share Docs
+                    onClick={() => void openShareMenu(loan)}
+                    disabled={sharingLoanId === String(loan.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
+                    <MessageCircle size={14} className="text-green-500" />
+                    Share
                   </button>
                   {canDelete && (
                     <button
@@ -577,12 +577,10 @@ export default function Loans() {
                           <Printer size={11} className="text-accent" />
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShareDocs(loan);
-                          }}
+                          onClick={() => void openShareMenu(loan)}
+                          disabled={sharingLoanId === String(loan.id)}
                           className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share All Documents">
-                          <FileText size={11} className="text-green-500" />
+                          <MessageCircle size={11} className="text-green-500" />
                         </button>
                         {user?.role !== 'executive' && (
                           <button
@@ -623,6 +621,6 @@ export default function Loans() {
           setSelectedLoan(null);
         }}
       />
-    </MobileNavbarWrapper>
+    </div>
   );
 }

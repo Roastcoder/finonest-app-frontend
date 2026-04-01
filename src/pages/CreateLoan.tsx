@@ -8,7 +8,7 @@ import { FINANCIERS } from '@/lib/financiers';
 import { ArrowLeft, Calculator, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '@/components/FloatingLabelInput';
-import { buildLoanApplicationPdfBlob } from '@/lib/pdf-export-fixed';
+import { buildLoanApplicationPdfBlob } from '@/lib/pdf-export';
 import '@/styles/floating-labels.css';
 
 // Helper component for document previews

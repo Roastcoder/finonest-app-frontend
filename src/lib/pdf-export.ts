@@ -1,7 +1,6 @@
 import { formatCurrency } from '@/lib/mock-data';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
-import { getMimeTypeFromFileName, ensureCorrectMimeType } from '@/lib/document-mime-fix';
 
 interface LoanData {
   [key: string]: any;
@@ -754,52 +753,29 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
           doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
           doc.text(docFile.docType, 105, 9, { align: 'center' });
 
-          try {
-            const imgFormat = fileType === 'image/png' ? 'PNG' : fileType === 'image/webp' ? 'WEBP' : 'JPEG';
-            
-            // Convert file to base64 using FileReader
-            const base64Data = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                const result = reader.result as string;
-                resolve(result.split(',')[1]); // Extract base64 part
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(docFile.file);
-            });
-
-            // Create image element to get dimensions
-            const imgEl = await new Promise<HTMLImageElement>((resolve, reject) => {
-              const img = new Image();
-              img.onload = () => resolve(img);
-              img.onerror = reject;
-              img.src = `data:${fileType};base64,${base64Data}`;
-            });
-
-            const maxW = 190;
-            const maxH = 265;
-            let imgW = imgEl.naturalWidth;
-            let imgH = imgEl.naturalHeight;
-            const ratio = Math.min(maxW / imgW, maxH / imgH);
-            imgW = imgW * ratio;
-            imgH = imgH * ratio;
-
-            // Add image to PDF
-            doc.addImage(`data:${fileType};base64,${base64Data}`, imgFormat, (210 - imgW) / 2, 18, imgW, imgH);
-            doc.setFontSize(7);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...colors.gray);
-            doc.text(docFile.name, 105, 18 + imgH + 5, { align: 'center' });
-          } catch (imgError) {
-            console.warn(`Could not embed image ${docFile.name}:`, imgError);
-            // Fallback: show text instead of image
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...colors.gray);
-            doc.text(docFile.name, 105, 150, { align: 'center' });
-            doc.setFontSize(8);
-            doc.text('(Image document - see attached file)', 105, 160, { align: 'center' });
+          const imgFormat = fileType === 'image/png' ? 'PNG' : 'JPEG';
+          // Safe base64 conversion for large files
+          const arrayBuffer = await docFile.file.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuffer);
+          let binary = '';
+          const chunkSize = 8192;
+          for (let c = 0; c < uint8.length; c += chunkSize) {
+            binary += String.fromCharCode(...uint8.subarray(c, c + chunkSize));
           }
+          const imgData = `data:${fileType};base64,${btoa(binary)}`;
+
+          const imgEl = await new Promise<HTMLImageElement>((res) => {
+            const i = new Image();
+            i.onload = () => res(i);
+            i.src = imgData;
+          });
+          const maxW = 190; const maxH = 265;
+          let imgW = imgEl.naturalWidth; let imgH = imgEl.naturalHeight;
+          const ratio = Math.min(maxW / imgW, maxH / imgH);
+          imgW = imgW * ratio; imgH = imgH * ratio;
+          doc.addImage(imgData, imgFormat, (210 - imgW) / 2, 18, imgW, imgH);
+          doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
+          doc.text(docFile.name, 105, 18 + imgH + 5, { align: 'center' });
         }
       } catch (e) {
         console.warn(`Could not embed document ${docFile.name}:`, e);
@@ -832,41 +808,18 @@ const PDF_DOC_LABELS: Record<string, string> = {
 
 async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  // No authentication headers needed for public document access
   const files: { file: File; name: string; docType: string }[] = [];
-  
-  if (!docs || docs.length === 0) {
-    return files;
-  }
-  
   for (const doc of docs) {
     try {
-      if (!doc.id) {
-        console.warn('Document missing ID:', doc);
-        continue;
-      }
-      
       const res = await fetch(`${API}/documents/${doc.id}/download`);
-      if (!res.ok) {
-        console.warn(`Failed to fetch document ${doc.id}: ${res.status}`);
-        continue;
-      }
-      
+      if (!res.ok) continue;
       const blob = await res.blob();
-      if (!blob || blob.size === 0) {
-        console.warn(`Document ${doc.id} returned empty blob`);
-        continue;
-      }
-      
       const docLabel = PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
       const fileName = `${docLabel}-${doc.file_name}`;
       files.push({ file: new File([blob], fileName, { type: blob.type }), name: fileName, docType: docLabel });
-      console.log(`Successfully loaded document: ${fileName} (${blob.size} bytes, type: ${blob.type})`);
-    } catch (error) {
-      console.warn(`Error fetching document ${doc.id}:`, error);
-    }
+    } catch {}
   }
-  
-  console.log(`Loaded ${files.length} out of ${docs.length} documents`);
   return files;
 }
 
@@ -1294,45 +1247,13 @@ export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
 // Missing export function for preparing document share bundle
 export async function prepareDocumentShareBundle(docs: any[] = []) {
   try {
-    if (!docs || docs.length === 0) {
-      return {
-        title: 'Loan Documents',
-        text: '0 loan documents',
-        files: [],
-        docCount: 0,
-      };
-    }
-
     const docFileObjs = await fetchDocumentFiles(docs);
-    
-    if (!docFileObjs || docFileObjs.length === 0) {
-      console.warn('No document files could be fetched');
-      return {
-        title: 'Loan Documents',
-        text: `${docs.length} documents (could not load files)`,
-        files: [],
-        docCount: docs.length,
-      };
-    }
-    
-    // Separate by file type for better mobile compatibility
-    const imageFiles = docFileObjs.filter(docFile => {
-      const fileType = docFile.file.type;
-      return fileType.startsWith('image/') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png');
-    });
-    
-    const pdfFiles = docFileObjs.filter(docFile => {
-      const fileType = docFile.file.type;
-      return fileType.includes('pdf');
-    });
-    
-    // Prioritize images for Android/PWA compatibility
-    const prioritizedFiles = [...imageFiles, ...pdfFiles].map(docFile => docFile.file);
+    const files = docFileObjs.map(docFile => docFile.file);
     
     return {
       title: 'Loan Documents',
       text: `${docFileObjs.length} loan documents`,
-      files: prioritizedFiles,
+      files: files,
       docCount: docFileObjs.length,
     };
   } catch (error) {

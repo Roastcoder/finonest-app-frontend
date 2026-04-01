@@ -1,27 +1,44 @@
-// Utility functions for document handling
-
-export function getMimeTypeFromFileName(fileName: string): string {
-  const ext = fileName?.toLowerCase() || '';
+// Helper function to fetch document files from API
+export async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+  // No authentication headers needed for public document access
   
-  if (ext.endsWith('.jpg') || ext.endsWith('.jpeg')) return 'image/jpeg';
-  if (ext.endsWith('.png')) return 'image/png';
-  if (ext.endsWith('.gif')) return 'image/gif';
-  if (ext.endsWith('.webp')) return 'image/webp';
-  if (ext.endsWith('.pdf')) return 'application/pdf';
+  const DOC_TYPES: Record<string, string> = {
+    aadhar_front: 'Aadhar Front',
+    aadhar_back: 'Aadhar Back', 
+    pan_card: 'PAN Card',
+    rc_copy: 'RC Copy', 
+    insurance: 'Insurance', 
+    income_proof: 'Income Proof',
+    bank_statement: 'Bank Statement', 
+    nach: 'NACH', 
+    photo: 'Photo',
+    other: 'Other',
+  };
   
-  return 'application/octet-stream';
-}
-
-export function ensureCorrectMimeType(blob: Blob, fileName: string): Blob {
-  const detectedMimeType = getMimeTypeFromFileName(fileName);
+  const files: { file: File; name: string; docType: string }[] = [];
   
-  if (blob.type === detectedMimeType) {
-    return blob;
+  for (const doc of docs) {
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/download`);
+      if (!res.ok) {
+        console.warn(`Document ${doc.id} not accessible: ${res.status}`);
+        continue;
+      }
+      
+      const blob = await res.blob();
+      const docLabel = DOC_TYPES[doc.document_type] || doc.document_type || 'Document';
+      const fileName = `${docLabel}-${doc.file_name}`;
+      
+      files.push({ 
+        file: new File([blob], fileName, { type: blob.type }), 
+        name: fileName, 
+        docType: docLabel 
+      });
+    } catch (error) {
+      console.error(`Failed to fetch document ${doc.id}:`, error);
+    }
   }
   
-  if (!blob.type || blob.type === 'application/octet-stream') {
-    return new Blob([blob], { type: detectedMimeType });
-  }
-  
-  return blob;
+  return files;
 }

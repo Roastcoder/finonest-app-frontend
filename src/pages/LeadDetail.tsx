@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
@@ -12,7 +13,6 @@ import ApplicationStageDisplay from '@/components/ApplicationStageDisplay';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
 import { shareContent } from '@/lib/native-share';
-import MobileNavbarWrapper from '@/components/MobileNavbarWrapper';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -38,6 +38,7 @@ export default function LeadDetail() {
   });
 
   const handleStageUpdate = (stageData: ApplicationStageData) => {
+    // Update the lead in the cache
     queryClient.setQueryData(['lead', id], (oldData: any) => {
       if (!oldData) return oldData;
       return { 
@@ -182,9 +183,59 @@ Finonest India`;
   );
 
   return (
-    <MobileNavbarWrapper title={lead?.customer_name || 'Lead Details'} showTimeline={false} showExport={false} showNotifications={true} showProfile={true}>
-      <div className="max-w-5xl mx-auto pb-24">
+    <>
+     
 
+    <div className="max-w-5xl mx-auto pb-24">
+
+      {/* Mobile sticky header + actions — portaled to escape overflow container */}
+      {createPortal(
+        <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm rounded-b-2xl">
+          {/* Row 1: back + name + stage */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+            <div className="flex items-center gap-2 min-w-0">
+              <button onClick={() => navigate('/leads-list')} className="p-1.5 bg-muted/50 rounded-lg shrink-0">
+                <ArrowLeft size={16} className="text-primary" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-foreground truncate leading-tight">{lead.customer_name}</p>
+                <p className="text-[10px] text-muted-foreground">{lead.customer_id}</p>
+              </div>
+            </div>
+            <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold border ${
+              lead.application_stage ? STAGE_COLORS[lead.application_stage as ApplicationStage] : 'bg-primary/10 text-primary border-primary/20'
+            }`}>
+              {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
+            </span>
+          </div>
+          {/* Row 2: action buttons */}
+          <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide">
+            <a href={`tel:${lead.phone}`} className="shrink-0 flex items-center gap-1 px-3 py-2 bg-gradient-to-r from-secondary to-primary text-white rounded-xl text-xs font-bold whitespace-nowrap shadow-sm active:scale-95 transition-all border border-white/20">
+              <Phone size={14} />
+              Call
+            </a>
+            <button onClick={handleShareLead} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-blue-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
+              <Share2 size={14} />
+              Share
+            </button>
+            <button onClick={handleReapply} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+              Reapply
+            </button>
+            <button onClick={() => navigate('/add-lead')} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-accent text-accent-foreground rounded-xl text-xs font-bold whitespace-nowrap">
+              New Lead
+            </button>
+            {user?.role === 'executive' && (
+              <span className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted/50 text-muted-foreground rounded-xl text-xs font-medium whitespace-nowrap border border-border">
+                Contact manager to update status
+              </span>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Spacer for sticky header height on mobile */}
+      <div className="lg:hidden h-[88px]" />
       <div className="hidden lg:flex items-center justify-between mb-8">
         <button 
           onClick={() => navigate('/leads-list')} 
@@ -206,6 +257,18 @@ Finonest India`;
             {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
           </span>
         </div>
+      </div>
+
+      {/* Mobile Quick Action Bar */}
+      <div className="lg:hidden flex gap-2 mb-3">
+        <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-secondary to-primary text-white rounded-xl shadow-md active:scale-95 transition-all text-xs font-bold border border-white/20">
+          <Phone size={14} />
+          Call Now
+        </a>
+        <button onClick={handleShareLead} className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 text-white rounded-xl shadow-sm active:scale-95 transition-all text-xs font-bold">
+          <Share2 size={14} />
+          Share
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
@@ -307,6 +370,7 @@ Finonest India`;
         </div>
       </div>
 
+      {/* Stage Update Modal */}
       {showStageModal && (
         <ApplicationStageModal
           isOpen={true}
@@ -339,7 +403,7 @@ Finonest India`;
           </div>
         </section>
       </div>
-      </div>
-    </MobileNavbarWrapper>
+    </div>
+    </>
   );
 }

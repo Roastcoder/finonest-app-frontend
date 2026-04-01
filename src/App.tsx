@@ -18,8 +18,6 @@ import EditLoan from "@/pages/EditLoan";
 import UserManagement from "@/pages/UserManagement";
 import BankManagement from "@/pages/BankManagement";
 import BrokerManagement from "@/pages/BrokerManagement";
-
-// Import sharing test utilities for development
 import BranchManagement from "@/pages/BranchManagement";
 import Commission from "@/pages/Commission";
 import Reports from "@/pages/Reports";
@@ -47,7 +45,6 @@ import AccountPayments from "@/pages/AccountPayments";
 import BankAccounts from "@/pages/BankAccounts";
 import ApplicationStageManagement from "@/pages/ApplicationStageManagement";
 import RCTemplatePage from "@/pages/RCTemplatePage";
-import SharingTestPage from "@/pages/SharingTestPage";
 import RCTemplateViewer from "@/pages/RCTemplateViewer";
 import UserProfile from "@/pages/UserProfile";
 import NotFound from "./pages/NotFound";
@@ -109,9 +106,6 @@ function AppRoutes() {
       <Route path="/rc-template/:loanId" element={<ProtectedRoute><RCTemplatePage /></ProtectedRoute>} />
       <Route path="/rc-template-viewer" element={<RCTemplateViewer />} />
       <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-
-      {/* Development Testing */}
-      <Route path="/sharing-test" element={<ProtectedRoute><SharingTestPage /></ProtectedRoute>} />
 
       {/* External Portals */}
       {/* Accountant Portal */}
