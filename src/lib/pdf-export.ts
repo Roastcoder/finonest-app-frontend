@@ -206,9 +206,13 @@ async function fetchLeadProfile(leadId: any): Promise<any | null> {
     const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
     const res = await fetch(`${API}/leads/${leadId}/profile`, { headers });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`Lead profile not found for ID ${leadId}`);
+      return null;
+    }
     return await res.json();
-  } catch {
+  } catch (error) {
+    console.warn('Error fetching lead profile:', error);
     return null;
   }
 }
