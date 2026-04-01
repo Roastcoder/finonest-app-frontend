@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { X, Save, AlertCircle, ShieldAlert, Loader2, CheckCircle, AlertTriangle, Building2, CreditCard } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('auth_token')}` };
 }
@@ -116,23 +116,33 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
     }
   }, [isOpen, loan?.id]);
 
-  // Auto-trigger link loan check when stage switches to LOGIN
+  // Auto-trigger link loan + bureau check when stage switches to LOGIN
   useEffect(() => {
     if (formData.stage === 'LOGIN' && loan?.id && !llChecked) {
       setLlLoading(true);
-      fetch(`${API}/link-loan/auto-check/${loan.id}`, { headers: authHeaders() })
+      const name = loan.customer_name || loan.applicant_name || '';
+      const mobile = loan.phone || loan.mobile || '';
+      const rc_number = loan.vehicle_number || loan.vehicle_no || '';
+
+      if (!name || !mobile) {
+        setLlChecked(true);
+        setLlLoading(false);
+        return;
+      }
+
+      fetch(`${API}/link-loan/credit-report`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ name, mobile, rc_number })
+      })
         .then(r => r.json())
         .then(data => {
-          // Accept both Active and Closed loans from bureau
-          const activeLoans = data.auto_loans || [];
-          setLlAutoLoans(activeLoans);
-          // Auto-fill credit score from bureau
+          const autoLoans = data.auto_loans || [];
+          setLlAutoLoans(autoLoans);
           if (data.credit_score) {
             setFormData(prev => ({ ...prev, creditScore: data.credit_score }));
           }
           setLlChecked(true);
-
-
         })
         .catch(() => setLlChecked(true))
         .finally(() => setLlLoading(false));
@@ -141,7 +151,7 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
 
   const updateStage = useMutation({
     mutationFn: async (data: StageFormData) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${loan.id}/stage`, {
+      const response = await fetch(`${API}/loans/${loan.id}/stage`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

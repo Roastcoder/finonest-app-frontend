@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -34,6 +34,63 @@ export default function ApplicationStageModal({
   const [selectedStage, setSelectedStage] = useState<ApplicationStage>(currentStage);
   const [formData, setFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bureauScore, setBureauScore] = useState<number | null>(null);
+  const [linkLoanTag, setLinkLoanTag] = useState<string | null>(null);
+  const [fetchingBureau, setFetchingBureau] = useState(false);
+
+  // Auto-fetch bureau score when LOGIN stage is selected
+  useEffect(() => {
+    if (selectedStage !== 'LOGIN') return;
+    setFetchingBureau(true);
+
+    // First get lead details
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/leads/${leadId}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+    })
+      .then(r => r.json())
+      .then(async lead => {
+        // If bureau score already saved on lead, use it
+        if (lead.bureau_score) {
+          setBureauScore(lead.bureau_score);
+          setFormData((f: any) => ({ ...f, creditScore: lead.bureau_score }));
+          if (lead.link_loan_tag) setLinkLoanTag(lead.link_loan_tag);
+          setFetchingBureau(false);
+          return;
+        }
+
+        // Otherwise fetch fresh from bureau via backend
+        const name = lead.customer_name || '';
+        const mobile = lead.phone || '';
+        if (!name || !mobile) { setFetchingBureau(false); return; }
+
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/link-loan/credit-report`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify({
+              name,
+              mobile,
+              rc_number: lead.vehicle_number || '',
+            })
+          });
+          const data = await res.json();
+          if (data.credit_score) {
+            setBureauScore(data.credit_score);
+            setFormData((f: any) => ({ ...f, creditScore: data.credit_score }));
+          }
+          if (data.auto_loans?.length > 0) {
+            setLinkLoanTag('LINK LOAN EXIST');
+          } else if (data.auto_loans) {
+            setLinkLoanTag('NO LINK LOAN');
+          }
+        } catch {}
+        setFetchingBureau(false);
+      })
+      .catch(() => setFetchingBureau(false));
+  }, [selectedStage, leadId]);
 
   if (!isOpen) return null;
 
@@ -43,8 +100,8 @@ export default function ApplicationStageModal({
   };
 
   const handleSubmit = async () => {
-    if (selectedStage === 'LOGIN' && (!formData.appScore || !formData.creditScore)) {
-      toast.error('App Score and Credit Score are required for Login stage');
+    if (selectedStage === 'LOGIN' && !formData.appScore) {
+      toast.error('App Score is required for Login stage');
       return;
     }
 
@@ -88,7 +145,7 @@ export default function ApplicationStageModal({
       }
 
       // API call to update stage
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${leadId}/stage`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/leads/${leadId}/stage`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -131,17 +188,34 @@ export default function ApplicationStageModal({
               />
             </div>
             <div>
-              <label className={labelClass}>Credit Score (300-900) *</label>
-              <input
-                type="number"
-                min="300"
-                max="900"
-                required
-                className={inputClass}
-                value={formData.creditScore || ''}
-                onChange={e => setFormData({...formData, creditScore: Number(e.target.value)})}
-                placeholder="Enter credit score (300-900)"
-              />
+              <label className={labelClass}>Credit Score (Bureau)</label>
+              {fetchingBureau ? (
+                <div className="px-3 py-2 text-sm rounded-lg border border-border bg-muted text-muted-foreground">Fetching from bureau...</div>
+              ) : bureauScore ? (
+                <div className={`px-3 py-2 text-sm rounded-lg border-2 font-bold ${
+                  bureauScore >= 750 ? 'border-green-400 bg-green-50 text-green-700' :
+                  bureauScore >= 650 ? 'border-amber-400 bg-amber-50 text-amber-700' :
+                  'border-red-400 bg-red-50 text-red-700'
+                }`}>
+                  {bureauScore} — {bureauScore >= 750 ? 'Excellent' : bureauScore >= 700 ? 'Good' : bureauScore >= 650 ? 'Fair' : 'Poor'}
+                </div>
+              ) : (
+                <div className="px-3 py-2 text-sm rounded-lg border border-border bg-muted text-muted-foreground">
+                  ⚠ Bureau score not available yet — will be fetched automatically on save
+                </div>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Link Loan Check (Auto)</label>
+              <div className={`px-3 py-2 text-sm rounded-lg border font-medium ${
+                linkLoanTag === 'LINK LOAN EXIST' ? 'border-red-400 bg-red-50 text-red-700' :
+                linkLoanTag === 'NO LINK LOAN' ? 'border-green-400 bg-green-50 text-green-700' :
+                'border-border bg-muted text-muted-foreground'
+              }`}>
+                {linkLoanTag === 'LINK LOAN EXIST' ? '⚠ Link loan detected' :
+                 linkLoanTag === 'NO LINK LOAN' ? '✓ No link loan found' :
+                 'Will be checked automatically on save'}
+              </div>
             </div>
           </div>
         );

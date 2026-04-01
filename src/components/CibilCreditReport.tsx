@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CreditCard, RefreshCw, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle, User, Building2, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CreditCard, RefreshCw, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle, User, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
@@ -239,51 +239,71 @@ function AccountCard({ acc, defaultOpen }: { acc: any; defaultOpen?: boolean }) 
 // ── Main component ───────────────────────────────────────────────────────────
 interface Props { loan: any; }
 
+const LOGIN_AND_BEYOND = ['LOGIN', 'IN_PROCESS', 'APPROVED', 'DISBURSED', 'REJECTED', 'CANCELLED'];
+
 export default function CibilCreditReport({ loan }: Props) {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<any>(null);
   const [fromCache, setFromCache] = useState(false);
   const [cacheAge, setCacheAge] = useState<string | null>(null);
 
+  const stage = loan?.application_stage || '';
+  const isLoginOrBeyond = LOGIN_AND_BEYOND.includes(stage);
 
   const fetchReport = async (forceRefresh = false) => {
-    const parts = (loan.applicant_name || '').trim().split(' ');
-    const firstName = parts[0] || '';
-    const lastName = parts.slice(1).join(' ') || '';
-    const fullName = `${firstName} ${lastName}`.trim();
-    
-    if (!firstName) { toast.error('Applicant name required'); return; }
-    
+    const name = (loan.applicant_name || '').trim();
+    const mobile = (loan.mobile || '').trim();
     const rcNumber = (loan.vehicle_number || '').trim();
-    if (!rcNumber) { toast.error('Vehicle RC number not found on this loan'); return; }
-
+    if (!name) { toast.error('Applicant name required'); return; }
+    if (!mobile) { toast.error('Mobile number required'); return; }
     setLoading(true);
     try {
       const res = await fetch(`${API}/link-loan/credit-report`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({
-          name: fullName,
-          id_number: loan.pan_number || '',
-          id_type: 'pan',
-          mobile: loan.mobile || '',
-          rc_number: rcNumber,
-          force_refresh: forceRefresh,
-          pan: loan.pan_number || '',
-        }),
+        body: JSON.stringify({ name, mobile, rc_number: rcNumber, force_refresh: forceRefresh }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch credit report');
       setReport(data);
       setFromCache(data.from_cache || false);
       setCacheAge(data.cache_age || null);
-
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setLoading(false);
     }
   };
+
+  // Load from saved loan data first, only call API if not saved
+  useEffect(() => {
+    if (!isLoginOrBeyond || report || loading) return;
+
+    // If credit report already saved on loan, use it directly — no API call
+    if (loan.credit_report_data) {
+      const saved = typeof loan.credit_report_data === 'string'
+        ? JSON.parse(loan.credit_report_data)
+        : loan.credit_report_data;
+      setReport({
+        credit_score: saved.credit_score || loan.bureau_score || null,
+        auto_loans: saved.auto_loans || [],
+        full_report: saved.full_report || {},
+        from_cache: true,
+        cache_age: saved.fetched_at ? `${Math.floor((Date.now() - new Date(saved.fetched_at).getTime()) / 86400000)} days ago` : null,
+      });
+      setFromCache(true);
+      return;
+    }
+
+    // Otherwise fetch from API (first time)
+    const name = (loan.applicant_name || '').trim();
+    const mobile = (loan.mobile || '').trim();
+    if (!name || !mobile) return;
+    fetchReport(false);
+  }, [loan?.id, isLoginOrBeyond, loan?.credit_report_data]);
+
+  // Don't render at all if stage is not LOGIN or beyond
+  if (!isLoginOrBeyond) return null;
 
   const score: number = report?.credit_score || 0;
   const full = report?.full_report || {};
@@ -311,37 +331,17 @@ export default function CibilCreditReport({ loan }: Props) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {report && (
-            <button
-              onClick={() => fetchReport(true)}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors disabled:opacity-60"
-            >
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
-            </button>
-          )}
+        {report && (
           <button
-            onClick={() => fetchReport(false)}
+            onClick={() => fetchReport(true)}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-secondary font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors disabled:opacity-60"
           >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-            {loading ? 'Fetching…' : report ? 'Re-fetch' : 'Fetch Credit Report'}
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-        </div>
+        )}
       </div>
 
-      {/* ── Pre-fetch placeholder ── */}
-      {!report && !loading && (
-        <div className="rounded-xl border border-dashed border-border bg-muted/10 p-6 text-center space-y-1">
-          <CreditCard size={28} className="mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">Fetch the Experian credit report for</p>
-          <p className="text-sm font-semibold text-foreground">{loan.applicant_name} · {loan.mobile}</p>
-          {!loan.vehicle_number && <p className="text-xs text-red-500 font-semibold mt-1">⚠ RC number missing on this loan</p>}
-          {loan.vehicle_number && !loan.pan_number && <p className="text-xs text-amber-500 font-semibold mt-1">⚠ PAN number missing — add it for better match accuracy</p>}
-        </div>
-      )}
 
       {loading && (
         <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">

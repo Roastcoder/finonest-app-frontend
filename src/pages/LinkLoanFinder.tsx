@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Search, AlertTriangle, CheckCircle, RefreshCw, Car, CreditCard,
@@ -101,24 +101,55 @@ export default function LinkLoanFinder() {
   const [manualMobile, setManualMobile] = useState('');
   const [manualFirstName, setManualFirstName] = useState('');
   const [manualLastName, setManualLastName] = useState('');
-  const [manualPan, setManualPan] = useState('');
-  const [manualEmail, setManualEmail] = useState('');
-  const [manualDob, setManualDob] = useState('');
-  const [manualPincode, setManualPincode] = useState('');
   const [loadingCredit, setLoadingCredit] = useState(false);
   const [autoLoans, setAutoLoans] = useState<AutoLoan[]>([]);
+  const [creditScore, setCreditScore] = useState<number | null>(null);
   const [selectedLoan, setSelectedLoan] = useState<AutoLoan | null>(null);
   const [sameLenderLoans, setSameLenderLoans] = useState<AutoLoan[]>([]);
   const [fromCache, setFromCache] = useState(false);
   const [cacheAge, setCacheAge] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [creditFetched, setCreditFetched] = useState(false);
+
+  const isFinanced = vehicle?.finance_status &&
+    !['not financed', 'noc issued', 'clear', ''].includes((vehicle.finance_status || '').toLowerCase());
+
+  // Auto-fetch credit report once vehicle is found and is financed
+  useEffect(() => {
+    if (!vehicle || !isFinanced) return;
+    const firstName = manualFirstName.trim();
+    const mobile = manualMobile.trim();
+    if (!firstName || mobile.length < 10) return;
+
+    const name = `${firstName} ${manualLastName.trim()}`.trim();
+    setLoadingCredit(true);
+    setAutoLoans([]); setSelectedLoan(null); setSameLenderLoans([]); setCreditScore(null); setCreditFetched(false);
+
+    fetch(`${API}/link-loan/credit-report`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name, mobile, rc_number: rc.trim().toUpperCase() }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { toast.error(data.error); return; }
+        setAutoLoans(data.auto_loans || []);
+        setCreditScore(data.credit_score || null);
+        setFromCache(data.from_cache || false);
+        setCacheAge(data.cache_age || null);
+        setCreditFetched(true);
+        if (data.warning) toast.warning(data.warning);
+      })
+      .catch(() => toast.error('Failed to fetch credit report'))
+      .finally(() => setLoadingCredit(false));
+  }, [vehicle]);
 
   const handleRcSearch = async () => {
     if (!rc.trim()) { toast.error('Enter a vehicle RC number'); return; }
     setLoadingRc(true);
     setVehicle(null); setAutoLoans([]); setSelectedLoan(null); setSameLenderLoans([]);
+    setCreditScore(null); setCreditFetched(false);
     setManualMobile(''); setManualFirstName(''); setManualLastName('');
-    setManualPan(''); setManualEmail(''); setManualDob(''); setManualPincode('');
     try {
       const res = await fetch(`${API}/link-loan/rc-lookup`, {
         method: 'POST',
@@ -128,11 +159,9 @@ export default function LinkLoanFinder() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'RC lookup failed');
       setVehicle(data);
-      // Pre-fill manual fields with whatever was found
       setManualMobile(data.mobile || '');
       setManualFirstName(data.first_name || '');
       setManualLastName(data.last_name || '');
-      setManualPan(data.pan || '');
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -140,43 +169,26 @@ export default function LinkLoanFinder() {
     }
   };
 
-  const handleFetchCredit = async (forceRefresh = false) => {
+  const handleRepull = async () => {
     if (!vehicle) return;
-    const firstName = manualFirstName.trim();
-    const lastName = manualLastName.trim();
+    const name = `${manualFirstName.trim()} ${manualLastName.trim()}`.trim();
     const mobile = manualMobile.trim();
-    const name = `${firstName} ${lastName}`.trim();
-    
-    if (!firstName) {
-      toast.error('Customer first name is required. Please enter it above.');
-      return;
-    }
-    if (!manualPan.trim() || manualPan.trim().length !== 10) {
-      toast.error('PAN number is required (10 characters).');
-      return;
-    }
+    if (!name || mobile.length < 10) { toast.error('Name and mobile required'); return; }
     setLoadingCredit(true);
-    setAutoLoans([]); setSelectedLoan(null); setSameLenderLoans([]);
+    setAutoLoans([]); setSelectedLoan(null); setSameLenderLoans([]); setCreditScore(null); setCreditFetched(false);
     try {
       const res = await fetch(`${API}/link-loan/credit-report`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({
-          name: name,
-          id_number: manualPan.trim(),
-          id_type: 'pan',
-          mobile: mobile,
-          rc_number: rc.trim().toUpperCase(),
-          force_refresh: forceRefresh,
-          pan: manualPan.trim()
-        }),
+        body: JSON.stringify({ name, mobile, rc_number: rc.trim().toUpperCase(), force_refresh: true }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Credit report fetch failed');
+      if (!res.ok) throw new Error(data.error || 'Failed');
       setAutoLoans(data.auto_loans || []);
+      setCreditScore(data.credit_score || null);
       setFromCache(data.from_cache || false);
       setCacheAge(data.cache_age || null);
-      if ((data.auto_loans || []).length === 0) toast.info('No active auto loans found in credit report');
+      setCreditFetched(true);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -190,8 +202,6 @@ export default function LinkLoanFinder() {
     const others = autoLoans.filter(l => l !== loan && (l.subscriber_name || '').toLowerCase() === lender);
     setSameLenderLoans(others);
   };
-
-  const isFinanced = vehicle?.finance_status && !['not financed', 'noc issued', 'clear', ''].includes((vehicle.finance_status || '').toLowerCase());
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -247,141 +257,172 @@ export default function LinkLoanFinder() {
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Manual input fields — always shown so user can correct if RC data is masked */}
-                <div className="p-3 rounded-lg border border-border bg-background/60">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                    Customer Details for Credit Report
-                    {(vehicle.mobile_missing || vehicle.name_missing) && (
-                      <span className="ml-2 text-amber-600 dark:text-amber-400 normal-case font-semibold">
-                        ⚠ Some details missing from RC — please fill in
-                      </span>
-                    )}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">
-                        First Name {vehicle.name_missing && <span className="text-red-500">*</span>}
-                      </label>
-                      <input type="text" value={manualFirstName} onChange={e => setManualFirstName(e.target.value)} placeholder="First name" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                {/* Editable customer details if missing */}
+                {(vehicle.mobile_missing || vehicle.name_missing) && (
+                  <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/10">
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
+                      ⚠ Some details missing from RC — please fill in to fetch credit report
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">First Name *</label>
+                        <input type="text" value={manualFirstName} onChange={e => setManualFirstName(e.target.value)} placeholder="First name" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Last Name</label>
+                        <input type="text" value={manualLastName} onChange={e => setManualLastName(e.target.value)} placeholder="Last name" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Mobile *</label>
+                        <input type="tel" value={manualMobile} onChange={e => setManualMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" maxLength={10} />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Last Name</label>
-                      <input type="text" value={manualLastName} onChange={e => setManualLastName(e.target.value)} placeholder="Last name" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">
-                        Mobile {vehicle.mobile_missing && <span className="text-amber-500">(optional)</span>}
-                      </label>
-                      <input type="tel" value={manualMobile} onChange={e => setManualMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" maxLength={10} />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">PAN <span className="text-red-500">*</span></label>
-                      <input type="text" value={manualPan} onChange={e => setManualPan(e.target.value.toUpperCase().slice(0, 10))} placeholder="ABCDE1234F" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" maxLength={10} />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Date of Birth <span className="text-muted-foreground normal-case">(optional)</span></label>
-                      <input type="text" value={manualDob} onChange={e => setManualDob(e.target.value)} placeholder="DD-MM-YYYY" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Pincode <span className="text-muted-foreground normal-case">(optional)</span></label>
-                      <input type="text" value={manualPincode} onChange={e => setManualPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit pincode" className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono" maxLength={6} />
-                    </div>
+                    <button
+                      onClick={() => {
+                        // Re-trigger the useEffect by resetting vehicle then setting it again
+                        const v = { ...vehicle };
+                        setVehicle(null);
+                        setTimeout(() => setVehicle(v), 50);
+                      }}
+                      disabled={!manualFirstName.trim() || manualMobile.trim().length < 10}
+                      className="mt-2 flex items-center gap-2 px-4 py-1.5 rounded-lg bg-primary text-secondary text-xs font-semibold hover:opacity-90 disabled:opacity-50 transition-all"
+                    >
+                      <CreditCard size={13} /> Fetch Credit Report
+                    </button>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 font-medium">
-                    <AlertTriangle size={16} /> Vehicle is financed — fetch credit report to check for link loans
+                {/* Loading state */}
+                {loadingCredit && (
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/30">
+                    <Loader2 size={18} className="animate-spin text-primary" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Fetching credit report from bureau…</p>
+                      <p className="text-xs text-muted-foreground">This may take a few seconds</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                )}
+
+                {/* Admin repull */}
+                {creditFetched && user.role === 'admin' && (
+                  <div className="flex items-center justify-between">
                     {fromCache && cacheAge && (
                       <span className="text-xs text-muted-foreground">Cached · {cacheAge}</span>
                     )}
-                    {user.role === 'admin' && fromCache && (
-                      <button
-                        onClick={() => handleFetchCredit(true)}
-                        disabled={loadingCredit}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors"
-                      >
-                        <RefreshCw size={13} className={loadingCredit ? 'animate-spin' : ''} /> Repull Fresh
-                      </button>
-                    )}
                     <button
-                      onClick={() => handleFetchCredit(false)}
-                      disabled={loadingCredit || !manualFirstName.trim() || manualPan.trim().length !== 10}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-secondary font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-all"
+                      onClick={handleRepull}
+                      disabled={loadingCredit}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors ml-auto"
                     >
-                      {loadingCredit ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
-                      {loadingCredit ? 'Fetching…' : 'Fetch Credit Report'}
+                      <RefreshCw size={13} className={loadingCredit ? 'animate-spin' : ''} /> Repull Fresh
                     </button>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Step 2: Active Auto Loans */}
-      {autoLoans.length > 0 && (
+      {/* Step 2: Credit Report Results — only shown after fetch */}
+      {creditFetched && (
         <div className="glass-card p-5">
-          <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-2">
-            <CreditCard size={16} className="text-primary" /> Step 2 — Active Auto Loans Found
+          <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+            <CreditCard size={16} className="text-primary" /> Step 2 — Credit Report Results
           </h2>
-          {fromCache && (
+          {fromCache && cacheAge && (
             <p className="text-xs text-muted-foreground mb-3">Data from cache · {cacheAge}</p>
           )}
-          <p className="text-xs text-muted-foreground mb-4">Select the loan linked to this vehicle</p>
-          <div className="space-y-2">
-            {autoLoans.map((loan, i) => (
-              <div
-                key={i}
-                onClick={() => handleSelectLoan(loan)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                  selectedLoan === loan
-                    ? 'border-primary bg-primary/5 shadow-sm'
-                    : 'border-border hover:border-primary/40 hover:bg-muted/30'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedLoan === loan ? 'border-primary' : 'border-muted-foreground'}`}>
-                      {selectedLoan === loan && <div className="w-2 h-2 rounded-full bg-primary" />}
-                    </div>
-                    <span className="font-semibold text-sm text-foreground">{fmt(loan.subscriber_name)}</span>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    loan.account_status === 'Active'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                  }`}>
-                    {fmt(loan.account_status)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 ml-6">
-                  <InfoCell label="Account Type" value={fmt(loan.account_type)} small />
-                  <InfoCell label="Sanctioned" value={fmtCur(loan.sanctioned_amount)} small />
-                  <InfoCell label="Balance" value={fmtCur(loan.current_balance)} small />
-                  <InfoCell label="Opened" value={fmt(loan.open_date)} small />
-                  <InfoCell label="Closed" value={fmt(loan.close_date)} small />
-                  <InfoCell label="Status" value={fmt(loan.account_status)} small />
-                </div>
-                <button
-                  onClick={e => { e.stopPropagation(); setExpanded(prev => ({ ...prev, [i]: !prev[i] })); }}
-                  className="ml-6 mt-2 text-xs text-primary flex items-center gap-1"
-                >
-                  {expanded[i] ? <><ChevronUp size={12} /> Less</> : <><ChevronDown size={12} /> More details</>}
-                </button>
-                {expanded[i] && (
-                  <div className="ml-6 mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-border">
-                    <InfoCell label="Account No." value={fmt(loan.account_number)} small />
-                    <InfoCell label="Holder Type" value={fmt(loan.account_holder_type || loan.ownership_indicator)} small />
-                    <InfoCell label="Ownership" value={fmt(loan.ownership_indicator)} small />
-                  </div>
-                )}
+
+          {/* Credit Score */}
+          {creditScore !== null ? (
+            <div className={`mb-4 p-4 rounded-xl border-2 flex items-center gap-4 ${
+              creditScore >= 750 ? 'border-green-400 bg-green-50 dark:bg-green-900/20' :
+              creditScore >= 650 ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' :
+              'border-red-400 bg-red-50 dark:bg-red-900/20'
+            }`}>
+              <div className={`text-3xl font-black ${
+                creditScore >= 750 ? 'text-green-600 dark:text-green-400' :
+                creditScore >= 650 ? 'text-amber-600 dark:text-amber-400' :
+                'text-red-600 dark:text-red-400'
+              }`}>{creditScore}</div>
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Credit Score (Bureau)</p>
+                <p className={`text-sm font-semibold ${
+                  creditScore >= 750 ? 'text-green-700 dark:text-green-400' :
+                  creditScore >= 650 ? 'text-amber-700 dark:text-amber-400' :
+                  'text-red-700 dark:text-red-400'
+                }`}>
+                  {creditScore >= 750 ? 'Excellent' : creditScore >= 700 ? 'Good' : creditScore >= 650 ? 'Fair' : 'Poor'}
+                </p>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="mb-4 p-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 text-amber-700 text-xs font-medium">
+              ⚠ Bureau score not available for this customer
+            </div>
+          )}
+
+          {/* Auto Loans */}
+          {autoLoans.length === 0 ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-700 dark:text-green-400 text-sm font-medium">
+              <CheckCircle size={16} /> No auto loans found in credit bureau. No link loan risk.
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground mb-3">Select the loan linked to this vehicle</p>
+              <div className="space-y-2">
+                {autoLoans.map((loan, i) => (
+                  <div
+                    key={i}
+                    onClick={() => handleSelectLoan(loan)}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                      selectedLoan === loan
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedLoan === loan ? 'border-primary' : 'border-muted-foreground'}`}>
+                          {selectedLoan === loan && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="font-semibold text-sm text-foreground">{fmt(loan.subscriber_name)}</span>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        loan.account_status === 'Active'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                      }`}>
+                        {fmt(loan.account_status)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 ml-6">
+                      <InfoCell label="Account Type" value={fmt(loan.account_type)} small />
+                      <InfoCell label="Sanctioned" value={fmtCur(loan.sanctioned_amount)} small />
+                      <InfoCell label="Balance" value={fmtCur(loan.current_balance)} small />
+                      <InfoCell label="Opened" value={fmt(loan.open_date)} small />
+                      <InfoCell label="Closed" value={fmt(loan.close_date)} small />
+                      <InfoCell label="Status" value={fmt(loan.account_status)} small />
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); setExpanded(prev => ({ ...prev, [i]: !prev[i] })); }}
+                      className="ml-6 mt-2 text-xs text-primary flex items-center gap-1"
+                    >
+                      {expanded[i] ? <><ChevronUp size={12} /> Less</> : <><ChevronDown size={12} /> More details</>}
+                    </button>
+                    {expanded[i] && (
+                      <div className="ml-6 mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-border">
+                        <InfoCell label="Account No." value={fmt(loan.account_number)} small />
+                        <InfoCell label="Holder Type" value={fmt(loan.account_holder_type || loan.ownership_indicator)} small />
+                        <InfoCell label="Ownership" value={fmt(loan.ownership_indicator)} small />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -399,7 +440,6 @@ export default function LinkLoanFinder() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Alert Banner */}
               <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700">
                 <AlertTriangle size={20} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                 <div>
@@ -412,14 +452,11 @@ export default function LinkLoanFinder() {
                 </div>
               </div>
 
-              {/* Same Lender Loan Cards */}
               {sameLenderLoans.map((loan, i) => (
                 <div key={i} className="p-4 rounded-xl border-2 border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-bold text-sm text-foreground">{fmt(loan.subscriber_name)}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 font-semibold">
-                      LINK LOAN
-                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 font-semibold">LINK LOAN</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <InfoCell label="Lender Name" value={fmt(loan.subscriber_name)} />
