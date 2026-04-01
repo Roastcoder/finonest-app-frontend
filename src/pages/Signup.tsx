@@ -112,7 +112,7 @@ export default function Signup() {
         setPanError('');
         // Live-fetch name as soon as PAN is complete
         setPanFetching(true);
-        fetch(`${(import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api'}/kyc/verify-pan`, {
+        fetch(`${(import.meta as any).env?.VITE_API_URL || 'http://localhost:5001/api'}/kyc/verify-pan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pan_number: validatedValue })

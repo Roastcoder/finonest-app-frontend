@@ -28,7 +28,7 @@ export default function LoanLoginDetails() {
     queryKey: ['users-list'],
     queryFn: async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
         });
         if (!response.ok) return [];
@@ -60,7 +60,7 @@ export default function LoanLoginDetails() {
       const loanId = loanData.loanNumber || generateLoanId();
       const selectedLenderName = form.selectedLender === 'Others' ? form.otherLender : form.selectedLender;
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ export default function LoanLoginDetails() {
         pdfFormData.append('loan_id', String(data.id));
         if (loanData?.lead_id) pdfFormData.append('lead_id', String(loanData.lead_id));
 
-        const pdfUploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+        const pdfUploadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
           body: pdfFormData,

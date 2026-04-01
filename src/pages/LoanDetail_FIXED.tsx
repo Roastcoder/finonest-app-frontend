@@ -33,7 +33,7 @@ export default function LoanDetail() {
     queryKey: ['loan', id],
     queryFn: async () => {
       console.log('Fetching loan with ID:', id);
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans/${id}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       console.log('Loan fetch response status:', res.status);
@@ -57,7 +57,7 @@ export default function LoanDetail() {
         return [];
       }
       console.log('Fetching documents for lead_id:', loan.lead_id);
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/lead/${loan.lead_id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents/lead/${loan.lead_id}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) {
@@ -73,7 +73,7 @@ export default function LoanDetail() {
 
   const updateStatus = useMutation({
     mutationFn: async (newStatus: string) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export default function LoanDetail() {
 
   const deleteLoan = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
@@ -118,7 +118,7 @@ export default function LoanDetail() {
   const previewDocument = async (doc: any) => {
     setLoadingPreview(doc.id);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/preview`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents/${doc.id}/preview`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (res.ok) {

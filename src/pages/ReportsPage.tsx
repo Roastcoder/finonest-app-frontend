@@ -13,7 +13,7 @@ export default function ReportsPage() {
     queryKey: ['reports', filter, drillDown],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/reports?filter=${filter}&drillDown=${drillDown}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/reports?filter=${filter}&drillDown=${drillDown}`,
         { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } }
       );
       if (!response.ok) return null;

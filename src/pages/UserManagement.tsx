@@ -22,7 +22,7 @@ export default function UserManagement() {
   const { data: rawUsers = [], isLoading, refetch, error } = useQuery({
     queryKey: ['users-hierarchy', user?.branch_id],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/hierarchy`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/hierarchy`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch hierarchy');
@@ -33,7 +33,7 @@ export default function UserManagement() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
@@ -57,7 +57,7 @@ export default function UserManagement() {
 
   const approveUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}/approve`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/${userId}/approve`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
@@ -78,7 +78,7 @@ export default function UserManagement() {
 
   const rejectUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}/reject`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/${userId}/reject`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
@@ -112,7 +112,7 @@ export default function UserManagement() {
   const bulkApproveUsers = useMutation({
     mutationFn: async (userIds: number[]) => {
       const promises = userIds.map(id => 
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${id}/approve`, {
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/${id}/approve`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
         })
@@ -160,7 +160,7 @@ export default function UserManagement() {
 
   const generateReferCodes = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/generate-refer-codes`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/generate-refer-codes`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });

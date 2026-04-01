@@ -30,7 +30,7 @@ export default function CustomerProfileForm({ leadId }: { leadId: number }) {
     const { data: profile, isLoading } = useQuery({
         queryKey: ['lead-profile', leadId],
         queryFn: async () => {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${leadId}/profile`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/leads/${leadId}/profile`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
             });
             if (res.status === 404) return null;
@@ -47,7 +47,7 @@ export default function CustomerProfileForm({ leadId }: { leadId: number }) {
 
     const saveMutation = useMutation({
         mutationFn: async (data: any) => {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads/${leadId}/profile`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/leads/${leadId}/profile`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

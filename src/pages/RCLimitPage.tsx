@@ -37,7 +37,7 @@ function DSAView() {
   const { data: folios = [] } = useQuery({
     queryKey: ['rc-folios'],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/rc-limits/folios`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/rc-limits/folios`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
       });
       return response.ok ? await response.json() : [];
@@ -78,7 +78,7 @@ function AccountantView() {
   const { data: entries = [] } = useQuery({
     queryKey: ['rc-entries'],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/rc-limits/entries`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/rc-limits/entries`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
       });
       return response.ok ? await response.json() : [];
@@ -89,7 +89,7 @@ function AccountantView() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/rc-limits/import`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/rc-limits/import`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
         body: formData
@@ -157,7 +157,7 @@ function AdminView() {
   const { data: folios = [] } = useQuery({
     queryKey: ['all-folios'],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/rc-limits/admin/folios`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/rc-limits/admin/folios`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
       });
       return response.ok ? await response.json() : [];

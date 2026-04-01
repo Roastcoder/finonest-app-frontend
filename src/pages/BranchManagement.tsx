@@ -21,7 +21,7 @@ export default function BranchManagement() {
 
   const fetchNextCode = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches/next-code`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/branches/next-code`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (res.ok) {
@@ -34,7 +34,7 @@ export default function BranchManagement() {
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/branches`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch branches');
@@ -46,8 +46,8 @@ export default function BranchManagement() {
     mutationFn: async (data: any) => {
       const method = editingBranch ? 'PUT' : 'POST';
       const url = editingBranch 
-        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches/${editingBranch.id}`
-        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches`;
+        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/branches/${editingBranch.id}`
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/branches`;
       const res = await fetch(url, {
         method,
         headers: {
@@ -70,7 +70,7 @@ export default function BranchManagement() {
 
   const deleteBranch = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/branches/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });

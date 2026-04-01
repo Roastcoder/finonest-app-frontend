@@ -6,7 +6,7 @@ import { BankFormModal } from '@/components/BankFormModal';
 import { BankImportModal } from '@/components/BankImportModal';
 import { toast } from 'sonner';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const authHeader = () => ({ 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` });
 
 // Branch Dialog Component
@@ -298,7 +298,7 @@ export default function BankManagement() {
   const { data: banks = [], isLoading, refetch } = useQuery({
     queryKey: ['banks'],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/banks`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/banks`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch banks');
@@ -309,7 +309,7 @@ export default function BankManagement() {
   const { data: loans = [] } = useQuery({
     queryKey: ['loans-for-banks'],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/loans`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch loans');
@@ -385,7 +385,7 @@ export default function BankManagement() {
                   <div className="flex items-center gap-3">
                     {bank.logo_url && (
                       <img 
-                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${bank.logo_url}`} 
+                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${bank.logo_url}`} 
                         alt={bank.name} 
                         className="w-10 h-10 rounded-lg object-contain bg-muted" 
                         onError={(e) => { e.currentTarget.style.display = 'none'; }} 

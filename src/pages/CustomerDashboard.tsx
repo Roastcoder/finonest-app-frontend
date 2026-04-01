@@ -11,7 +11,7 @@ export default function CustomerDashboard() {
     const fetchStatus = async () => {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/customer-portal/status/${leadId}`,
+          `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/customer-portal/status/${leadId}`,
           {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('customer_token')}`

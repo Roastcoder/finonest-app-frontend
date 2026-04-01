@@ -70,7 +70,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/branches`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/branches`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch branches');
@@ -81,7 +81,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
   const { data: managers = [] } = useQuery({
     queryKey: ['managers', role],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch users');
@@ -105,7 +105,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
   const { data: dsas = [] } = useQuery({
     queryKey: ['dsas'],
     queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
       });
       if (!res.ok) throw new Error('Failed to fetch users');
@@ -175,7 +175,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
     try {
       if (targetUser) {
         // Update existing user
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${targetUser.id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/${targetUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
         toast.success('User updated successfully!');
       } else {
         // Create new user
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

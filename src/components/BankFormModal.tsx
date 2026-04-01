@@ -30,7 +30,7 @@ const emptyBranch = (): Branch => ({
   status: 'active',
 });
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const API_BASE = API.replace('/api', '');
 const authHeader = () => ({ 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` });
 

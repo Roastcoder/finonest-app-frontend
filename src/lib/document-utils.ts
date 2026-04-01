@@ -1,6 +1,6 @@
 // Helper function to fetch document files from API
 export async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
-  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
   // No authentication headers needed for public document access
   
   const DOC_TYPES: Record<string, string> = {

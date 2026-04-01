@@ -10,7 +10,7 @@ export default function AuditLogPage() {
     queryFn: async () => {
       const params = new URLSearchParams(filters as any);
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/audit-logs?${params}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/audit-logs?${params}`,
         { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } }
       );
       return response.ok ? await response.json() : [];

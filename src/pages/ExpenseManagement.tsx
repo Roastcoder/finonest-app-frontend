@@ -26,7 +26,7 @@ export default function ExpenseManagement() {
         queryKey: ['users-list'],
         queryFn: async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
                 });
                 if (!response.ok) return [];
@@ -41,7 +41,7 @@ export default function ExpenseManagement() {
         queryKey: ['expenses'],
         queryFn: async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
                 });
                 if (!response.ok) return [];
@@ -56,7 +56,7 @@ export default function ExpenseManagement() {
         queryKey: ['expense-stats'],
         queryFn: async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses/stats`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses/stats`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
                 });
                 if (!response.ok) return null;
@@ -69,7 +69,7 @@ export default function ExpenseManagement() {
 
     const createExpense = useMutation({
         mutationFn: async (formData: FormData) => {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -100,7 +100,7 @@ export default function ExpenseManagement() {
 
     const approveExpense = useMutation({
         mutationFn: async (id: number) => {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses/${id}/approve`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses/${id}/approve`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -121,7 +121,7 @@ export default function ExpenseManagement() {
 
     const rejectExpense = useMutation({
         mutationFn: async ({ id, remarks }: { id: number; remarks: string }) => {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses/${id}/reject`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses/${id}/reject`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,

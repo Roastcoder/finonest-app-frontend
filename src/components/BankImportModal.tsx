@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export function BankImportModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
   const [file, setFile] = useState<File | null>(null);

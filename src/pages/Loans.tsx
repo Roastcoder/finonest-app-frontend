@@ -407,6 +407,10 @@ export default function Loans() {
                   <p className="text-xs font-medium text-muted-foreground mb-1">Sourcing</p>
                   <p className="font-medium text-foreground truncate">{loan.sourcing_person_name || '—'}</p>
                 </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Converted By</p>
+                  <p className="font-medium text-foreground truncate">{loan.created_by_name || '—'}</p>
+                </div>
               </div>
               <div className="mt-4 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                 {/* Action buttons row */}
@@ -534,6 +538,7 @@ export default function Loans() {
                   <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Case Type</th>
                   <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Bank</th>
                   <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Sourcing</th>
+                  <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Converted By</th>
                   <th className="text-right py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Amount</th>
                   <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Stage</th>
                   <th className="text-left py-2 px-2 font-medium text-muted-foreground whitespace-nowrap text-xs">Actions</th>
@@ -559,6 +564,7 @@ export default function Loans() {
                     <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.case_type || '—'}</td>
                     <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.bank_name || '—'}</td>
                     <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.sourcing_person_name || '—'}</td>
+                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.created_by_name || '—'}</td>
                     <td className="py-2 px-2 text-right font-medium text-foreground whitespace-nowrap text-xs">{formatCurrency(Number(loan.loan_amount))}</td>
                     <td className="py-2 px-2 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
                     <td className="py-2 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>

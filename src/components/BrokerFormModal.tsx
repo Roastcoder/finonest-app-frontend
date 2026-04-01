@@ -39,8 +39,8 @@ export function BrokerFormModal({ open, onClose, onSuccess, broker }: BrokerForm
     try {
       const method = broker ? 'PUT' : 'POST';
       const url = broker 
-        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/brokers/${broker.id}`
-        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/brokers`;
+        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/brokers/${broker.id}`
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/brokers`;
       const res = await fetch(url, {
         method,
         headers: {

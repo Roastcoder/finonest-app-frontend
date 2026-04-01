@@ -9,7 +9,7 @@ export default function AccountantDashboard() {
   const { data: stats } = useQuery({
     queryKey: ['accountant-dashboard', user?.id],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/accountant/dashboard`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/accountant/dashboard`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
       });
       if (!response.ok) return null;

@@ -10,7 +10,7 @@ export default function ExpensePage() {
   const { data: expenses = [] } = useQuery({
     queryKey: ['expenses'],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
       });
       return response.ok ? await response.json() : [];
@@ -19,7 +19,7 @@ export default function ExpensePage() {
 
   const createExpense = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
         body: JSON.stringify(data)
@@ -36,7 +36,7 @@ export default function ExpensePage() {
 
   const approveExpense = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/expenses/${id}/approve`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/expenses/${id}/approve`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
       });

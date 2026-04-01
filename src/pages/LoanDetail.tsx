@@ -195,7 +195,7 @@ export default function LoanDetail() {
     setLoadingPreview(doc.id);
     try {
       // Use public download endpoint directly (no auth required)
-      const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`);
+      const downloadResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents/${doc.id}/download`);
       
       if (downloadResponse.ok) {
         const blob = await downloadResponse.blob();

@@ -62,7 +62,7 @@ export default function AddLead() {
   const { data: banks = [] } = useQuery({
     queryKey: ['banks'],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/banks`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/banks`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         }
@@ -81,7 +81,7 @@ export default function AddLead() {
     if (form.pincode.length === 6) {
       setPincodeLoading(true);
       setPincodeManual(false);
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/integrations/pincode/${form.pincode}`)
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/integrations/pincode/${form.pincode}`)
         .then(res => res.json())
         .then(data => {
           if (data.city && data.state) {
@@ -114,7 +114,7 @@ export default function AddLead() {
       
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/leads`, {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/leads`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ export default function AddLead() {
           formData.append('document_type', docType);
 
           try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('auth_token')}`

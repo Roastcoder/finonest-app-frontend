@@ -203,7 +203,7 @@ const ROLE_LABELS_MAP: Record<string, string> = {
 async function fetchLeadProfile(leadId: any): Promise<any | null> {
   try {
     if (!leadId) return null;
-    const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
     const res = await fetch(`${API}/leads/${leadId}/profile`, { headers });
     if (!res.ok) return null;
@@ -230,7 +230,7 @@ function buildProfessionalHTML(p: any): string {
 
 async function fetchHierarchy(loan: LoanData): Promise<{ name: string; designation: string }[]> {
   try {
-    const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
 
     // If loan came from a lead, use lead's creator for hierarchy
@@ -815,7 +815,7 @@ const PDF_DOC_LABELS: Record<string, string> = {
 };
 
 async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
-  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
   // No authentication headers needed for public document access
   const files: { file: File; name: string; docType: string }[] = [];
   for (const doc of docs) {

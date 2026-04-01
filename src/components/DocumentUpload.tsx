@@ -97,7 +97,7 @@ export default function DocumentUpload({ leadId, onUploadComplete }: DocumentUpl
       if (notes) formData.append('notes', notes);
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -308,7 +308,7 @@ export function DocumentList({ leadId }: DocumentListProps) {
   const fetchDocuments = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/lead/${leadId}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents/lead/${leadId}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -337,7 +337,7 @@ export function DocumentList({ leadId }: DocumentListProps) {
 
   const handlePreview = async (doc: any) => {
     try {
-      const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${doc.id}/download`;
+      const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents/${doc.id}/download`;
       
       // No authentication headers needed for public access
       const response = await fetch(downloadUrl);
@@ -367,7 +367,7 @@ export function DocumentList({ leadId }: DocumentListProps) {
     if (!confirm('Are you sure you want to delete this document?')) return;
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${docId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents/${docId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -398,7 +398,7 @@ export function DocumentList({ leadId }: DocumentListProps) {
 
     try {
       // First delete the old document
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents/${docId}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents/${docId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -411,7 +411,7 @@ export function DocumentList({ leadId }: DocumentListProps) {
       formData.append('lead_id', leadId.toString());
       formData.append('document_type', docType);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/documents`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/documents`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
