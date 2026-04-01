@@ -390,13 +390,6 @@ export default function Loans() {
                 </div>
                 <LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} />
               </div>
-              {(loan as any).link_loan_tag === 'LINK LOAN EXIST' && (
-                <div className="mb-3">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-300 dark:border-red-700">
-                    ⚠ LINK LOAN EXIST
-                  </span>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-4 py-3 border-y border-border">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-1">Amount</p>
@@ -554,11 +547,6 @@ export default function Loans() {
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
                     <td className="py-2 px-2 whitespace-nowrap">
                       <p className="font-mono text-xs text-primary font-semibold">{loan.loan_number || loan.id}</p>
-                      {(loan as any).link_loan_tag === 'LINK LOAN EXIST' && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-300 dark:border-red-700 mt-0.5">
-                          ⚠ LINK LOAN
-                        </span>
-                      )}
                     </td>
                     <td className="py-2 px-2 whitespace-nowrap">
                       <p className="font-medium text-foreground text-xs">{loan.applicant_name}</p>

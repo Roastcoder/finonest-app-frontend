@@ -113,41 +113,54 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
       setLlSelectedLoan(null);
       setLlTagging(false);
       setLlTagged(false);
+      // If opening directly on LOGIN stage, trigger fetch
+      if (loan.application_stage === 'LOGIN' || loan.application_stage === 'SUBMITTED') {
+        setLlChecked(false);
+      }
     }
   }, [isOpen, loan?.id]);
 
   // Auto-trigger link loan + bureau check when stage switches to LOGIN
   useEffect(() => {
-    if (formData.stage === 'LOGIN' && loan?.id && !llChecked) {
-      setLlLoading(true);
-      const name = loan.customer_name || loan.applicant_name || '';
-      const mobile = loan.phone || loan.mobile || '';
-      const rc_number = loan.vehicle_number || loan.vehicle_no || '';
+    if (formData.stage !== 'LOGIN' || !loan?.id) return;
 
-      if (!name || !mobile) {
-        setLlChecked(true);
-        setLlLoading(false);
-        return;
-      }
-
-      fetch(`${API}/link-loan/credit-report`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ name, mobile, rc_number })
-      })
-        .then(r => r.json())
-        .then(data => {
-          const autoLoans = data.auto_loans || [];
-          setLlAutoLoans(autoLoans);
-          if (data.credit_score) {
-            setFormData(prev => ({ ...prev, creditScore: data.credit_score }));
-          }
-          setLlChecked(true);
-        })
-        .catch(() => setLlChecked(true))
-        .finally(() => setLlLoading(false));
+    // If already fetched from saved loan data, use it
+    if (loan.credit_report_data) {
+      const saved = typeof loan.credit_report_data === 'string'
+        ? JSON.parse(loan.credit_report_data)
+        : loan.credit_report_data;
+      setLlAutoLoans(saved.auto_loans || []);
+      if (saved.credit_score) setFormData(prev => ({ ...prev, creditScore: saved.credit_score }));
+      setLlChecked(true);
+      return;
     }
-  }, [formData.stage]);
+
+    if (llChecked) return;
+
+    const name = loan.applicant_name || loan.customer_name || '';
+    const mobile = loan.mobile || loan.phone || '';
+    const rc_number = loan.vehicle_number || loan.vehicle_no || '';
+
+    if (!name || !mobile) {
+      setLlChecked(true);
+      return;
+    }
+
+    setLlLoading(true);
+    fetch(`${API}/link-loan/credit-report`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name, mobile, rc_number })
+    })
+      .then(r => r.json())
+      .then(data => {
+        setLlAutoLoans(data.auto_loans || []);
+        if (data.credit_score) setFormData(prev => ({ ...prev, creditScore: data.credit_score }));
+        setLlChecked(true);
+      })
+      .catch(() => setLlChecked(true))
+      .finally(() => setLlLoading(false));
+  }, [formData.stage, loan?.id]);
 
   const updateStage = useMutation({
     mutationFn: async (data: StageFormData) => {
@@ -164,6 +177,9 @@ export default function LoanApplicationStageManager({ loan, isOpen, onClose }: L
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loan', loan.id] });
+      queryClient.invalidateQueries({ queryKey: ['loan', String(loan.id)] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       toast.success('Application stage updated successfully');
       onClose();
     },

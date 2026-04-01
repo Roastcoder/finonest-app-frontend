@@ -17,10 +17,34 @@ function fmtCur(v: any) {
   return isNaN(n) || n === 0 ? '—' : `₹${n.toLocaleString('en-IN')}`;
 }
 const ACCOUNT_TYPE_MAP: Record<string, string> = {
-  '10': 'Auto Loan', '00': 'Other', '01': 'Personal Loan', '02': 'Home Loan',
-  '03': 'Credit Card', '04': 'Two Wheeler', '05': 'Consumer Loan',
-  '06': 'Gold Loan', '07': 'Education Loan', '08': 'Business Loan',
-  '09': 'Overdraft', '11': 'Commercial Vehicle', '12': 'Tractor Loan',
+  '01': 'Auto Loan', '1': 'Auto Loan',
+  '02': 'Home Loan', '2': 'Home Loan',
+  '03': 'Property Loan', '3': 'Property Loan',
+  '04': 'Loan Against Shares', '4': 'Loan Against Shares',
+  '05': 'Personal Loan', '5': 'Personal Loan',
+  '06': 'Consumer Loan', '6': 'Consumer Loan',
+  '07': 'Gold Loan', '7': 'Gold Loan',
+  '08': 'Education Loan', '8': 'Education Loan',
+  '09': 'Loan to Professional', '9': 'Loan to Professional',
+  '10': 'Credit Card',
+  '11': 'Leasing',
+  '12': 'Overdraft',
+  '13': 'Two-Wheeler Loan',
+  '14': 'Kisan Credit Card',
+  '15': 'Commercial Vehicle Loan',
+  '16': 'Fleet Card',
+  '17': 'Commercial Vehicle Loan',
+  '19': 'Secured Credit Card',
+  '32': 'Used Car Loan',
+  '33': 'Construction Equipment Loan',
+  '34': 'Tractor Loan',
+  '35': 'Staff Loan',
+  '51': 'Business Loan',
+  '52': 'Business Loan - Small',
+  '53': 'Business Loan - Agriculture',
+  '61': 'Business Loan - Unsecured',
+  '69': 'Short Term Personal Loan',
+  '00': 'Others',
 };
 function fmtAccType(v: any) {
   if (!v) return '—';
@@ -243,12 +267,29 @@ const LOGIN_AND_BEYOND = ['LOGIN', 'IN_PROCESS', 'APPROVED', 'DISBURSED', 'REJEC
 
 export default function CibilCreditReport({ loan }: Props) {
   const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState<any>(null);
-  const [fromCache, setFromCache] = useState(false);
-  const [cacheAge, setCacheAge] = useState<string | null>(null);
-
   const stage = loan?.application_stage || '';
   const isLoginOrBeyond = LOGIN_AND_BEYOND.includes(stage);
+
+  // Parse saved report from loan immediately — survives page refresh
+  const parseSaved = (loanData: any) => {
+    if (!loanData?.credit_report_data) return null;
+    const saved = typeof loanData.credit_report_data === 'string'
+      ? JSON.parse(loanData.credit_report_data)
+      : loanData.credit_report_data;
+    return {
+      credit_score: saved.credit_score || loanData.bureau_score || null,
+      auto_loans: saved.auto_loans || [],
+      full_report: saved.full_report || {},
+      from_cache: true,
+      cache_age: saved.fetched_at
+        ? `${Math.floor((Date.now() - new Date(saved.fetched_at).getTime()) / 86400000)} days ago`
+        : null,
+    };
+  };
+
+  const [report, setReport] = useState<any>(() => parseSaved(loan));
+  const [fromCache, setFromCache] = useState(!!loan?.credit_report_data);
+  const [cacheAge, setCacheAge] = useState<string | null>(null);
 
   const fetchReport = async (forceRefresh = false) => {
     const name = (loan.applicant_name || '').trim();
@@ -275,32 +316,20 @@ export default function CibilCreditReport({ loan }: Props) {
     }
   };
 
-  // Load from saved loan data first, only call API if not saved
+  // When loan data loads/changes, sync saved report into state
   useEffect(() => {
-    if (!isLoginOrBeyond || report || loading) return;
-
-    // If credit report already saved on loan, use it directly — no API call
-    if (loan.credit_report_data) {
-      const saved = typeof loan.credit_report_data === 'string'
-        ? JSON.parse(loan.credit_report_data)
-        : loan.credit_report_data;
-      setReport({
-        credit_score: saved.credit_score || loan.bureau_score || null,
-        auto_loans: saved.auto_loans || [],
-        full_report: saved.full_report || {},
-        from_cache: true,
-        cache_age: saved.fetched_at ? `${Math.floor((Date.now() - new Date(saved.fetched_at).getTime()) / 86400000)} days ago` : null,
-      });
-      setFromCache(true);
-      return;
+    if (!isLoginOrBeyond) return;
+    if (loan?.credit_report_data) {
+      const saved = parseSaved(loan);
+      if (saved) { setReport(saved); setFromCache(true); return; }
     }
-
-    // Otherwise fetch from API (first time)
-    const name = (loan.applicant_name || '').trim();
-    const mobile = (loan.mobile || '').trim();
-    if (!name || !mobile) return;
-    fetchReport(false);
-  }, [loan?.id, isLoginOrBeyond, loan?.credit_report_data]);
+    // No saved data — fetch from API (first time only)
+    if (!report && !loading) {
+      const name = (loan?.applicant_name || '').trim();
+      const mobile = (loan?.mobile || '').trim();
+      if (name && mobile) fetchReport(false);
+    }
+  }, [loan?.id, loan?.credit_report_data, isLoginOrBeyond]);
 
   // Don't render at all if stage is not LOGIN or beyond
   if (!isLoginOrBeyond) return null;

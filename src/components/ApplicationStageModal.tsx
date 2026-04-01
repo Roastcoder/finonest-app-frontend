@@ -81,10 +81,15 @@ export default function ApplicationStageModal({
             setBureauScore(data.credit_score);
             setFormData((f: any) => ({ ...f, creditScore: data.credit_score }));
           }
-          if (data.auto_loans?.length > 0) {
-            setLinkLoanTag('LINK LOAN EXIST');
-          } else if (data.auto_loans) {
-            setLinkLoanTag('NO LINK LOAN');
+          // Link loan = same lender has 2+ auto loans
+          if (data.auto_loans) {
+            const loans = data.auto_loans;
+            const hasDuplicate = loans.some((l: any) =>
+              loans.filter((x: any) =>
+                (x.subscriber_name || '').toLowerCase() === (l.subscriber_name || '').toLowerCase()
+              ).length > 1
+            );
+            setLinkLoanTag(hasDuplicate ? 'LINK LOAN EXIST' : 'NO LINK LOAN');
           }
         } catch {}
         setFetchingBureau(false);
