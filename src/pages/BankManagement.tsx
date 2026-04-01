@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { formatCurrency } from '@/lib/mock-data';
-import { Building2, Search, Plus, TrendingUp, FileText, Edit, ChevronDown, ChevronUp, MapPin, Phone, User, X, Pencil } from 'lucide-react';
+import { Building2, Search, Plus, TrendingUp, FileText, Edit, ChevronDown, ChevronUp, MapPin, Phone, User, X, Pencil, Upload } from 'lucide-react';
 import { BankFormModal } from '@/components/BankFormModal';
+import { BankImportModal } from '@/components/BankImportModal';
 import { toast } from 'sonner';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -290,6 +291,7 @@ function BranchesListDialog({ bankId, onClose }: { bankId: number; onClose: () =
 export default function BankManagement() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [editBank, setEditBank] = useState<any>(null);
   const [branchesDialogOpen, setBranchesDialogOpen] = useState<number | null>(null);
 
@@ -336,9 +338,14 @@ export default function BankManagement() {
           <h1 className="text-2xl font-bold text-foreground">Bank / NBFC Management</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage lending partners and track performance</p>
         </div>
-        <button onClick={handleAddBank} className="flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm">
-          <Plus size={16} /> Add Bank / NBFC
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setImportModalOpen(true)} className="flex items-center gap-2 bg-muted text-foreground font-semibold py-2.5 px-4 rounded-xl hover:bg-muted/80 transition-colors text-sm">
+            <Upload size={16} /> Import
+          </button>
+          <button onClick={handleAddBank} className="flex items-center gap-2 bg-accent text-accent-foreground font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity text-sm">
+            <Plus size={16} /> Add Bank / NBFC
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -426,6 +433,7 @@ export default function BankManagement() {
           onClose={() => setBranchesDialogOpen(null)}
         />
       )}
+      <BankImportModal open={importModalOpen} onClose={() => setImportModalOpen(false)} onSuccess={refetch} />
     </div>
   );
 }
