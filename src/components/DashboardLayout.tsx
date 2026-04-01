@@ -40,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Expenses', path: '/expenses', icon: <CreditCard size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
       { label: 'Insurance', path: '/insurance', icon: <ShieldCheck size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager'] },
       { label: 'Link Loan Finder', path: '/link-loan-finder', icon: <Shield size={16} />, roles: ['admin', 'sales_manager', 'branch_manager'] },
-      { label: 'Find My Lender', path: '/find-lender', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader', 'executive'] },
+      { label: 'Find My Lender', path: '/find-lender', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa', 'team_leader'] },
     ]
   },
   {
@@ -309,15 +309,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Navbar */}
-        <div className="lg:hidden sticky top-0 z-20">
+        <div className="lg:hidden">
           <Navbar showTimeline={false} showExport={false} />
         </div>
         {/* Page - Responsive with vh/vw */}
         <main style={{ 
           padding: 'clamp(1rem, 3vw, 1.25rem)',
           paddingBottom: 'clamp(5rem, 10vh, 1.25rem)',
-          marginTop: 'clamp(0.5rem, 2vh, 1rem)'
-        }} className="flex-1 overflow-y-auto scroll-smooth lg:mt-0">
+        }} className="flex-1 overflow-y-auto scroll-smooth pt-14 lg:pt-4">
           <div className="animate-fade-in w-full">
             {children}
           </div>

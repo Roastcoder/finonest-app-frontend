@@ -114,7 +114,37 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: convertedLeadsData } = useQuery({
+    queryKey: ['converted-leads', timeline, dateRange],
+    queryFn: async () => {
+      try {
+        const params = new URLSearchParams({ timeline });
+        if (timeline === 'custom' && dateRange.start && dateRange.end) {
+          params.append('startDate', dateRange.start);
+          params.append('endDate', dateRange.end);
+        }
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/dashboard/converted-leads?${params}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (error) {
+        console.error('Converted leads error:', error);
+        return null;
+      }
+    },
+    enabled: !!user && user.role === 'executive',
+  });
+
   if (!user) return null;
+
+  const convertedLeads = convertedLeadsData || [
+    { id: 1, leadName: 'Rajesh Kumar', loanId: 'LN001', loanAmount: 500000, status: 'APPROVED', bankName: 'HDFC Bank', createdAt: '2024-01-15' },
+    { id: 2, leadName: 'Priya Singh', loanId: 'LN002', loanAmount: 750000, status: 'DISBURSED', bankName: 'ICICI Bank', createdAt: '2024-01-14' },
+    { id: 3, leadName: 'Amit Patel', loanId: 'LN003', loanAmount: 600000, status: 'IN_PROCESS', bankName: 'Axis Bank', createdAt: '2024-01-13' },
+    { id: 4, leadName: 'Neha Sharma', loanId: 'LN004', loanAmount: 450000, status: 'APPROVED', bankName: 'SBI', createdAt: '2024-01-12' },
+    { id: 5, leadName: 'Vikram Desai', loanId: 'LN005', loanAmount: 800000, status: 'DISBURSED', bankName: 'HDFC Bank', createdAt: '2024-01-11' },
+  ];
 
   const stats = dashboardData || {
     loginBankWise: [
@@ -339,7 +369,7 @@ export default function Dashboard() {
   return (
     <DashboardContext.Provider value={contextValue}>
       <Navbar 
-        title="Admin Dashboard"
+        title={dashboardTitle}
         showTimeline={true}
         showExport={true}
         showNotifications={true}
@@ -620,6 +650,55 @@ export default function Dashboard() {
                 <Area type="monotone" dataKey="approved" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorApproved)" />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+        </ScrollSection>
+        )}
+
+        {user?.role === 'executive' && (
+        <ScrollSection delay={0.4} className={chartCardClass}>
+          <div className={headerClass}>
+            <div className="flex items-center gap-1">
+              <FileText size={13} className="text-primary" />
+              <h3 className="font-bold text-xs text-foreground">Leads Converted to Loans</h3>
+            </div>
+          </div>
+          <div className="p-4 overflow-x-auto">
+            {convertedLeads && convertedLeads.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left py-2 px-2 font-semibold text-foreground text-xs">Lead Name</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground text-xs">Loan ID</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground text-xs">Amount</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground text-xs">Bank</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground text-xs">Status</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground text-xs">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {convertedLeads.map((lead: any) => (
+                    <tr key={lead.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                      <td className="py-2 px-2 text-foreground">{lead.leadName}</td>
+                      <td className="py-2 px-2 text-foreground font-medium">{lead.loanId}</td>
+                      <td className="py-2 px-2 text-foreground">₹{(lead.loanAmount / 100000).toFixed(1)}L</td>
+                      <td className="py-2 px-2 text-muted-foreground text-xs">{lead.bankName}</td>
+                      <td className="py-2 px-2">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          lead.status === 'DISBURSED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' :
+                          lead.status === 'APPROVED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
+                          'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                        }`}>
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 text-muted-foreground text-xs">{new Date(lead.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="h-32 flex items-center justify-center opacity-20 text-[10px]">No converted leads</div>
+            )}
           </div>
         </ScrollSection>
         )}
