@@ -406,8 +406,8 @@ export default function LoanDetail() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share Documents</p>
-                  <p className="text-xs text-muted-foreground">Only the uploaded files</p>
+                  <p className="text-sm font-semibold text-foreground">Share All Documents</p>
+                  <p className="text-xs text-muted-foreground">{documents.length} files (PNG, JPG, PDF, etc.)</p>
                 </div>
                 <FileText size={18} className="text-green-500 shrink-0" />
               </div>
@@ -570,10 +570,10 @@ export default function LoanDetail() {
                 });
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors"
-              title="Share documents only (images and PDFs)"
+              title="Share all documents (PNG, JPG, PDF, etc.)"
             >
               <FileText size={14} className="text-green-500" />
-              Share Docs
+              Share All Docs
             </button>
           )}
           <div className="relative group">
