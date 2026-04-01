@@ -34,7 +34,6 @@ import AuditLogPage from "@/pages/AuditLogPage";
 import TeamUsers from "@/pages/TeamUsers";
 import LinkLoanFinder from "@/pages/LinkLoanFinder";
 import FindMyLender from "@/pages/FindMyLender";
-import LenderCoordinatesAdmin from "@/pages/LenderCoordinatesAdmin";
 import AdminNearbyBranches from "@/pages/AdminNearbyBranches";
 import CustomerPortal from "@/pages/CustomerPortal";
 import CustomerLogin from "@/pages/CustomerLogin";
@@ -98,7 +97,6 @@ function AppRoutes() {
       <Route path="/insurance" element={<ProtectedRoute><InsuranceModule /></ProtectedRoute>} />
       <Route path="/link-loan-finder" element={<ProtectedRoute><LinkLoanFinder /></ProtectedRoute>} />
       <Route path="/find-lender" element={<ProtectedRoute><FindMyLender /></ProtectedRoute>} />
-      <Route path="/admin/lender-coordinates" element={<ProtectedRoute><LenderCoordinatesAdmin /></ProtectedRoute>} />
       <Route path="/admin/nearby-branches" element={<ProtectedRoute><AdminNearbyBranches /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SystemConfig /></ProtectedRoute>} />
       <Route path="/audit-logs" element={<ProtectedRoute><AuditLogPage /></ProtectedRoute>} />
