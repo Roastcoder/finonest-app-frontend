@@ -317,11 +317,15 @@ export default function CibilCreditReport({ loan }: Props) {
         body: JSON.stringify({ name, mobile, rc_number: rcNumber, force_refresh: forceRefresh }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch credit report');
+      if (!res.ok) {
+        console.error('Credit report error:', data.error);
+        throw new Error(data.error || 'Failed to fetch credit report');
+      }
       setReport(data);
       setFromCache(data.from_cache || false);
       setCacheAge(data.cache_age || null);
     } catch (e: any) {
+      console.error('Credit report fetch error:', e.message);
       toast.error(e.message);
     } finally {
       setLoading(false);
@@ -335,12 +339,8 @@ export default function CibilCreditReport({ loan }: Props) {
       const saved = parseSaved(loan);
       if (saved) { setReport(saved); setFromCache(true); return; }
     }
-    // No saved data — fetch from API (first time only)
-    if (!report && !loading) {
-      const name = (loan?.applicant_name || '').trim();
-      const mobile = (loan?.mobile || '').trim();
-      if (name && mobile) fetchReport(false);
-    }
+    // Auto-fetch disabled - endpoint not available in production
+    // Only fetch when user explicitly clicks refresh button
   }, [loan?.id, loan?.credit_report_data, isLoginOrBeyond]);
 
   // Don't render at all if stage is not LOGIN or beyond

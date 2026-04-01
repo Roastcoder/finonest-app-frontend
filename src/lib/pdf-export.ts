@@ -201,20 +201,8 @@ const ROLE_LABELS_MAP: Record<string, string> = {
 };
 
 async function fetchLeadProfile(leadId: any): Promise<any | null> {
-  try {
-    if (!leadId) return null;
-    const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-    const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` };
-    const res = await fetch(`${API}/leads/${leadId}/profile`, { headers });
-    if (!res.ok) {
-      console.warn(`Lead profile not found for ID ${leadId}`);
-      return null;
-    }
-    return await res.json();
-  } catch (error) {
-    console.warn('Error fetching lead profile:', error);
-    return null;
-  }
+  // Lead profile endpoint not available in production
+  return null;
 }
 
 function buildProfessionalHTML(p: any): string {
