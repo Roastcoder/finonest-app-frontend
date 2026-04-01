@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard, RefreshCw, ChevronDown, ChevronUp, Loader2, AlertTriangle, CheckCircle, User, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+function getAPI() {
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+}
 
 function authHeaders() {
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    throw new Error('Authentication token not found. Please log in again.');
+  }
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+    Authorization: `Bearer ${token}`,
   };
 }
 
@@ -299,7 +305,13 @@ export default function CibilCreditReport({ loan }: Props) {
     if (!mobile) { toast.error('Mobile number required'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/link-loan/credit-report`, {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('Session expired. Please log in again.');
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`${getAPI()}/link-loan/credit-report`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ name, mobile, rc_number: rcNumber, force_refresh: forceRefresh }),

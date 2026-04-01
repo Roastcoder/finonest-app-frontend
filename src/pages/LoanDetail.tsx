@@ -692,7 +692,10 @@ export default function LoanDetail() {
 
       {activeTab === 'credit' && (
         <div className="bg-card border border-border rounded-xl p-4 mb-4">
-          <CibilCreditReport loan={loan} />
+          {/* Credit Report disabled - endpoint not available */}
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">Credit Report feature is currently unavailable</p>
+          </div>
         </div>
       )}
 
