@@ -4,9 +4,8 @@ import { MapPin, Search, Phone, User, Building2, Loader2, AlertCircle, CheckCirc
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 
-const HARDCODED_API = 'http://localhost:5001/api';
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBMkTPRdi-YeWJO-tLIdQ44hNLKsV-YfAE';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBMkTPRdi-YeWJO-tLIdQ44hNLKsV-YfAE';
 
 function authHeaders() {
   return {
@@ -51,7 +50,6 @@ interface Lender {
   };
 }
 
-// Get address suggestions from backend proxy
 async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]> {
   const trimmedInput = input.trim();
   if (!trimmedInput || trimmedInput.length < 2) return [];
@@ -76,7 +74,6 @@ async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]
   }
 }
 
-// Get coordinates from place_id via backend proxy
 async function getPlaceDetails(placeId: string): Promise<{ lat: number; lng: number; address: string } | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/google-maps/place-details`, {
@@ -96,7 +93,6 @@ async function getPlaceDetails(placeId: string): Promise<{ lat: number; lng: num
   }
 }
 
-// Geocode address for branch locations via backend proxy
 async function geocodeAddress(addr: string) {
   try {
     const response = await fetch(`${API_BASE_URL}/google-maps/geocode`, {
@@ -119,6 +115,8 @@ async function geocodeAddress(addr: string) {
 function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number; customerLng: number; branches: LenderBranch[] }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null);
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || !branches.length) return;
@@ -135,6 +133,15 @@ function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number
     });
 
     mapInstanceRef.current = map;
+    directionsServiceRef.current = new google.maps.DirectionsService();
+    directionsRendererRef.current = new google.maps.DirectionsRenderer({
+      map: map,
+      polylineOptions: {
+        strokeColor: '#3b82f6',
+        strokeWeight: 4,
+        strokeOpacity: 0.7
+      }
+    });
 
     // Add customer location marker
     new google.maps.Marker({
@@ -144,7 +151,7 @@ function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number
       icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
     });
 
-    // Filter branches with valid coordinates (must be numbers)
+    // Filter branches with valid coordinates
     const validBranches = branches.filter(b => 
       typeof b.latitude === 'number' && 
       typeof b.longitude === 'number' && 
@@ -171,23 +178,34 @@ function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number
       }
 
       // Add branch marker
-      new google.maps.Marker({
+      const marker = new google.maps.Marker({
         position: { lat, lng },
         map: map,
         title: branch.branch_name,
-        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-        infoWindow: new google.maps.InfoWindow({
-          content: `
-            <div style="font-size: 12px;">
-              <strong>${branch.branch_name}</strong><br/>
-              ${branch.location}<br/>
-              Distance: ${branch.distance} km<br/>
-              Service Area: ${branch.geo_limit_km} km
+        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+      });
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="font-size: 12px; max-width: 300px;">
+            <strong style="font-size: 14px;">${branch.branch_name}</strong><br/>
+            <div style="margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
+              <div style="margin-bottom: 6px;"><strong>📍 Location:</strong> ${branch.location}</div>
+              <div style="margin-bottom: 6px;"><strong>📏 Distance:</strong> ${branch.distance.toFixed(2)} km</div>
+              <div style="margin-bottom: 6px;"><strong>🎯 Service Area:</strong> ${branch.geo_limit_km} km</div>
+              ${branch.sales_manager_name ? `<div style="margin-bottom: 6px;"><strong>👤 Sales Manager:</strong> ${branch.sales_manager_name}</div>` : ''}
+              ${branch.sales_manager_mobile ? `<div style="margin-bottom: 6px;"><strong>📞 Contact:</strong> <a href="tel:${branch.sales_manager_mobile}" style="color: #3b82f6; text-decoration: none;">${branch.sales_manager_mobile}</a></div>` : ''}
+              ${branch.area_sales_manager_name ? `<div style="margin-bottom: 6px;"><strong>🏢 Area Manager:</strong> ${branch.area_sales_manager_name}</div>` : ''}
+              ${branch.area_sales_manager_mobile ? `<div style="margin-bottom: 6px;"><strong>📱 Area Manager Contact:</strong> <a href="tel:${branch.area_sales_manager_mobile}" style="color: #3b82f6; text-decoration: none;">${branch.area_sales_manager_mobile}</a></div>` : ''}
+              <button style="margin-top: 8px; padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%;" onclick="window.showMapRoute && window.showMapRoute(${customerLat}, ${customerLng}, ${lat}, ${lng})">Show Route</button>
             </div>
-          `
-        })
-      }).addListener('click', function() {
-        this.infoWindow.open(map, this);
+          </div>
+        `
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+        if (window.showMapRoute) window.showMapRoute(customerLat, customerLng, lat, lng);
       });
     });
 
@@ -198,9 +216,29 @@ function GoogleMap({ customerLat, customerLng, branches }: { customerLat: number
       bounds.extend({ lat: b.latitude!, lng: b.longitude! });
     });
     map.fitBounds(bounds);
+
+    // Store route function globally
+    (window as any).showMapRoute = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+      if (!directionsServiceRef.current || !directionsRendererRef.current) return;
+
+      directionsServiceRef.current.route(
+        {
+          origin: { lat: lat1, lng: lng1 },
+          destination: { lat: lat2, lng: lng2 },
+          travelMode: google.maps.TravelMode.DRIVING
+        },
+        (result, status) => {
+          if (status === google.maps.DirectionsStatus.OK) {
+            directionsRendererRef.current!.setDirections(result);
+          } else {
+            console.error('Directions request failed due to ' + status);
+          }
+        }
+      );
+    };
   }, [customerLat, customerLng, branches]);
 
-  return <div ref={mapRef} className="w-full h-96 rounded-xl border border-border" />;
+  return <div ref={mapRef} className="w-full h-[500px] rounded-lg border border-border" />;
 }
 
 export default function FindMyLender() {
@@ -219,11 +257,9 @@ export default function FindMyLender() {
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Set default coordinates to Jaipur location
     setCoordinates({ lat: 26.8925, lng: 75.8048 });
   }, []);
 
-  // Handle address input with debounce
   const handleAddressChange = (value: string) => {
     setAddress(value);
     
@@ -238,11 +274,8 @@ export default function FindMyLender() {
       return;
     }
     
-    // Count words (split by spaces)
     const words = trimmedValue.split(/\s+/).filter(w => w.length > 0);
     const wordCount = words.length;
-    
-    // Call API after 1 word and space, then after every 2 more words
     const shouldCallApi = wordCount >= 1 && value.endsWith(' ');
     
     if (!shouldCallApi) {
@@ -253,16 +286,13 @@ export default function FindMyLender() {
     
     setSuggestionsLoading(true);
     debounceTimer.current = setTimeout(async () => {
-      console.log(`API called for: "${value}" (${wordCount} words)`);
       const results = await getAddressSuggestions(value);
-      console.log(`API response received:`, results);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
       setSuggestionsLoading(false);
     }, 300);
   };
 
-  // Handle suggestion selection
   const handleSelectSuggestion = async (suggestion: AddressSuggestion) => {
     setSuggestionsLoading(true);
     try {
@@ -272,6 +302,9 @@ export default function FindMyLender() {
         setCoordinates({ lat: details.lat, lng: details.lng });
         setSuggestions([]);
         setShowSuggestions(false);
+        setSearched(false);
+        setBranchesWithCoords([]);
+        setLenders([]);
         toast.success('Address selected');
       }
     } catch (error) {
@@ -281,7 +314,6 @@ export default function FindMyLender() {
     }
   };
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
@@ -300,7 +332,6 @@ export default function FindMyLender() {
   const handleSearch = async () => {
     let customerCoords = coordinates;
     
-    // If address is provided, geocode it to get exact coordinates
     if (address.trim()) {
       const geocodedCoords = await geocodeAddress(address);
       if (!geocodedCoords) {
@@ -316,7 +347,6 @@ export default function FindMyLender() {
 
     setLoading(true);
     try {
-      // Call API to find lenders
       const response = await fetch(`${API_BASE_URL}/find-lender/search-by-address`, {
         method: 'POST',
         headers: authHeaders(),
@@ -334,18 +364,13 @@ export default function FindMyLender() {
         return;
       }
 
-      // Branches already have coordinates from backend
       const allBranches = data.lenders.flatMap((lender: Lender) => lender.branches);
-      
-      // Log branches for debugging
-      console.log('All branches received:', allBranches);
       const branchesWithCoords = allBranches.filter(b => 
         typeof b.latitude === 'number' && 
         typeof b.longitude === 'number' && 
         !isNaN(b.latitude) && 
         !isNaN(b.longitude)
       );
-      console.log('Branches with valid coordinates:', branchesWithCoords);
       
       setBranchesWithCoords(branchesWithCoords);
       setLenders(data.lenders || []);
@@ -375,25 +400,24 @@ export default function FindMyLender() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <MapPin size={24} className="text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-3 md:p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <MapPin size={20} className="text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Find My Lender</h1>
-              <p className="text-sm text-muted-foreground">Discover lenders near your location</p>
+              <h1 className="text-2xl font-bold text-foreground">Find My Lender</h1>
+              <p className="text-xs text-muted-foreground">Discover lenders near your location</p>
             </div>
           </div>
         </div>
 
-        {/* Search Bar - Full Width - At Top */}
-        <div className="glass-card p-4 mb-6 relative z-[1000]">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="glass-card p-3 mb-4 relative z-[1000]">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div className="md:col-span-2 relative" ref={suggestionsRef}>
-              <label className="block text-sm font-semibold text-foreground mb-2">
+              <label className="block text-xs font-semibold text-foreground mb-1">
                 Enter Your Location
               </label>
               <div className="relative">
@@ -403,8 +427,8 @@ export default function FindMyLender() {
                   onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                   onKeyDown={e => e.key === 'Enter' && e.ctrlKey && handleSearch()}
                   placeholder="e.g., 3rd Floor, Besides Jaipur Hospital, BL Tower, 1, Tonk Rd, Jaipur"
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-                  rows={2}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                  rows={1}
                 />
                 {address && (
                   <button
@@ -420,24 +444,23 @@ export default function FindMyLender() {
                 )}
               </div>
 
-              {/* Address Suggestions Dropdown */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-xl shadow-lg z-[9999] max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto">
                   {suggestionsLoading ? (
-                    <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 size={16} className="animate-spin" />
-                      Loading suggestions...
+                    <div className="p-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 size={14} className="animate-spin" />
+                      Loading...
                     </div>
                   ) : (
                     suggestions.map((suggestion, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleSelectSuggestion(suggestion)}
-                        className="w-full text-left px-4 py-3 hover:bg-muted transition-colors border-b border-border last:border-b-0 flex items-start gap-3"
+                        className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border last:border-b-0 flex items-start gap-2"
                       >
-                        <MapPin size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                        <MapPin size={14} className="text-primary mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">{suggestion.main_text}</p>
+                          <p className="font-medium text-sm text-foreground truncate">{suggestion.main_text}</p>
                           {suggestion.secondary_text && (
                             <p className="text-xs text-muted-foreground truncate">{suggestion.secondary_text}</p>
                           )}
@@ -450,13 +473,13 @@ export default function FindMyLender() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">
+              <label className="block text-xs font-semibold text-foreground mb-1">
                 Loan Type (Optional)
               </label>
               <select
                 value={caseType}
                 onChange={e => setCaseType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
                 <option value="New Car - Purchase">New Car - Purchase</option>
                 <option value="Used Car - Purchase">Used Car - Purchase</option>
@@ -469,29 +492,28 @@ export default function FindMyLender() {
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-secondary font-semibold hover:opacity-90 disabled:opacity-60 transition-all h-12"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-secondary font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-all"
             >
               {loading ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin" />
                   Searching...
                 </>
               ) : (
                 <>
-                  <Search size={18} />
-                  Find Lenders
+                  <Search size={16} />
+                  Find
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Map - Full Width */}
         {(searched || coordinates) && (
-          <div className="glass-card p-6 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Map size={20} className="text-primary" />
-              <h2 className="text-lg font-bold text-foreground">Map View</h2>
+          <div className="glass-card p-4 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Map size={18} className="text-primary" />
+              <h2 className="text-base font-bold text-foreground">Map View</h2>
             </div>
 
             {coordinates && branchesWithCoords.length > 0 ? (
@@ -501,167 +523,98 @@ export default function FindMyLender() {
                 branches={branchesWithCoords}
               />
             ) : coordinates && searched && branchesWithCoords.length === 0 ? (
-              <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
-                <p className="text-muted-foreground">No branches with coordinates found in your area</p>
+              <div className="w-full h-[500px] rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No branches with coordinates found in your area</p>
               </div>
             ) : coordinates && !searched ? (
-              <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
-                <p className="text-muted-foreground">Search for lenders to see branches on map</p>
+              <div className="w-full h-[500px] rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">Search for lenders to see branches on map</p>
               </div>
             ) : (
-              <div className="w-full h-96 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
-                <p className="text-muted-foreground">Unable to load map</p>
+              <div className="w-full h-[500px] rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">Unable to load map</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Lenders List */}
         {searched && (
-          <div className="mt-8">
+          <div className="mt-4">
             {lenders.length === 0 ? (
-              <div className="glass-card p-8 text-center">
-                <AlertCircle size={48} className="mx-auto text-amber-500 mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No Lenders Found</h3>
-                <p className="text-muted-foreground">
+              <div className="glass-card p-6 text-center">
+                <AlertCircle size={40} className="mx-auto text-amber-500 mb-3" />
+                <h3 className="text-base font-semibold text-foreground mb-1">No Lenders Found</h3>
+                <p className="text-sm text-muted-foreground">
                   Try increasing the search radius or changing your location
                 </p>
               </div>
             ) : (
               <>
-                <div className="glass-card overflow-x-auto mb-8">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Lender</th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">Purchase</th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">Refinance</th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">BT</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Branches</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lenders.map((lender, idx) => (
-                        <tr key={idx} className="border-b border-border hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              {lender.logo_url && (
-                                <img
-                                  src={lender.logo_url}
-                                  alt={lender.bank_name}
-                                  className="w-10 h-10 rounded object-contain"
-                                />
-                              )}
-                              <span className="font-semibold text-foreground">{lender.bank_name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            {lender.supports.purchase ? (
-                              <CheckCircle2 size={20} className="mx-auto text-green-500" />
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            {lender.supports.refinance ? (
-                              <CheckCircle2 size={20} className="mx-auto text-green-500" />
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            {lender.supports.bt ? (
-                              <CheckCircle2 size={20} className="mx-auto text-green-500" />
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm font-medium text-primary">
-                              {lender.branches.length} branch{lender.branches.length !== 1 ? 'es' : ''}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {lenders.map((lender, idx) => (
-                    <div key={idx} className="glass-card p-6">
-                      <div className="flex items-center gap-3 mb-4">
+                    <div key={idx} className="glass-card p-4">
+                      <div className="flex items-center gap-2 mb-3">
                         {lender.logo_url && (
                           <img
                             src={lender.logo_url}
                             alt={lender.bank_name}
-                            className="w-12 h-12 rounded object-contain"
+                            className="w-10 h-10 rounded object-contain"
                           />
                         )}
                         <div>
-                          <h3 className="text-lg font-bold text-foreground">{lender.bank_name}</h3>
+                          <h3 className="text-base font-bold text-foreground">{lender.bank_name}</h3>
                           <p className="text-xs text-muted-foreground">
                             {lender.branches.length} branch{lender.branches.length !== 1 ? 'es' : ''} nearby
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {lender.branches.map((branch, bidx) => (
-                          <div key={bidx} className="p-4 rounded-lg border border-border bg-muted/20">
-                            <div className="flex items-start justify-between mb-3">
+                          <div key={bidx} className="p-3 rounded-lg border border-border bg-muted/20">
+                            <div className="flex items-start justify-between mb-2">
                               <div>
-                                <h4 className="font-semibold text-foreground">{branch.branch_name}</h4>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <MapPin size={14} />
+                                <h4 className="font-semibold text-sm text-foreground">{branch.branch_name}</h4>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <MapPin size={12} />
                                   {branch.location}
                                 </p>
                               </div>
-                              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                                {branch.distance} km
+                              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                                {branch.distance.toFixed(2)} km
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                               {branch.geo_limit_km && (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-3 h-3 rounded-full border-2 border-blue-500"></div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 rounded-full border border-blue-500"></div>
                                   <div>
-                                    <p className="text-xs text-muted-foreground">Service Area</p>
-                                    <p className="font-medium text-foreground">{branch.geo_limit_km} km</p>
+                                    <p className="text-muted-foreground">Service Area: {branch.geo_limit_km} km</p>
                                   </div>
                                 </div>
                               )}
                               {branch.sales_manager_name && (
-                                <div className="flex items-center gap-2">
-                                  <User size={16} className="text-muted-foreground" />
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">Sales Manager</p>
-                                    <p className="font-medium text-foreground">{branch.sales_manager_name}</p>
-                                  </div>
+                                <div className="flex items-center gap-1">
+                                  <User size={12} className="text-muted-foreground" />
+                                  <p className="text-foreground">{branch.sales_manager_name}</p>
                                 </div>
                               )}
                               {branch.sales_manager_mobile && (
-                                <div className="flex items-center gap-2">
-                                  <Phone size={16} className="text-muted-foreground" />
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">Contact</p>
-                                    <a
-                                      href={`tel:${branch.sales_manager_mobile}`}
-                                      className="font-medium text-primary hover:underline"
-                                    >
-                                      {branch.sales_manager_mobile}
-                                    </a>
-                                  </div>
+                                <div className="flex items-center gap-1">
+                                  <Phone size={12} className="text-muted-foreground" />
+                                  <a
+                                    href={`tel:${branch.sales_manager_mobile}`}
+                                    className="text-primary hover:underline"
+                                  >
+                                    {branch.sales_manager_mobile}
+                                  </a>
                                 </div>
                               )}
                               {branch.area_sales_manager_name && (
-                                <div className="flex items-center gap-2">
-                                  <Building2 size={16} className="text-muted-foreground" />
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">Area Manager</p>
-                                    <p className="font-medium text-foreground">{branch.area_sales_manager_name}</p>
-                                  </div>
+                                <div className="flex items-center gap-1">
+                                  <Building2 size={12} className="text-muted-foreground" />
+                                  <p className="text-foreground">{branch.area_sales_manager_name}</p>
                                 </div>
                               )}
                             </div>
