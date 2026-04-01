@@ -12,8 +12,9 @@ export function BankImportModal({ open, onClose, onSuccess }: { open: boolean; o
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
-        toast.error('Please select an Excel file (.xlsx or .xls)');
+      const fileName = selectedFile.name.toLowerCase();
+      if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.csv')) {
+        toast.error('Please select an Excel (.xlsx, .xls) or CSV file');
         return;
       }
       setFile(selectedFile);
@@ -42,6 +43,7 @@ export function BankImportModal({ open, onClose, onSuccess }: { open: boolean; o
 
       if (!res.ok) {
         toast.error(data.error || 'Import failed');
+        setResults({ success: 0, failed: 1, errors: [data.error || 'Import failed'] });
         return;
       }
 
@@ -56,6 +58,7 @@ export function BankImportModal({ open, onClose, onSuccess }: { open: boolean; o
       }
     } catch (error: any) {
       toast.error(error.message);
+      setResults({ success: 0, failed: 1, errors: [error.message] });
     } finally {
       setLoading(false);
     }
@@ -93,7 +96,7 @@ ICICI Bank,Delhi Branch,Delhi,75,Used Car - Purchase,Mike Johnson,9876543212,Sar
           {!results ? (
             <>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Upload an Excel file with bank and branch data</p>
+                <p className="text-sm text-muted-foreground">Upload an Excel or CSV file with bank and branch data</p>
                 <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-accent transition-colors cursor-pointer"
                   onClick={() => document.getElementById('file-input')?.click()}>
                   <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
@@ -102,7 +105,7 @@ ICICI Bank,Delhi Branch,Delhi,75,Used Car - Purchase,Mike Johnson,9876543212,Sar
                   <input
                     id="file-input"
                     type="file"
-                    accept=".xlsx,.xls"
+                    accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                     onChange={handleFileChange}
                     className="hidden"
                   />
@@ -117,7 +120,7 @@ ICICI Bank,Delhi Branch,Delhi,75,Used Car - Purchase,Mike Johnson,9876543212,Sar
 
               <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-xs text-blue-900 dark:text-blue-100">
-                  <strong>Required columns:</strong> Bank Name, Branch Name, Location, Geo Limit, Product, Sales Manager Name, Sales Manager Mobile, Area Manager Name, Area Manager Mobile
+                  <strong>Required columns:</strong> Bank Name, Branch Name
                 </p>
               </div>
             </>
@@ -132,7 +135,7 @@ ICICI Bank,Delhi Branch,Delhi,75,Used Car - Purchase,Mike Johnson,9876543212,Sar
               {results.failed > 0 && (
                 <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
                   <p className="text-sm font-semibold text-red-900 dark:text-red-100">{results.failed} records failed</p>
-                  {results.errors.length > 0 && (
+                  {results.errors && results.errors.length > 0 && (
                     <div className="mt-2 max-h-32 overflow-y-auto">
                       {results.errors.slice(0, 5).map((err: string, i: number) => (
                         <p key={i} className="text-xs text-red-800 dark:text-red-200 mt-1">{err}</p>
