@@ -898,6 +898,8 @@ export default function LoanDetail() {
               className="w-full border-0"
               style={{ height: '60vh', minHeight: '300px' }}
               title={previewDoc.name}
+              sandbox="allow-same-origin allow-scripts"
+              loading="lazy"
             />
           </div>
         )}
@@ -910,6 +912,7 @@ export default function LoanDetail() {
                 <FileText size={16} className="text-accent shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-foreground">{getDocLabel(doc.document_type)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{doc.file_name}</p>
                 </div>
                 <button
                   onClick={() => previewDocument(doc)}
