@@ -488,8 +488,8 @@ export default function Loans() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share Documents</p>
-                  <p className="text-xs text-muted-foreground">Only uploaded files</p>
+                  <p className="text-sm font-semibold text-foreground">Share All Documents</p>
+                  <p className="text-xs text-muted-foreground">All files (PNG, JPG, PDF, etc.)</p>
                 </div>
                 <FileText size={18} className="text-green-500 shrink-0" />
               </div>
@@ -579,7 +579,7 @@ export default function Loans() {
                         <button
                           onClick={() => void openShareMenu(loan)}
                           disabled={sharingLoanId === String(loan.id)}
-                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share PDF">
+                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share All Documents">
                           <MessageCircle size={11} className="text-green-500" />
                         </button>
                         {user?.role !== 'executive' && (
