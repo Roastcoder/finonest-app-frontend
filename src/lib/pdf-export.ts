@@ -847,44 +847,98 @@ export async function shareDocuments(docs: any[]) {
       return;
     }
     
+    // Separate by file type for better mobile compatibility
+    const imageFiles = docFileObjs.filter(docFile => {
+      const fileType = docFile.file.type;
+      return fileType.startsWith('image/') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png');
+    });
+    
+    const pdfFiles = docFileObjs.filter(docFile => {
+      const fileType = docFile.file.type;
+      return fileType.includes('pdf');
+    });
+    
     toast.dismiss(loadingToast);
     
     try {
-      // Try sharing all documents together
+      // Strategy 1: Try sharing all documents together (works on newer devices)
       const allFiles = docFileObjs.map(f => f.file);
-      
       if (navigator.canShare) {
-        try {
-          const canShareAll = await navigator.canShare({ files: allFiles });
-          if (canShareAll) {
-            await navigator.share({ 
-              title: 'Loan Documents',
-              text: `${docFileObjs.length} loan documents (PNG, JPG, PDF, etc.)`,
-              files: allFiles
-            });
-            toast.success(`Shared ${docFileObjs.length} documents!`);
-            return;
-          }
-        } catch (checkError) {
-          console.warn('canShare check failed, attempting direct share:', checkError);
+        const canShareAll = await navigator.canShare({ files: allFiles });
+        if (canShareAll) {
+          await navigator.share({ 
+            title: 'Loan Documents',
+            text: `${docFileObjs.length} loan documents`,
+            files: allFiles
+          });
+          toast.success(`Shared ${docFileObjs.length} documents!`);
+          return;
         }
       }
       
-      // Fallback: Try direct share without canShare check
-      await navigator.share({ 
-        title: 'Loan Documents',
-        text: `${docFileObjs.length} loan documents (PNG, JPG, PDF, etc.)`,
-        files: allFiles
-      });
-      toast.success(`Shared ${docFileObjs.length} documents!`);
+      // Strategy 2: Share images first (mobile handles images better)
+      if (imageFiles.length > 0) {
+        const imageFilesList = imageFiles.map(f => f.file);
+        const canShareImages = navigator.canShare ? await navigator.canShare({ files: imageFilesList }) : true;
+        
+        if (canShareImages) {
+          await navigator.share({ 
+            title: 'Loan Document Images',
+            text: `${imageFiles.length} loan document images`,
+            files: imageFilesList
+          });
+          
+          // Offer to share PDFs separately if any exist
+          if (pdfFiles.length > 0) {
+            setTimeout(async () => {
+              const sharePDFs = confirm(`Share ${pdfFiles.length} PDF documents separately?`);
+              if (sharePDFs) {
+                try {
+                  const pdfFilesList = pdfFiles.map(f => f.file);
+                  await navigator.share({ 
+                    title: 'Loan PDF Documents',
+                    text: `${pdfFiles.length} loan PDF documents`,
+                    files: pdfFilesList
+                  });
+                  toast.success(`Shared ${pdfFiles.length} PDF documents!`);
+                } catch (e) {
+                  toast.error('Could not share PDF documents');
+                }
+              }
+            }, 2000);
+          }
+          
+          toast.success(`Shared ${imageFiles.length} document images!`);
+          return;
+        }
+      }
       
-    } catch (shareError: any) {
+      // Strategy 3: Try sharing PDFs only
+      if (pdfFiles.length > 0) {
+        const pdfFilesList = pdfFiles.map(f => f.file);
+        const canSharePDFs = navigator.canShare ? await navigator.canShare({ files: pdfFilesList }) : true;
+        
+        if (canSharePDFs) {
+          await navigator.share({ 
+            title: 'Loan PDF Documents',
+            text: `${pdfFiles.length} loan PDF documents`,
+            files: pdfFilesList
+          });
+          toast.success(`Shared ${pdfFiles.length} PDF documents!`);
+          return;
+        }
+      }
+      
+      // Strategy 4: Fallback message
+      toast.error('Unable to share documents on this device. Try sharing individual files.');
+      
+    } catch (shareError) {
       console.error('Document share error:', shareError);
       
-      if (shareError?.name === 'AbortError') {
+      if (shareError.name === 'AbortError') {
         toast.info('Sharing cancelled');
       } else {
-        toast.error('Failed to share documents: ' + (shareError?.message || 'Unknown error'));
+        toast.error('Failed to share documents: ' + shareError.message);
       }
     }
     
