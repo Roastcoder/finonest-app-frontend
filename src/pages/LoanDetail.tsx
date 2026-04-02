@@ -166,6 +166,9 @@ export default function LoanDetail() {
         const bundle = await prepareDocumentShareBundle(documents as any[]);
         if (!cancelled) {
           setDocumentShareBundle(bundle);
+          if (bundle.files.length === 0 && documents.length > 0) {
+            console.warn('Document bundle prepared but no files loaded. Documents may not be accessible.');
+          }
         }
       } catch (error) {
         console.error('Failed to prepare document share bundle:', error);
@@ -249,7 +252,18 @@ export default function LoanDetail() {
 
   const handleShareDocuments = async () => {
     if (!documentShareBundle) {
-      toast.info(documentShareBundleLoading ? 'Loading documents…' : 'Documents are still loading. Please try again in a moment.');
+      if (documentShareBundleLoading) {
+        toast.info('Documents are still loading. Please wait a moment and try again.');
+      } else if (documents.length === 0) {
+        toast.info('No documents available to share');
+      } else {
+        toast.error('Failed to prepare documents. Please try again.');
+      }
+      return;
+    }
+
+    if (documentShareBundle.files.length === 0) {
+      toast.error('No document files could be loaded. Please check your internet connection and try again.');
       return;
     }
 
@@ -264,7 +278,7 @@ export default function LoanDetail() {
       if (navigator.canShare) {
         const canShare = await navigator.canShare({ files: filesToShare });
         if (!canShare) {
-          toast.error('This device cannot share the prepared documents');
+          toast.error('This device cannot share the prepared documents. Try sharing individual files.');
           return;
         }
       }
@@ -364,8 +378,11 @@ export default function LoanDetail() {
             <button onClick={() => setShowStageManager(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
-            <button onClick={() => setShowShareMenu(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share options">
-              <Share2 size={12} className="text-blue-500" /> Share
+            <button onClick={handleShareAll} disabled={shareBundleLoading} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border disabled:opacity-60" title="Share PDF">
+              <Share2 size={12} className="text-blue-500" /> PDF
+            </button>
+            <button onClick={handleShareDocuments} disabled={documentShareBundleLoading || documents.length === 0} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border disabled:opacity-60" title="Share All Documents">
+              <FileText size={12} className="text-green-500" /> Docs
             </button>
             <button onClick={() => setShowRCMenu(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="RC Template options">
               <FileText size={12} className="text-cyan-500" /> RC
@@ -405,12 +422,12 @@ export default function LoanDetail() {
               </div>
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowShareMenu(false);
-                handleShareDocuments();
+                await handleShareDocuments();
               }}
               disabled={documentShareBundleLoading || documents.length === 0}
-              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left disabled:opacity-60"
+              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -572,16 +589,13 @@ export default function LoanDetail() {
           </button>
           {documents.length > 0 && (
             <button
-              onClick={() => {
-                import('@/lib/pdf-export').then(({ shareDocuments }) => {
-                  shareDocuments(documents as any[]);
-                });
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors"
+              onClick={handleShareDocuments}
+              disabled={documentShareBundleLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors disabled:opacity-60"
               title="Share all documents (PNG, JPG, PDF, etc.)"
             >
               <FileText size={14} className="text-green-500" />
-              Share All Docs
+              {documentShareBundleLoading ? 'Loading...' : 'Share All Docs'}
             </button>
           )}
           <div className="relative group">

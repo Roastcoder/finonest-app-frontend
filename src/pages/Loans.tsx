@@ -146,24 +146,44 @@ export default function Loans() {
   const handleShareDocs = async (loan: any) => {
     const loanId = String(loan.id);
     const bundle = documentBundles[loanId];
+    
     if (!bundle) {
-      toast.info('Documents are still loading. Please try again in a moment.');
+      toast.info('Documents are still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    if (bundle.files.length === 0) {
+      toast.error('No document files could be loaded. Please check your internet connection.');
+      return;
+    }
+
+    if (!navigator.share) {
+      toast.error('Sharing not available on this device');
       return;
     }
 
     try {
-      // Use Android-optimized document sharing
-      const success = await shareDocumentsAndroid(
-        bundle.files,
-        bundle.title,
-        bundle.text
-      );
-      if (success) {
-        console.log('Successfully shared documents');
+      if (navigator.canShare) {
+        const canShare = await navigator.canShare({ files: bundle.files });
+        if (!canShare) {
+          toast.error('This device cannot share these documents');
+          return;
+        }
       }
+
+      await navigator.share({
+        title: bundle.title,
+        text: bundle.text,
+        files: bundle.files,
+      });
+      toast.success(`Shared ${bundle.docCount} documents!`);
     } catch (error: any) {
       console.error('Document share error:', error);
-      toast.error(error?.message || 'Failed to share documents');
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share documents');
+      }
     }
   };
 
@@ -401,11 +421,14 @@ export default function Loans() {
                     </button>
                   )}
                   <button
-                    onClick={() => void openShareMenu(loan)}
-                    disabled={sharingLoanId === String(loan.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors">
-                    <MessageCircle size={14} className="text-green-500" />
-                    Share
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShareDocs(loan);
+                    }}
+                    disabled={documentBundles[String(loan.id)]?.files.length === 0}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-green-500/10 transition-colors disabled:opacity-60">
+                    <FileText size={14} className="text-green-500" />
+                    Share Docs
                   </button>
                   {canDelete && (
                     <button
@@ -554,10 +577,12 @@ export default function Loans() {
                           <Printer size={11} className="text-accent" />
                         </button>
                         <button
-                          onClick={() => void openShareMenu(loan)}
-                          disabled={sharingLoanId === String(loan.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShareDocs(loan);
+                          }}
                           className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share All Documents">
-                          <MessageCircle size={11} className="text-green-500" />
+                          <FileText size={11} className="text-green-500" />
                         </button>
                         {user?.role !== 'executive' && (
                           <button

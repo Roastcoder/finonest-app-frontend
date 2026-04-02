@@ -808,18 +808,39 @@ const PDF_DOC_LABELS: Record<string, string> = {
 
 async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: string; docType: string }[]> {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-  // No authentication headers needed for public document access
   const files: { file: File; name: string; docType: string }[] = [];
+  
+  if (!docs || docs.length === 0) {
+    return files;
+  }
+  
   for (const doc of docs) {
     try {
+      if (!doc.id) {
+        console.warn('Document missing ID:', doc);
+        continue;
+      }
+      
       const res = await fetch(`${API}/documents/${doc.id}/download`);
-      if (!res.ok) continue;
+      if (!res.ok) {
+        console.warn(`Failed to fetch document ${doc.id}: ${res.status}`);
+        continue;
+      }
+      
       const blob = await res.blob();
+      if (!blob || blob.size === 0) {
+        console.warn(`Document ${doc.id} returned empty blob`);
+        continue;
+      }
+      
       const docLabel = PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
       const fileName = `${docLabel}-${doc.file_name}`;
       files.push({ file: new File([blob], fileName, { type: blob.type }), name: fileName, docType: docLabel });
-    } catch {}
+    } catch (error) {
+      console.warn(`Error fetching document ${doc.id}:`, error);
+    }
   }
+  
   return files;
 }
 
@@ -1247,7 +1268,26 @@ export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
 // Missing export function for preparing document share bundle
 export async function prepareDocumentShareBundle(docs: any[] = []) {
   try {
+    if (!docs || docs.length === 0) {
+      return {
+        title: 'Loan Documents',
+        text: '0 loan documents',
+        files: [],
+        docCount: 0,
+      };
+    }
+
     const docFileObjs = await fetchDocumentFiles(docs);
+    
+    if (!docFileObjs || docFileObjs.length === 0) {
+      console.warn('No document files could be fetched');
+      return {
+        title: 'Loan Documents',
+        text: `${docs.length} documents (could not load files)`,
+        files: [],
+        docCount: docs.length,
+      };
+    }
     
     // Separate by file type for better mobile compatibility
     const imageFiles = docFileObjs.filter(docFile => {
