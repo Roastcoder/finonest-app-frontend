@@ -267,7 +267,7 @@ export default function LoanDetail() {
         text: documentShareBundle.text,
         files: documentShareBundle.files,
       });
-      toast.success(`Shared ${documentShareBundle.docCount} documents!`);
+      toast.success(`Shared ${documentShareBundle.docCount} images!`);
     } catch (error: any) {
       console.error('Document share error:', error);
       if (error?.name === 'AbortError') {

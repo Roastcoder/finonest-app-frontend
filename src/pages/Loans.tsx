@@ -159,7 +159,7 @@ export default function Loans() {
     const loanId = String(loan.id);
     const bundle = documentBundles[loanId];
     if (!bundle) {
-      toast.info('Documents are still loading. Please try again in a moment.');
+      toast.info('Images are still loading. Please try again in a moment.');
       return;
     }
 
@@ -170,7 +170,7 @@ export default function Loans() {
 
     try {
       if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
-        toast.error('This device cannot share the prepared documents');
+        toast.error('This device cannot share the prepared images');
         return;
       }
 
@@ -179,13 +179,13 @@ export default function Loans() {
         text: bundle.text,
         files: bundle.files,
       });
-      toast.success(`Shared ${bundle.docCount} documents!`);
+      toast.success(`Shared ${bundle.docCount} images!`);
     } catch (error: any) {
-      console.error('Document share error:', error);
+      console.error('Image share error:', error);
       if (error?.name === 'AbortError') {
         toast.info('Sharing cancelled');
       } else {
-        toast.error(error?.message || 'Failed to share documents');
+        toast.error(error?.message || 'Failed to share images');
       }
     }
   };
@@ -272,21 +272,43 @@ export default function Loans() {
     async function warmBundles() {
       for (const loan of sharePrefetchLoans) {
         const loanId = String(loan.id);
-        if (shareBundles[loanId]) continue;
-        try {
-          const docs = await api.get(`/loans/${loan.id}/documents`);
-          const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
-            const firstIndex = self.findIndex(d =>
-              d.document_type === doc.document_type &&
-              d.file_name === doc.file_name
-            );
-            return index === firstIndex;
-          });
-          const bundle = await prepareLoanShareBundle(loan, uniqueDocs);
-          if (cancelled) return;
-          setShareBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
-        } catch (error) {
-          console.error('Failed to prefetch share bundle for loan', loanId, error);
+        
+        // Prefetch loan share bundle
+        if (!shareBundles[loanId]) {
+          try {
+            const docs = await api.get(`/loans/${loan.id}/documents`);
+            const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+              const firstIndex = self.findIndex(d =>
+                d.document_type === doc.document_type &&
+                d.file_name === doc.file_name
+              );
+              return index === firstIndex;
+            });
+            const bundle = await prepareLoanShareBundle(loan, uniqueDocs);
+            if (cancelled) return;
+            setShareBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
+          } catch (error) {
+            console.error('Failed to prefetch share bundle for loan', loanId, error);
+          }
+        }
+        
+        // Prefetch document bundle
+        if (!documentBundles[loanId]) {
+          try {
+            const docs = await api.get(`/loans/${loan.id}/documents`);
+            const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+              const firstIndex = self.findIndex(d =>
+                d.document_type === doc.document_type &&
+                d.file_name === doc.file_name
+              );
+              return index === firstIndex;
+            });
+            const bundle = await prepareDocumentShareBundle(uniqueDocs);
+            if (cancelled) return;
+            setDocumentBundles(current => current[loanId] ? current : { ...current, [loanId]: bundle });
+          } catch (error) {
+            console.error('Failed to prefetch document bundle for loan', loanId, error);
+          }
         }
       }
     }
@@ -481,14 +503,6 @@ export default function Loans() {
               onClick={async () => {
                 setShowShareMenu(false);
                 if (shareMenuLoan) {
-                  const docs = await api.get(`/loans/${shareMenuLoan.id}/documents`);
-                  const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
-                    const firstIndex = self.findIndex(d =>
-                      d.document_type === doc.document_type &&
-                      d.file_name === doc.file_name
-                    );
-                    return index === firstIndex;
-                  });
                   await handleShareDocs(shareMenuLoan);
                 }
               }}

@@ -1280,23 +1280,23 @@ export async function prepareDocumentShareBundle(docs: any[] = []) {
   try {
     const docFileObjs = await fetchDocumentFiles(docs);
     
-    // Filter to only include image and PDF files that can be shared
-    const shareableFiles = docFileObjs.filter(docFile => {
+    // Filter to ONLY include image files (no PDFs)
+    const imageFiles = docFileObjs.filter(docFile => {
       const fileType = docFile.file.type;
-      return fileType.startsWith('image/') || fileType.includes('pdf') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png');
+      return fileType.startsWith('image/') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png') || fileType.includes('gif') || fileType.includes('webp');
     });
     
-    if (shareableFiles.length === 0) {
-      throw new Error('No shareable documents found');
+    if (imageFiles.length === 0) {
+      throw new Error('No image documents found');
     }
     
-    const files = shareableFiles.map(docFile => docFile.file);
+    const files = imageFiles.map(docFile => docFile.file);
     
     return {
-      title: 'Loan Documents',
-      text: `${shareableFiles.length} loan document${shareableFiles.length > 1 ? 's' : ''}`,
+      title: 'Loan Document Images',
+      text: `${imageFiles.length} loan document image${imageFiles.length > 1 ? 's' : ''}`,
       files: files,
-      docCount: shareableFiles.length,
+      docCount: imageFiles.length,
     };
   } catch (error) {
     console.error('Error preparing document share bundle:', error);
