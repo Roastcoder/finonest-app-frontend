@@ -1,33 +1,35 @@
-export function exportToCSV(data: Record<string, any>[], filename: string) {
-  if (data.length === 0) return;
-  const headers = Object.keys(data[0]);
-  const csvRows = [
-    headers.join(','),
-    ...data.map(row =>
-      headers.map(h => {
-        const val = row[h] ?? '';
-        const str = String(val).replace(/"/g, '""');
-        return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str}"` : str;
-      }).join(',')
-    ),
-  ];
-  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+export function exportToCSV(data: any[], filename: string) {
+  const csv = [
+    Object.keys(data[0]).join(','),
+    ...data.map(row => Object.values(row).join(','))
+  ].join('\n');
+  
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  window.URL.revokeObjectURL(url);
 }
 
-export function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.split('\n').filter(l => l.trim());
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  return lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-    const obj: Record<string, string> = {};
-    headers.forEach((h, i) => { obj[h] = values[i] || ''; });
-    return obj;
+export function parseCSV(file: File): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n');
+      const headers = lines[0].split(',');
+      const data = lines.slice(1).map(line => {
+        const values = line.split(',');
+        return headers.reduce((obj, header, i) => {
+          obj[header] = values[i];
+          return obj;
+        }, {} as any);
+      });
+      resolve(data);
+    };
+    reader.onerror = reject;
+    reader.readAsText(file);
   });
 }
