@@ -9,7 +9,7 @@ import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, Share2, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
 import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { downloadRCTemplatePDF, exportRCTemplatePDF, shareRCTemplatePDF } from '@/lib/rc-template';
-import { shareLoanWithDocumentsAndroid, shareDocumentsAndroid, getDeviceInfo } from '@/lib/android-share';
+import { shareDocumentsAndroid } from '@/lib/android-share';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 import CibilCreditReport from '@/components/CibilCreditReport';
@@ -221,14 +221,29 @@ export default function LoanDetail() {
         return;
       }
 
-      // Use Android-optimized sharing
-      const success = await shareLoanWithDocumentsAndroid(loan, shareBundle.files);
-      if (success) {
-        console.log('Successfully shared loan PDF');
+      if (!navigator.share) {
+        toast.error('Sharing not available on this device');
+        return;
       }
+
+      if (navigator.canShare && !await navigator.canShare({ files: shareBundle.files })) {
+        toast.error('This device cannot share the prepared files');
+        return;
+      }
+
+      await navigator.share({
+        title: shareBundle.title,
+        text: shareBundle.text,
+        files: shareBundle.files,
+      });
+      toast.success('Shared PDF!');
     } catch (error: any) {
       console.error('Share error:', error);
-      toast.error(error?.message || 'Failed to share loan application');
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share loan application');
+      }
     }
   };
 
@@ -238,19 +253,35 @@ export default function LoanDetail() {
       return;
     }
 
+    if (!navigator.share) {
+      toast.error('Sharing not available on this device');
+      return;
+    }
+
     try {
-      // Use Android-optimized document sharing
-      const success = await shareDocumentsAndroid(
-        documentShareBundle.files,
-        documentShareBundle.title,
-        documentShareBundle.text
-      );
-      if (success) {
-        console.log('Successfully shared documents');
+      const filesToShare = documentShareBundle.files;
+      
+      if (navigator.canShare) {
+        const canShare = await navigator.canShare({ files: filesToShare });
+        if (!canShare) {
+          toast.error('This device cannot share the prepared documents');
+          return;
+        }
       }
+
+      await navigator.share({
+        title: documentShareBundle.title,
+        text: documentShareBundle.text,
+        files: filesToShare,
+      });
+      toast.success(`Shared ${documentShareBundle.docCount} documents!`);
     } catch (error: any) {
       console.error('Document share error:', error);
-      toast.error(error?.message || 'Failed to share documents');
+      if (error?.name === 'AbortError') {
+        toast.info('Sharing cancelled');
+      } else {
+        toast.error(error?.message || 'Failed to share documents');
+      }
     }
   };
 
