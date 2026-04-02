@@ -213,7 +213,7 @@ export default function Loans() {
     if (!file || !user) return;
     try {
       const text = await file.text();
-      const rows = parseCSV(text);
+      const rows = await parseCSV(new File([text], file.name, { type: 'text/csv' }));
       if (rows.length === 0) { toast.error('No valid data found in CSV'); return; }
       let imported = 0;
       for (const row of rows) {
@@ -481,6 +481,14 @@ export default function Loans() {
               onClick={async () => {
                 setShowShareMenu(false);
                 if (shareMenuLoan) {
+                  const docs = await api.get(`/loans/${shareMenuLoan.id}/documents`);
+                  const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+                    const firstIndex = self.findIndex(d =>
+                      d.document_type === doc.document_type &&
+                      d.file_name === doc.file_name
+                    );
+                    return index === firstIndex;
+                  });
                   await handleShareDocs(shareMenuLoan);
                 }
               }}
@@ -488,8 +496,8 @@ export default function Loans() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Share All Documents</p>
-                  <p className="text-xs text-muted-foreground">All files (PNG, JPG, PDF, etc.)</p>
+                  <p className="text-sm font-semibold text-foreground">Share Images</p>
+                  <p className="text-xs text-muted-foreground">All loan documents</p>
                 </div>
                 <FileText size={18} className="text-green-500 shrink-0" />
               </div>
@@ -550,24 +558,24 @@ export default function Loans() {
               <tbody>
                 {filtered.map((loan: any) => (
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
-                    <td className="py-2 px-2 whitespace-nowrap">
+                    <td className="py-4 px-2 whitespace-nowrap">
                       <p className="font-mono text-xs text-primary font-semibold">{loan.loan_number || loan.id}</p>
                     </td>
-                    <td className="py-2 px-2 whitespace-nowrap">
+                    <td className="py-4 px-2 whitespace-nowrap">
                       <p className="font-medium text-foreground text-xs">{loan.applicant_name}</p>
                       <p className="text-[10px] text-muted-foreground">{loan.mobile}</p>
                     </td>
-                    <td className="py-2 px-2 whitespace-nowrap">
+                    <td className="py-4 px-2 whitespace-nowrap">
                       <p className="text-foreground text-xs">{loan.maker_name || loan.car_make} {loan.model_variant_name || loan.car_model}</p>
                       <p className="text-[10px] text-muted-foreground">{loan.vehicle_number || loan.car_variant}</p>
                     </td>
-                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.case_type || '—'}</td>
-                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.bank_name || '—'}</td>
-                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.sourcing_person_name || '—'}</td>
-                    <td className="py-2 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.created_by_name || '—'}</td>
-                    <td className="py-2 px-2 text-right font-medium text-foreground whitespace-nowrap text-xs">{formatCurrency(Number(loan.loan_amount))}</td>
-                    <td className="py-2 px-2 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
-                    <td className="py-2 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <td className="py-4 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.case_type || '—'}</td>
+                    <td className="py-4 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.bank_name || '—'}</td>
+                    <td className="py-4 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.sourcing_person_name || '—'}</td>
+                    <td className="py-4 px-2 text-muted-foreground whitespace-nowrap text-xs">{loan.created_by_name || '—'}</td>
+                    <td className="py-4 px-2 text-right font-medium text-foreground whitespace-nowrap text-xs">{formatCurrency(Number(loan.loan_amount))}</td>
+                    <td className="py-4 px-2 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
+                    <td className="py-4 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => exportLoanPDF(loan)}
@@ -576,12 +584,100 @@ export default function Loans() {
                         >
                           <Printer size={11} className="text-accent" />
                         </button>
-                        <button
-                          onClick={() => void openShareMenu(loan)}
-                          disabled={sharingLoanId === String(loan.id)}
-                          className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share All Documents">
-                          <MessageCircle size={11} className="text-green-500" />
-                        </button>
+                        <div className="relative group/share">
+                          <button
+                            disabled={sharingLoanId === String(loan.id)}
+                            className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share options">
+                            <MessageCircle size={11} className="text-green-500" />
+                          </button>
+                          <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover/share:opacity-100 group-hover/share:visible transition-all z-50">
+                            <button
+                              onClick={async () => {
+                                const loanId = String(loan.id);
+                                const bundle = shareBundles[loanId];
+                                if (!bundle) {
+                                  toast.info('Loading PDF…');
+                                  return;
+                                }
+                                if (!navigator.share) {
+                                  toast.error('Sharing not available');
+                                  return;
+                                }
+                                try {
+                                  if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
+                                    toast.error('Cannot share on this device');
+                                    return;
+                                  }
+                                  await navigator.share({
+                                    title: bundle.title,
+                                    text: bundle.text,
+                                    files: bundle.files,
+                                  });
+                                  toast.success('Shared PDF!');
+                                } catch (error: any) {
+                                  if (error?.name !== 'AbortError') {
+                                    toast.error(error?.message || 'Failed to share');
+                                  }
+                                }
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 border-b border-border/50"
+                            >
+                              <Share2 size={10} className="text-blue-500" />
+                              Share PDF
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const loanId = String(loan.id);
+                                const bundle = documentBundles[loanId];
+                                if (!bundle) {
+                                  toast.info('Loading documents…');
+                                  return;
+                                }
+                                if (!navigator.share) {
+                                  toast.error('Sharing not available');
+                                  return;
+                                }
+                                try {
+                                  if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
+                                    toast.error('Cannot share on this device');
+                                    return;
+                                  }
+                                  await navigator.share({
+                                    title: bundle.title,
+                                    text: bundle.text,
+                                    files: bundle.files,
+                                  });
+                                  toast.success(`Shared ${bundle.docCount} documents!`);
+                                } catch (error: any) {
+                                  if (error?.name !== 'AbortError') {
+                                    toast.error(error?.message || 'Failed to share');
+                                  }
+                                }
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 border-b border-border/50"
+                            >
+                              <FileText size={10} className="text-green-500" />
+                              Share Images
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const docs = await api.get(`/loans/${loan.id}/documents`);
+                                const uniqueDocs = docs.filter((doc: any, index: number, self: any[]) => {
+                                  const firstIndex = self.findIndex(d =>
+                                    d.document_type === doc.document_type &&
+                                    d.file_name === doc.file_name
+                                  );
+                                  return index === firstIndex;
+                                });
+                                downloadLoanPDF(loan, uniqueDocs);
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2"
+                            >
+                              <Download size={10} className="text-accent" />
+                              Download PDF
+                            </button>
+                          </div>
+                        </div>
                         {user?.role !== 'executive' && (
                           <button
                             onClick={() => navigate(`/loans/edit/${loan.id}`)}
@@ -592,7 +688,7 @@ export default function Loans() {
                       </div>
                     </td>
                     {showUpdateColumn && (
-                      <td className="py-2 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-4 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleStageUpdate(loan)}
                           className="flex items-center gap-1 px-2 py-1 rounded-md border border-border bg-card text-[10px] font-medium text-foreground hover:bg-accent/10 transition-colors"

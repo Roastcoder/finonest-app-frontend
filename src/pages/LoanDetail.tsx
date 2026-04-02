@@ -396,22 +396,23 @@ export default function LoanDetail() {
                 <Share2 size={18} className="text-blue-500 shrink-0" />
               </div>
             </button>
-            <button
-              onClick={() => {
-                setShowShareMenu(false);
-                handleShareDocuments();
-              }}
-              disabled={documentShareBundleLoading || documents.length === 0}
-              className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left disabled:opacity-60"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Share All Documents</p>
-                  <p className="text-xs text-muted-foreground">{documents.length} files (PNG, JPG, PDF, etc.)</p>
+            {documents.length > 0 && (
+              <button
+                onClick={() => {
+                  setShowShareMenu(false);
+                  handleShareDocuments();
+                }}
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-left"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Share Images</p>
+                    <p className="text-xs text-muted-foreground">All loan documents</p>
+                  </div>
+                  <FileText size={18} className="text-green-500 shrink-0" />
                 </div>
-                <FileText size={18} className="text-green-500 shrink-0" />
-              </div>
-            </button>
+              </button>
+            )}
             <button
               onClick={() => {
                 setShowShareMenu(false);
@@ -553,29 +554,45 @@ export default function LoanDetail() {
             <Settings size={14} className="text-purple-500" />
             Update Stage
           </button>
-          <button
-            onClick={handleShareAll}
-            disabled={shareBundleLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors disabled:opacity-60"
-            title="Share PDF"
-          >
-            <Share2 size={14} className="text-blue-500" />
-            {shareBundleLoading ? 'Preparing…' : 'Share PDF'}
-          </button>
-          {documents.length > 0 && (
+          <div className="relative group">
             <button
-              onClick={() => {
-                import('@/lib/pdf-export').then(({ shareDocuments }) => {
-                  shareDocuments(documents as any[]);
-                });
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 hover:border-green-500 transition-colors"
-              title="Share all documents (PNG, JPG, PDF, etc.)"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
+              title="Share options"
             >
-              <FileText size={14} className="text-green-500" />
-              Share All Docs
+              <Share2 size={14} className="text-blue-500" />
+              Share
+              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
             </button>
-          )}
+            <div className="absolute right-0 mt-1 w-48 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              <button
+                onClick={handleShareAll}
+                disabled={shareBundleLoading}
+                className="w-full text-left px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 border-b border-border/50 disabled:opacity-60"
+              >
+                <Share2 size={12} className="text-blue-500" />
+                Share PDF
+              </button>
+              {documents.length > 0 && (
+                <button
+                  onClick={handleShareDocuments}
+                  disabled={documentShareBundleLoading}
+                  className="w-full text-left px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 border-b border-border/50 disabled:opacity-60"
+                >
+                  <FileText size={12} className="text-green-500" />
+                  Share Images
+                </button>
+              )}
+              <button
+                onClick={() => downloadLoanPDF(loan, documents as any[])}
+                className="w-full text-left px-4 py-2 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2"
+              >
+                <Download size={12} className="text-accent" />
+                Download PDF
+              </button>
+            </div>
+          </div>
           <div className="relative group">
             <button
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-cyan-500/10 hover:border-cyan-500 transition-colors"

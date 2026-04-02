@@ -13,11 +13,10 @@ export function exportToCSV(data: any[], filename: string) {
   window.URL.revokeObjectURL(url);
 }
 
-export function parseCSV(file: File): Promise<any[]> {
+export function parseCSV(file: File | string): Promise<any[]> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
+    if (typeof file === 'string') {
+      const text = file;
       const lines = text.split('\n');
       const headers = lines[0].split(',');
       const data = lines.slice(1).map(line => {
@@ -28,8 +27,23 @@ export function parseCSV(file: File): Promise<any[]> {
         }, {} as any);
       });
       resolve(data);
-    };
-    reader.onerror = reject;
-    reader.readAsText(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',');
+        const data = lines.slice(1).map(line => {
+          const values = line.split(',');
+          return headers.reduce((obj, header, i) => {
+            obj[header] = values[i];
+            return obj;
+          }, {} as any);
+        });
+        resolve(data);
+      };
+      reader.onerror = reject;
+      reader.readAsText(file);
+    }
   });
 }
