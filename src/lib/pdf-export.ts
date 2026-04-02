@@ -754,29 +754,52 @@ function generatePDFBlob(loan: LoanData, docFiles: { file: File; name: string; d
           doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
           doc.text(docFile.docType, 105, 9, { align: 'center' });
 
-          const imgFormat = fileType === 'image/png' ? 'PNG' : 'JPEG';
-          // Safe base64 conversion for large files
-          const arrayBuffer = await docFile.file.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          let binary = '';
-          const chunkSize = 8192;
-          for (let c = 0; c < uint8.length; c += chunkSize) {
-            binary += String.fromCharCode(...uint8.subarray(c, c + chunkSize));
-          }
-          const imgData = `data:${fileType};base64,${btoa(binary)}`;
+          try {
+            const imgFormat = fileType === 'image/png' ? 'PNG' : fileType === 'image/webp' ? 'WEBP' : 'JPEG';
+            
+            // Convert file to base64 using FileReader
+            const base64Data = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const result = reader.result as string;
+                resolve(result.split(',')[1]); // Extract base64 part
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(docFile.file);
+            });
 
-          const imgEl = await new Promise<HTMLImageElement>((res) => {
-            const i = new Image();
-            i.onload = () => res(i);
-            i.src = imgData;
-          });
-          const maxW = 190; const maxH = 265;
-          let imgW = imgEl.naturalWidth; let imgH = imgEl.naturalHeight;
-          const ratio = Math.min(maxW / imgW, maxH / imgH);
-          imgW = imgW * ratio; imgH = imgH * ratio;
-          doc.addImage(imgData, imgFormat, (210 - imgW) / 2, 18, imgW, imgH);
-          doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...colors.gray);
-          doc.text(docFile.name, 105, 18 + imgH + 5, { align: 'center' });
+            // Create image element to get dimensions
+            const imgEl = await new Promise<HTMLImageElement>((resolve, reject) => {
+              const img = new Image();
+              img.onload = () => resolve(img);
+              img.onerror = reject;
+              img.src = `data:${fileType};base64,${base64Data}`;
+            });
+
+            const maxW = 190;
+            const maxH = 265;
+            let imgW = imgEl.naturalWidth;
+            let imgH = imgEl.naturalHeight;
+            const ratio = Math.min(maxW / imgW, maxH / imgH);
+            imgW = imgW * ratio;
+            imgH = imgH * ratio;
+
+            // Add image to PDF
+            doc.addImage(`data:${fileType};base64,${base64Data}`, imgFormat, (210 - imgW) / 2, 18, imgW, imgH);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...colors.gray);
+            doc.text(docFile.name, 105, 18 + imgH + 5, { align: 'center' });
+          } catch (imgError) {
+            console.warn(`Could not embed image ${docFile.name}:`, imgError);
+            // Fallback: show text instead of image
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...colors.gray);
+            doc.text(docFile.name, 105, 150, { align: 'center' });
+            doc.setFontSize(8);
+            doc.text('(Image document - see attached file)', 105, 160, { align: 'center' });
+          }
         }
       } catch (e) {
         console.warn(`Could not embed document ${docFile.name}:`, e);
