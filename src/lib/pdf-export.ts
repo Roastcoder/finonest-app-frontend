@@ -1248,12 +1248,25 @@ export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
 export async function prepareDocumentShareBundle(docs: any[] = []) {
   try {
     const docFileObjs = await fetchDocumentFiles(docs);
-    const files = docFileObjs.map(docFile => docFile.file);
+    
+    // Separate by file type for better mobile compatibility
+    const imageFiles = docFileObjs.filter(docFile => {
+      const fileType = docFile.file.type;
+      return fileType.startsWith('image/') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png');
+    });
+    
+    const pdfFiles = docFileObjs.filter(docFile => {
+      const fileType = docFile.file.type;
+      return fileType.includes('pdf');
+    });
+    
+    // Prioritize images for Android/PWA compatibility
+    const prioritizedFiles = [...imageFiles, ...pdfFiles].map(docFile => docFile.file);
     
     return {
       title: 'Loan Documents',
       text: `${docFileObjs.length} loan documents`,
-      files: files,
+      files: prioritizedFiles,
       docCount: docFileObjs.length,
     };
   } catch (error) {

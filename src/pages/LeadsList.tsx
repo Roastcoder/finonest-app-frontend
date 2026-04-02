@@ -7,6 +7,7 @@ import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit, Filter, Us
 import { toast } from 'sonner';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
+import MobileNavbarWrapper from '@/components/MobileNavbarWrapper';
 
 // Lead stage colors and labels (simplified)
 const LEAD_STAGE_COLORS: { [key: string]: string } = {
@@ -159,7 +160,7 @@ export default function LeadsList() {
   const branches = Array.from(new Set(leads.map((l: any) => l.our_branch).filter(Boolean))) as string[];
 
   return (
-    <div className="pb-24 lg:pb-0">
+    <MobileNavbarWrapper title="Pending Leads" showTimeline={false} showExport={false} showNotifications={true} showProfile={true}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Pending Leads</h1>
@@ -524,6 +525,6 @@ export default function LeadsList() {
           </div>
         </div>
       )}
-    </div>
+    </MobileNavbarWrapper>
   );
 }

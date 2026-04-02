@@ -6,11 +6,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, APPLICATION_STAGES, ApplicationStage } from '@/lib/mock-data';
 import { exportToCSV, parseCSV } from '@/lib/export-utils';
 import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
+import { shareLoanWithDocumentsAndroid, shareDocumentsAndroid } from '@/lib/android-share';
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings, Share2, FileText } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import MobileNavbarWrapper from '@/components/MobileNavbarWrapper';
+
 
 type ApplicationStageFilter = ApplicationStage | 'all';
 
@@ -86,29 +89,14 @@ export default function Loans() {
         return;
       }
 
-      if (!navigator.share) {
-        toast.error('Sharing not available on this device');
-        return;
+      // Use Android-optimized sharing
+      const success = await shareLoanWithDocumentsAndroid(loan, bundle.files);
+      if (success) {
+        console.log('Successfully shared loan PDF');
       }
-
-      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
-        toast.error('This device cannot share the prepared PDF');
-        return;
-      }
-
-      await navigator.share({
-        title: bundle.title,
-        text: bundle.text,
-        files: bundle.files,
-      });
-      toast.success('Shared PDF!');
     } catch (error: any) {
       console.error('Share loan error:', error);
-      if (error?.name === 'AbortError') {
-        toast.info('Sharing cancelled');
-      } else {
-        toast.error(error?.message || 'Failed to share loan application');
-      }
+      toast.error(error?.message || 'Failed to share loan application');
     } finally {
       setSharingLoanId(current => current === loanId ? null : current);
     }
@@ -163,30 +151,19 @@ export default function Loans() {
       return;
     }
 
-    if (!navigator.share) {
-      toast.error('Sharing not available on this device');
-      return;
-    }
-
     try {
-      if (navigator.canShare && !navigator.canShare({ files: bundle.files })) {
-        toast.error('This device cannot share the prepared documents');
-        return;
+      // Use Android-optimized document sharing
+      const success = await shareDocumentsAndroid(
+        bundle.files,
+        bundle.title,
+        bundle.text
+      );
+      if (success) {
+        console.log('Successfully shared documents');
       }
-
-      await navigator.share({
-        title: bundle.title,
-        text: bundle.text,
-        files: bundle.files,
-      });
-      toast.success(`Shared ${bundle.docCount} documents!`);
     } catch (error: any) {
       console.error('Document share error:', error);
-      if (error?.name === 'AbortError') {
-        toast.info('Sharing cancelled');
-      } else {
-        toast.error(error?.message || 'Failed to share documents');
-      }
+      toast.error(error?.message || 'Failed to share documents');
     }
   };
 
@@ -299,7 +276,7 @@ export default function Loans() {
   }, [sharePrefetchKey]);
 
   return (
-    <div className="pb-24 lg:pb-0">
+    <MobileNavbarWrapper title="Loan Applications" showTimeline={false} showExport={false} showNotifications={true} showProfile={true}>
       <div className="hidden sm:flex flex-row items-center justify-between gap-2 mb-4">
         <div className="min-w-0">
           <h1 className="text-base sm:text-2xl font-bold text-foreground leading-tight truncate">Loan Applications</h1>
@@ -621,6 +598,6 @@ export default function Loans() {
           setSelectedLoan(null);
         }}
       />
-    </div>
+    </MobileNavbarWrapper>
   );
 }

@@ -9,10 +9,12 @@ import LoanStatusBadge from '@/components/LoanStatusBadge';
 import { ArrowLeft, User, Car, IndianRupee, Building2, FileText, Eye, X, Printer, Share2, Download, RefreshCw, Edit2, Settings } from 'lucide-react';
 import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocumentShareBundle } from '@/lib/pdf-export';
 import { downloadRCTemplatePDF, exportRCTemplatePDF, shareRCTemplatePDF } from '@/lib/rc-template';
+import { shareLoanWithDocumentsAndroid, shareDocumentsAndroid, getDeviceInfo } from '@/lib/android-share';
 import { toast } from 'sonner';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 import CibilCreditReport from '@/components/CibilCreditReport';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import MobileNavbarWrapper from '@/components/MobileNavbarWrapper';
 
 const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'aadhar_front', label: 'Aadhar Front' },
@@ -219,29 +221,14 @@ export default function LoanDetail() {
         return;
       }
 
-      if (!navigator.share) {
-        toast.error('Sharing not available on this device');
-        return;
+      // Use Android-optimized sharing
+      const success = await shareLoanWithDocumentsAndroid(loan, shareBundle.files);
+      if (success) {
+        console.log('Successfully shared loan PDF');
       }
-
-      if (navigator.canShare && !navigator.canShare({ files: shareBundle.files })) {
-        toast.error('This device cannot share the prepared files');
-        return;
-      }
-
-      await navigator.share({
-        title: shareBundle.title,
-        text: shareBundle.text,
-        files: shareBundle.files,
-      });
-      toast.success('Shared PDF!');
     } catch (error: any) {
       console.error('Share error:', error);
-      if (error?.name === 'AbortError') {
-        toast.info('Sharing cancelled');
-      } else {
-        toast.error(error?.message || 'Failed to share loan application');
-      }
+      toast.error(error?.message || 'Failed to share loan application');
     }
   };
 
@@ -251,30 +238,19 @@ export default function LoanDetail() {
       return;
     }
 
-    if (!navigator.share) {
-      toast.error('Sharing not available on this device');
-      return;
-    }
-
     try {
-      if (navigator.canShare && !navigator.canShare({ files: documentShareBundle.files })) {
-        toast.error('This device cannot share the prepared documents');
-        return;
+      // Use Android-optimized document sharing
+      const success = await shareDocumentsAndroid(
+        documentShareBundle.files,
+        documentShareBundle.title,
+        documentShareBundle.text
+      );
+      if (success) {
+        console.log('Successfully shared documents');
       }
-
-      await navigator.share({
-        title: documentShareBundle.title,
-        text: documentShareBundle.text,
-        files: documentShareBundle.files,
-      });
-      toast.success(`Shared ${documentShareBundle.docCount} documents!`);
     } catch (error: any) {
       console.error('Document share error:', error);
-      if (error?.name === 'AbortError') {
-        toast.info('Sharing cancelled');
-      } else {
-        toast.error(error?.message || 'Failed to share documents');
-      }
+      toast.error(error?.message || 'Failed to share documents');
     }
   };
 
@@ -322,7 +298,8 @@ export default function LoanDetail() {
   );
 
   return (
-    <div>
+    <MobileNavbarWrapper title={loan?.applicant_name || 'Loan Details'} showTimeline={false} showExport={false} showNotifications={true} showProfile={true}>
+      <div>
       <button onClick={() => navigate('/loans')} className="lg:flex hidden items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
         <ArrowLeft size={16} /> Back to Applications
       </button>
@@ -937,6 +914,7 @@ export default function LoanDetail() {
         isOpen={showStageManager}
         onClose={() => setShowStageManager(false)}
       />
-    </div>
+      </div>
+    </MobileNavbarWrapper>
   );
 }
