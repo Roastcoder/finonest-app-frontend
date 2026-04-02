@@ -20,7 +20,6 @@ import BankManagement from "@/pages/BankManagement";
 import BrokerManagement from "@/pages/BrokerManagement";
 
 // Import sharing test utilities for development
-import "./sharing-test";
 import BranchManagement from "@/pages/BranchManagement";
 import Commission from "@/pages/Commission";
 import Reports from "@/pages/Reports";
