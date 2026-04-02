@@ -1,6 +1,7 @@
 import { formatCurrency } from '@/lib/mock-data';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
+import { getMimeTypeFromFileName, ensureCorrectMimeType } from '@/lib/document-mime-fix';
 
 interface LoanData {
   [key: string]: any;
@@ -836,11 +837,13 @@ async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: stri
       const docLabel = PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
       const fileName = `${docLabel}-${doc.file_name}`;
       files.push({ file: new File([blob], fileName, { type: blob.type }), name: fileName, docType: docLabel });
+      console.log(`Successfully loaded document: ${fileName} (${blob.size} bytes, type: ${blob.type})`);
     } catch (error) {
       console.warn(`Error fetching document ${doc.id}:`, error);
     }
   }
   
+  console.log(`Loaded ${files.length} out of ${docs.length} documents`);
   return files;
 }
 

@@ -363,7 +363,12 @@ export default function LoanDetail() {
                 <p className="text-[10px] text-muted-foreground truncate">{loan.applicant_name} • {(loan as any).maker_name || loan.car_make}</p>
               </div>
             </div>
-            <LoanStatusBadge status={loan.status as any} />
+            <div className="flex items-center gap-2 shrink-0">
+              {documents.length > 0 && (
+                <span className="text-xs font-bold bg-green-500/20 text-green-700 px-2 py-1 rounded-full">{documents.length} docs</span>
+              )}
+              <LoanStatusBadge status={loan.status as any} />
+            </div>
           </div>
           {/* Row 2: action buttons */}
           <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide">
