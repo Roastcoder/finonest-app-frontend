@@ -813,12 +813,43 @@ async function fetchDocumentFiles(docs: any[]): Promise<{ file: File; name: stri
   for (const doc of docs) {
     try {
       const res = await fetch(`${API}/documents/${doc.id}/download`);
-      if (!res.ok) continue;
+      if (!res.ok) {
+        console.warn(`Failed to fetch document ${doc.id}: ${res.status}`);
+        continue;
+      }
+      
       const blob = await res.blob();
+      
+      // Validate blob has content
+      if (blob.size === 0) {
+        console.warn(`Document ${doc.id} has empty blob`);
+        continue;
+      }
+      
+      // Ensure correct MIME type
+      let mimeType = blob.type;
+      const fileName = doc.file_name || `document-${doc.id}`;
+      const fileExt = fileName.split('.').pop()?.toLowerCase();
+      
+      // Fix MIME type if needed
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        if (fileExt === 'jpg' || fileExt === 'jpeg') mimeType = 'image/jpeg';
+        else if (fileExt === 'png') mimeType = 'image/png';
+        else if (fileExt === 'pdf') mimeType = 'application/pdf';
+        else if (fileExt === 'gif') mimeType = 'image/gif';
+        else if (fileExt === 'webp') mimeType = 'image/webp';
+      }
+      
       const docLabel = PDF_DOC_LABELS[doc.document_type] || doc.document_type?.replace(/_/g, ' ') || 'Document';
-      const fileName = `${docLabel}-${doc.file_name}`;
-      files.push({ file: new File([blob], fileName, { type: blob.type }), name: fileName, docType: docLabel });
-    } catch {}
+      const shareFileName = `${docLabel}-${fileName}`;
+      
+      const file = new File([blob], shareFileName, { type: mimeType });
+      files.push({ file, name: shareFileName, docType: docLabel });
+      
+      console.log(`✅ Loaded document: ${shareFileName} (${mimeType}, ${blob.size} bytes)`);
+    } catch (error) {
+      console.error(`Failed to fetch document ${doc.id}:`, error);
+    }
   }
   return files;
 }
@@ -1248,13 +1279,24 @@ export async function prepareLoanShareBundle(loan: LoanData, docs: any[] = []) {
 export async function prepareDocumentShareBundle(docs: any[] = []) {
   try {
     const docFileObjs = await fetchDocumentFiles(docs);
-    const files = docFileObjs.map(docFile => docFile.file);
+    
+    // Filter to only include image and PDF files that can be shared
+    const shareableFiles = docFileObjs.filter(docFile => {
+      const fileType = docFile.file.type;
+      return fileType.startsWith('image/') || fileType.includes('pdf') || fileType.includes('jpeg') || fileType.includes('jpg') || fileType.includes('png');
+    });
+    
+    if (shareableFiles.length === 0) {
+      throw new Error('No shareable documents found');
+    }
+    
+    const files = shareableFiles.map(docFile => docFile.file);
     
     return {
       title: 'Loan Documents',
-      text: `${docFileObjs.length} loan documents`,
+      text: `${shareableFiles.length} loan document${shareableFiles.length > 1 ? 's' : ''}`,
       files: files,
-      docCount: docFileObjs.length,
+      docCount: shareableFiles.length,
     };
   } catch (error) {
     console.error('Error preparing document share bundle:', error);
