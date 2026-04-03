@@ -573,9 +573,72 @@ export default function CreateLoan() {
     // Fetch documents for this lead
     if (lead.id) {
       fetchLeadDocuments(lead.id);
+      // Check for saved draft
+      fetchDraftForLead(lead.id);
     }
     
     toast.success(`Lead data loaded for ${lead.customer_name}`);
+  };
+
+  // Fetch saved draft for a lead
+  const fetchDraftForLead = async (leadId: number) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loan-drafts/lead/${leadId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      
+      if (response.ok) {
+        const draft = await response.json();
+        console.log('Found saved draft:', draft);
+        
+        // Store draft_id for future updates
+        sessionStorage.setItem('current_draft_id', String(draft.id));
+        
+        // Merge draft data with current form (draft data takes precedence)
+        if (draft.form_data) {
+          setForm(f => ({
+            ...f,
+            ...draft.form_data,
+            // Ensure File objects are not restored (they can't be serialized)
+            aadharFront: null,
+            aadharBack: null,
+            panCard: null,
+            drivingLicence: null,
+            lightBill: null,
+            bankStatement: null,
+            cheque: null,
+            rcFront: null,
+            rcBack: null,
+            incomeProof: null,
+            rentAgreement: null,
+            customerPhoto: null,
+            disbursementMemo: null,
+            insurance: null,
+            customerLedger: null,
+            coAadharFront: null,
+            coAadharBack: null,
+            coPanCard: null,
+            coPhoto: null,
+            guarantorAadharFront: null,
+            guarantorAadharBack: null,
+            guarantorPanCard: null,
+            guarantorRcFront: null,
+            guarantorRcBack: null,
+            guarantorPhoto: null,
+          }));
+        }
+        
+        // Restore assignment data
+        if (draft.assignment_data) {
+          setAssignmentForm(draft.assignment_data);
+        }
+        
+        toast.info('Saved draft loaded! Continue where you left off.', { duration: 4000 });
+      }
+    } catch (error) {
+      // Silently fail if no draft found
+      console.log('No draft found for this lead');
+    }
   };
 
   // Pre-fill from reapply loan data (runs immediately on mount)
@@ -662,6 +725,9 @@ export default function CreateLoan() {
         setSelectedLeadId(Number(leadId));
         handleLeadSelect(lead);
         setLeadSearch(lead.customer_id);
+        
+        // Check if there's a saved draft for this lead
+        fetchDraftForLead(Number(leadId));
       }
     }
   }, [searchParams, leads]);
@@ -823,6 +889,20 @@ export default function CreateLoan() {
       return res.json();
     },
     onSuccess: async (data) => {
+      // Delete the draft if it exists
+      const draftId = sessionStorage.getItem('current_draft_id');
+      if (draftId) {
+        try {
+          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loan-drafts/${draftId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+          });
+          sessionStorage.removeItem('current_draft_id');
+        } catch (err) {
+          console.warn('Failed to delete draft:', err);
+        }
+      }
+      
       // Upload documents linked to the new loan
       const docFieldMap: { [key: string]: string } = {
         aadharFront: 'aadhar_front', aadharBack: 'aadhar_back', panCard: 'pan_card',
@@ -902,6 +982,63 @@ export default function CreateLoan() {
   const handleCreateApplication = () => {
     createLoan.mutate();
     setShowAssignmentModal(false);
+  };
+
+  const handleSaveLater = async () => {
+    if (!form.customerName.trim() || !form.mobile.trim()) {
+      toast.error('Customer Name and Mobile are required');
+      return;
+    }
+    try {
+      // Filter out File objects before sending to backend
+      const formDataToSave = Object.fromEntries(
+        Object.entries(form).filter(([_, value]) => !(value instanceof File))
+      );
+      
+      // Get existing draft_id from sessionStorage if available
+      const existingDraftId = sessionStorage.getItem('current_draft_id');
+      
+      const payload: any = {
+        form_data: formDataToSave,
+        assignment_data: assignmentForm,
+      };
+      
+      // If we have a lead_id, use it (this enables upsert by lead_id)
+      if (selectedLeadId) {
+        payload.lead_id = selectedLeadId;
+      } 
+      // Otherwise, if we have a draft_id, use it to update existing draft
+      else if (existingDraftId) {
+        payload.draft_id = Number(existingDraftId);
+      }
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loan-drafts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to save draft' }));
+        throw new Error(errorData.error || 'Failed to save draft');
+      }
+      
+      const result = await response.json();
+      
+      // Store the draft_id for future updates
+      if (result.draftId) {
+        sessionStorage.setItem('current_draft_id', String(result.draftId));
+      }
+      
+      toast.success('Loan draft saved successfully!');
+      navigate('/loans');
+    } catch (error: any) {
+      console.error('Save draft error:', error);
+      toast.error(error.message || 'Failed to save draft');
+    }
   };
 
 
@@ -1574,6 +1711,14 @@ export default function CreateLoan() {
             className="px-6 py-3 rounded-xl border-2 border-border font-semibold hover:bg-muted transition-all"
           >
             Cancel
+          </button>
+          <button 
+            type="button" 
+            onClick={handleSaveLater}
+            disabled={createLoan.isPending}
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+          >
+            Save Later
           </button>
           <button 
             type="submit" 

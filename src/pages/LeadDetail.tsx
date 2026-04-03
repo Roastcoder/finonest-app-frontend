@@ -109,6 +109,23 @@ export default function LeadDetail() {
     setShowReapplyModal(true);
   };
 
+  const handleConvertToLoan = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loan-drafts/lead/${id}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      if (response.ok) {
+        const draft = await response.json();
+        sessionStorage.setItem('loan_draft_data', JSON.stringify(draft));
+        navigate(`/create-loan?leadId=${id}&hasDraft=true`);
+      } else {
+        navigate(`/create-loan?leadId=${id}`);
+      }
+    } catch (error) {
+      navigate(`/create-loan?leadId=${id}`);
+    }
+  };
+
   const handleConfirmReapply = () => {
     const selectedBank = banks.find(bank => bank.name === selectedFinancier);
     cloneMutation.mutate(selectedBank?.id);

@@ -546,7 +546,7 @@ export default function Loans() {
       </Sheet>
 
       {/* Desktop Table View — only on lg+ screens */}
-      <div className="stat-card max-lg:hidden" style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', overflowX: 'auto' }}>
+      <div className="stat-card max-lg:hidden" style={{ height: 'calc(100vh - 120px)', overflowY: 'auto', overflowX: 'auto' }}>
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground text-sm">Loading applications…</div>
         ) : (

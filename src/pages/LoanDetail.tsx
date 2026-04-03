@@ -646,7 +646,7 @@ export default function LoanDetail() {
         </div>
       </div>
 
-      <div className="bg-card border border-border shadow-sm rounded-2xl p-5 mb-6">
+      <div className="bg-card border border-border shadow-sm rounded-2xl p-5 mb-6 mt-4 lg:mt-0">
         <h3 className="text-sm font-bold text-foreground mb-4">Status Pipeline</h3>
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
           {APPLICATION_STAGES.map((s, i) => {
