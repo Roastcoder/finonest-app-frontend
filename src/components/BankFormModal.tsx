@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Upload, X, Plus, Trash2 } from 'lucide-react';
+import { Upload, X, Plus, Trash2, MapPin, Loader2 } from 'lucide-react';
 
 interface Branch {
   id?: number;
@@ -34,6 +34,50 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const API_BASE = API.replace('/api', '');
 const authHeader = () => ({ 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` });
 
+interface AddressSuggestion {
+  place_id: string;
+  description: string;
+  main_text: string;
+  secondary_text: string;
+}
+
+async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]> {
+  const trimmedInput = input.trim();
+  if (!trimmedInput || trimmedInput.length < 2) return [];
+  
+  try {
+    const response = await fetch(`${API}/google-maps/autocomplete`, {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input })
+    });
+    
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.predictions || [];
+  } catch (error) {
+    console.error('Address suggestions error:', error);
+    return [];
+  }
+}
+
+async function getPlaceDetails(placeId: string): Promise<{ lat: number; lng: number; address: string } | null> {
+  try {
+    const response = await fetch(`${API}/google-maps/place-details`, {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ place_id: placeId })
+    });
+    
+    const data = await response.json();
+    if (response.ok) return data;
+    return null;
+  } catch (error) {
+    console.error('Place details error:', error);
+    return null;
+  }
+}
+
 export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalProps) {
   const [form, setForm] = useState({ name: '', status: 'active' });
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -44,9 +88,34 @@ export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalP
   const [isNewBranch, setIsNewBranch] = useState(false);
   const [branchLoading, setBranchLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [locationSuggestions, setLocationSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const locationDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const locationSuggestionsRef = useRef<HTMLDivElement>(null);
+
+  const productOptions = [
+    'New Car - Purchase',
+    'Used Car - Purchase',
+    'Used Car - Refinance',
+    'Used Car - Top-up',
+    'Used Car - BT'
+  ];
 
   const inputClass = 'w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:border-accent';
   const labelClass = 'block text-xs font-medium text-muted-foreground mb-1';
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (locationSuggestionsRef.current && !locationSuggestionsRef.current.contains(e.target as Node)) {
+        setShowLocationSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -71,19 +140,87 @@ export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalP
   const handleBranchSelect = (id: string) => {
     setSelectedBranchId(id);
     setIsNewBranch(false);
-    if (!id) { setActiveBranch(null); return; }
+    if (!id) { 
+      setActiveBranch(null);
+      setSelectedProducts([]);
+      return; 
+    }
     const found = branches.find(b => String(b.id) === id);
-    setActiveBranch(found ? { ...found } : null);
+    if (found) {
+      setActiveBranch({ ...found });
+      setSelectedProducts(found.product ? found.product.split(', ').map(p => p.trim()) : []);
+    } else {
+      setActiveBranch(null);
+      setSelectedProducts([]);
+    }
   };
 
   const handleAddNewBranch = () => {
     setSelectedBranchId('');
     setIsNewBranch(true);
     setActiveBranch(emptyBranch());
+    setSelectedProducts([]);
   };
 
   const updateActiveBranch = (key: keyof Branch, val: string) => {
     setActiveBranch(prev => prev ? { ...prev, [key]: val } : null);
+  };
+
+  const handleProductToggle = (product: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(product)
+        ? prev.filter(p => p !== product)
+        : [...prev, product]
+    );
+  };
+
+  const handleLocationChange = (value: string) => {
+    updateActiveBranch('location', value);
+    
+    if (locationDebounceTimer.current) {
+      clearTimeout(locationDebounceTimer.current);
+    }
+    
+    const trimmedValue = value.trim();
+    if (trimmedValue.length < 2) {
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+      return;
+    }
+    
+    const words = trimmedValue.split(/\s+/).filter(w => w.length > 0);
+    const shouldCallApi = words.length >= 1 && value.endsWith(' ');
+    
+    if (!shouldCallApi) {
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+      return;
+    }
+    
+    setLocationLoading(true);
+    locationDebounceTimer.current = setTimeout(async () => {
+      const results = await getAddressSuggestions(value);
+      setLocationSuggestions(results);
+      setShowLocationSuggestions(results.length > 0);
+      setLocationLoading(false);
+    }, 300);
+  };
+
+  const handleSelectLocationSuggestion = async (suggestion: AddressSuggestion) => {
+    setLocationLoading(true);
+    try {
+      const details = await getPlaceDetails(suggestion.place_id);
+      if (details) {
+        updateActiveBranch('location', details.address);
+        setLocationSuggestions([]);
+        setShowLocationSuggestions(false);
+        toast.success('Location selected');
+      }
+    } catch (error) {
+      toast.error('Failed to get location details');
+    } finally {
+      setLocationLoading(false);
+    }
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,6 +240,7 @@ export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalP
     setBranchLoading(true);
     try {
       const { id, ...branchData } = activeBranch as any;
+      branchData.product = selectedProducts.length > 0 ? selectedProducts.join(', ') : '';
       if (!isNewBranch && id) {
         const res = await fetch(`${API}/banks/${bankId}/branches/${id}`, {
           method: 'PUT',
@@ -249,17 +387,62 @@ export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalP
                       <label className={labelClass}>Branch Name *</label>
                       <input required className={inputClass} value={activeBranch.branch_name} onChange={e => updateActiveBranch('branch_name', e.target.value)} placeholder="e.g. Andheri Branch" />
                     </div>
-                    <div>
+                    <div className="relative" ref={locationSuggestionsRef}>
                       <label className={labelClass}>Location</label>
-                      <input className={inputClass} value={activeBranch.location} onChange={e => updateActiveBranch('location', e.target.value)} placeholder="City / Area" />
+                      <div className="relative">
+                        <input 
+                          className={inputClass} 
+                          value={activeBranch.location} 
+                          onChange={e => handleLocationChange(e.target.value)}
+                          onFocus={() => locationSuggestions.length > 0 && setShowLocationSuggestions(true)}
+                          placeholder="City / Area" 
+                        />
+                        {activeBranch.location && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateActiveBranch('location', '');
+                              setLocationSuggestions([]);
+                              setShowLocationSuggestions(false);
+                            }}
+                            className="absolute top-1/2 -translate-y-1/2 right-2 p-1 hover:bg-muted rounded transition-colors"
+                          >
+                            <X size={14} className="text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+
+                      {showLocationSuggestions && locationSuggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto">
+                          {locationLoading ? (
+                            <div className="p-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 size={14} className="animate-spin" />
+                              Loading...
+                            </div>
+                          ) : (
+                            locationSuggestions.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => handleSelectLocationSuggestion(suggestion)}
+                                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border last:border-b-0 flex items-start gap-2"
+                              >
+                                <MapPin size={14} className="text-primary mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-foreground truncate">{suggestion.main_text}</p>
+                                  {suggestion.secondary_text && (
+                                    <p className="text-xs text-muted-foreground truncate">{suggestion.secondary_text}</p>
+                                  )}
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className={labelClass}>Geo Limit (KM)</label>
                       <input type="number" className={inputClass} value={activeBranch.geo_limit} onChange={e => updateActiveBranch('geo_limit', e.target.value)} placeholder="e.g. 50" />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Product</label>
-                      <input className={inputClass} value={activeBranch.product} onChange={e => updateActiveBranch('product', e.target.value)} placeholder="e.g. Used Car Loan" />
                     </div>
                     <div>
                       <label className={labelClass}>Status</label>
@@ -267,6 +450,22 @@ export function BankFormModal({ open, onClose, onSuccess, bank }: BankFormModalP
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                       </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelClass}>Products</label>
+                      <div className="space-y-2 p-3 rounded-lg border border-border bg-muted/20">
+                        {productOptions.map(product => (
+                          <label key={product} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.includes(product)}
+                              onChange={() => handleProductToggle(product)}
+                              className="w-4 h-4 rounded border-border cursor-pointer"
+                            />
+                            <span className="text-sm text-foreground">{product}</span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
 

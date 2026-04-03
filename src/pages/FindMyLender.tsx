@@ -253,6 +253,7 @@ export default function FindMyLender() {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -511,12 +512,20 @@ export default function FindMyLender() {
 
         {(searched || coordinates) && (
           <div className="glass-card p-4 mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Map size={18} className="text-primary" />
-              <h2 className="text-base font-bold text-foreground">Map View</h2>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Map size={18} className="text-primary" />
+                <h2 className="text-base font-bold text-foreground">Map View</h2>
+              </div>
+              <button
+                onClick={() => setShowMap(!showMap)}
+                className="px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors flex items-center gap-2 text-sm font-medium text-foreground"
+              >
+                {showMap ? 'Hide Map' : 'Show Map'}
+              </button>
             </div>
 
-            {coordinates && branchesWithCoords.length > 0 ? (
+            {showMap && (coordinates && branchesWithCoords.length > 0 ? (
               <GoogleMap
                 customerLat={coordinates.lat}
                 customerLng={coordinates.lng}
@@ -534,7 +543,7 @@ export default function FindMyLender() {
               <div className="w-full h-[500px] rounded-lg border border-border bg-muted/40 flex items-center justify-center">
                 <p className="text-sm text-muted-foreground">Unable to load map</p>
               </div>
-            )}
+            ))}
           </div>
         )}
 
