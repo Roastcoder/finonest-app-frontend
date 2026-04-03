@@ -594,10 +594,10 @@ export default function CreateLoan() {
         // Store draft_id for future updates
         sessionStorage.setItem('current_draft_id', String(draft.id));
         
-        // Merge draft data with current form (draft data takes precedence)
+        // COMPLETELY REPLACE form with draft data (don't merge)
         if (draft.form_data) {
-          setForm(f => ({
-            ...f,
+          // Create a fresh form object with only draft data
+          const freshForm = {
             ...draft.form_data,
             // Ensure File objects are not restored (they can't be serialized)
             aadharFront: null,
@@ -625,7 +625,10 @@ export default function CreateLoan() {
             guarantorRcFront: null,
             guarantorRcBack: null,
             guarantorPhoto: null,
-          }));
+          };
+          
+          // Replace entire form state
+          setForm(freshForm as any);
         }
         
         // Restore assignment data

@@ -414,6 +414,43 @@ export default function EditLoan() {
     
     setForm(f => {
       const newForm = { ...f, [key]: val };
+      
+      // When income source changes, clear all income-related fields
+      if (key === 'incomeSource') {
+        // Clear Salaried fields
+        newForm.companyName = '';
+        newForm.designation = '';
+        newForm.workExperience = '';
+        newForm.currentJobYears = '';
+        newForm.totalWorkExp = '';
+        newForm.netMonthlySalary = '';
+        newForm.salaryCreditMode = '';
+        newForm.salarySlipAvailable = '';
+        
+        // Clear Self Employed fields
+        newForm.profile = '';
+        newForm.businessName = '';
+        newForm.businessType = '';
+        newForm.businessVintage = '';
+        newForm.professionalSubtype = '';
+        newForm.practiceExperience = '';
+        newForm.freelancerSubtype = '';
+        newForm.otherIncomeType = '';
+        newForm.itrAvailable = '';
+        newForm.annualIncomeItr = '';
+      }
+      
+      // When profile changes within Self Employed, clear profile-specific fields
+      if (key === 'profile') {
+        newForm.businessName = '';
+        newForm.businessType = '';
+        newForm.businessVintage = '';
+        newForm.professionalSubtype = '';
+        newForm.practiceExperience = '';
+        newForm.freelancerSubtype = '';
+        newForm.otherIncomeType = '';
+      }
+      
       if (key === 'totalWorkExp' && val && !f.salaryCreditMode) {
         newForm.salaryCreditMode = 'Account Transfer';
       }
@@ -483,104 +520,193 @@ export default function EditLoan() {
 
   const updateLoan = useMutation({
     mutationFn: async () => {
+      // Prepare data based on income source - explicitly null out unused fields
+      const baseData = {
+        customer_id: form.customerId || null,
+        applicant_name: form.customerName,
+        mobile: form.mobile,
+        co_applicant_name: form.coApplicantName || null,
+        co_applicant_mobile: form.coApplicantMobile || null,
+        guarantor_name: form.guarantorName || null,
+        guarantor_mobile: form.guarantorMobile || null,
+        current_address: form.currentAddress || null,
+        current_landmark: form.currentLandmark || null,
+        landmark: form.currentLandmark || null,
+        current_district: form.currentDistrict || null,
+        current_state: form.currentState || null,
+        current_pincode: form.currentPincode || null,
+        our_branch: form.ourBranch || null,
+        income_source: form.incomeSource || null,
+        monthly_income: form.monthlyIncome ? Number(form.monthlyIncome) : null,
+        selected_financier: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
+        financier_location: form.financierLocation || null,
+        loan_amount: Number(form.loanAmount) || 0,
+        ltv: Number(form.ltv) || null,
+        loan_type_vehicle: form.loanTypeVehicle || null,
+        vehicle_number: form.vehicleNumber || null,
+        engine_number: form.engineNumber || null,
+        chassis_number: form.chassisNumber || null,
+        owner_name: form.ownerName || null,
+        maker_name: form.makerName || null,
+        maker_model: form.makerModel || null,
+        model_variant_name: form.modelVariantName || null,
+        fuel_type: form.fuelType || null,
+        manufacturing_date: form.manufacturingDate || null,
+        ownership_type: form.ownershipType || null,
+        financer: form.financer || null,
+        finance_status: form.financeStatus || null,
+        insurance_company: form.insuranceCompany || null,
+        insurance_valid_upto: form.insuranceValidUpto || null,
+        pucc_valid_upto: form.puccValidUpto || null,
+        case_type: form.caseType === 'new_car_purchase' ? 'Purchase' : 
+                   form.caseType === 'used_car_purchase' ? 'Purchase' :
+                   form.caseType === 'used_car_refinance' ? 'Refinance' : 
+                   form.caseType === 'used_car_bt' ? 'BT' :
+                   form.caseType === 'used_car_topup' ? 'Top-up' : (form.caseType || null),
+        emi_amount: emi || null,
+        total_emi: Number(form.tenure) || null,
+        total_interest: (totalInterest > 0 ? totalInterest : null),
+        irr: Number(form.irr) || null,
+        tenure: Number(form.tenure) || 60,
+        emi_start_date: form.emiStartDate || null,
+        emi_end_date: form.emiEndDate || null,
+        processing_fee: Number(form.processingFee) || null,
+        emi: emi || null,
+        interest_rate: Number(form.irr) || null,
+        assigned_bank_id: form.assignedBankId || null,
+        assigned_broker_id: form.assignedBrokerId || null,
+        financier_name: assignmentForm.ledgerSelection || null,
+        financier_branch_name: assignmentForm.selectedBranchName || null,
+        financier_executive_name: assignmentForm.salesManagerName || null,
+        financier_executive_mobile: assignmentForm.salesManagerMobile || null,
+        financier_area_manager_name: assignmentForm.areaManagerName || null,
+        financier_area_manager_mobile: assignmentForm.areaManagerMobile || null,
+        assigned_to: assignmentForm.assignedTo ? Number(assignmentForm.assignedTo) : null,
+        bouncing_last_3m: form.bouncingLast3m ? Number(form.bouncingLast3m) : null,
+        bouncing_last_6m: form.bouncingLast6m ? Number(form.bouncingLast6m) : null,
+        existing_loan_status: form.loanStatus || null,
+        existing_loan_amount: form.existingLoanAmount ? Number(form.existingLoanAmount) : null,
+        existing_tenure: form.existingTenure ? Number(form.existingTenure) : null,
+        existing_emi: form.existingEmi ? Number(form.existingEmi) : null,
+        no_of_emi_paid: form.noOfEmiPaid ? Number(form.noOfEmiPaid) : null,
+        login_date: form.loginDate || null,
+        sourcing_person_name: form.sourcingPersonName || null,
+        remark: form.remark || null,
+        status: form.fileStatus || 'submitted',
+        created_by: user?.id,
+      };
+
+      // Add income-specific fields based on income source
+      if (form.incomeSource === 'Salaried') {
+        // Add Salaried fields
+        baseData.company_name = form.companyName || null;
+        baseData.designation = form.designation || null;
+        baseData.work_experience = form.workExperience || null;
+        baseData.current_job_years = form.currentJobYears || null;
+        baseData.total_work_exp = form.totalWorkExp || null;
+        baseData.net_monthly_salary = Number(form.netMonthlySalary) || null;
+        baseData.salary_credit_mode = form.salaryCreditMode || null;
+        baseData.salary_slip_available = form.salarySlipAvailable || null;
+        baseData.itr_available = form.itrAvailable || null;
+        baseData.annual_income_itr = Number(form.annualIncomeItr) || null;
+        
+        // Explicitly NULL out Self Employed fields
+        baseData.profile = null;
+        baseData.business_name = null;
+        baseData.business_type = null;
+        baseData.business_vintage = null;
+        baseData.professional_subtype = null;
+        baseData.practice_experience = null;
+        baseData.freelancer_subtype = null;
+        baseData.other_income_type = null;
+      } else if (form.incomeSource === 'Self Employed') {
+        // Add Self Employed fields
+        baseData.profile = form.profile || null;
+        baseData.itr_available = form.itrAvailable || null;
+        baseData.annual_income_itr = Number(form.annualIncomeItr) || null;
+        
+        // Add profile-specific fields
+        if (form.profile === 'Business') {
+          baseData.business_name = form.businessName || null;
+          baseData.business_type = form.businessType || null;
+          baseData.business_vintage = form.businessVintage || null;
+          baseData.professional_subtype = null;
+          baseData.practice_experience = null;
+          baseData.freelancer_subtype = null;
+          baseData.other_income_type = null;
+        } else if (form.profile === 'Professional') {
+          baseData.professional_subtype = form.professionalSubtype || null;
+          baseData.practice_experience = form.practiceExperience || null;
+          baseData.business_name = null;
+          baseData.business_type = null;
+          baseData.business_vintage = null;
+          baseData.freelancer_subtype = null;
+          baseData.other_income_type = null;
+        } else if (form.profile === 'Freelancer/Agent') {
+          baseData.freelancer_subtype = form.freelancerSubtype || null;
+          baseData.business_name = null;
+          baseData.business_type = null;
+          baseData.business_vintage = null;
+          baseData.professional_subtype = null;
+          baseData.practice_experience = null;
+          baseData.other_income_type = null;
+        } else if (form.profile === 'Other Income') {
+          baseData.other_income_type = form.otherIncomeType || null;
+          baseData.business_name = null;
+          baseData.business_type = null;
+          baseData.business_vintage = null;
+          baseData.professional_subtype = null;
+          baseData.practice_experience = null;
+          baseData.freelancer_subtype = null;
+        } else {
+          // No profile selected, null all
+          baseData.business_name = null;
+          baseData.business_type = null;
+          baseData.business_vintage = null;
+          baseData.professional_subtype = null;
+          baseData.practice_experience = null;
+          baseData.freelancer_subtype = null;
+          baseData.other_income_type = null;
+        }
+        
+        // Explicitly NULL out Salaried fields
+        baseData.company_name = null;
+        baseData.designation = null;
+        baseData.work_experience = null;
+        baseData.current_job_years = null;
+        baseData.total_work_exp = null;
+        baseData.net_monthly_salary = null;
+        baseData.salary_credit_mode = null;
+        baseData.salary_slip_available = null;
+      } else {
+        // No income source selected, null all income fields
+        baseData.company_name = null;
+        baseData.designation = null;
+        baseData.work_experience = null;
+        baseData.current_job_years = null;
+        baseData.total_work_exp = null;
+        baseData.net_monthly_salary = null;
+        baseData.salary_credit_mode = null;
+        baseData.salary_slip_available = null;
+        baseData.profile = null;
+        baseData.business_name = null;
+        baseData.business_type = null;
+        baseData.business_vintage = null;
+        baseData.professional_subtype = null;
+        baseData.practice_experience = null;
+        baseData.freelancer_subtype = null;
+        baseData.other_income_type = null;
+        baseData.itr_available = null;
+        baseData.annual_income_itr = null;
+      }
+
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
-        body: JSON.stringify({
-          customer_id: form.customerId || null,
-          applicant_name: form.customerName,
-          mobile: form.mobile,
-          co_applicant_name: form.coApplicantName || null,
-          co_applicant_mobile: form.coApplicantMobile || null,
-          guarantor_name: form.guarantorName || null,
-          guarantor_mobile: form.guarantorMobile || null,
-          current_address: form.currentAddress || null,
-          current_landmark: form.currentLandmark || null,
-          landmark: form.currentLandmark || null,
-          current_district: form.currentDistrict || null,
-          current_state: form.currentState || null,
-          current_pincode: form.currentPincode || null,
-          our_branch: form.ourBranch || null,
-          income_source: form.incomeSource || null,
-          monthly_income: form.monthlyIncome ? Number(form.monthlyIncome) : null,
-          company_name: form.companyName || null,
-          designation: form.designation || null,
-          work_experience: form.workExperience || null,
-          current_job_years: form.currentJobYears || null,
-          total_work_exp: form.totalWorkExp || null,
-          net_monthly_salary: Number(form.netMonthlySalary) || null,
-          salary_credit_mode: form.salaryCreditMode || null,
-          salary_slip_available: form.salarySlipAvailable || null,
-          profile: form.profile || null,
-          itr_available: form.itrAvailable || null,
-          annual_income_itr: Number(form.annualIncomeItr) || null,
-          business_name: form.businessName || null,
-          business_type: form.businessType || null,
-          business_vintage: form.businessVintage || null,
-          professional_subtype: form.professionalSubtype || null,
-          practice_experience: form.practiceExperience || null,
-          freelancer_subtype: form.freelancerSubtype || null,
-          other_income_type: form.otherIncomeType || null,
-          selected_financier: form.financierName === 'Others' ? form.otherFinancierName : form.financierName,
-          financier_location: form.financierLocation || null,
-          loan_amount: Number(form.loanAmount) || 0,
-          ltv: Number(form.ltv) || null,
-          loan_type_vehicle: form.loanTypeVehicle || null,
-          vehicle_number: form.vehicleNumber || null,
-          engine_number: form.engineNumber || null,
-          chassis_number: form.chassisNumber || null,
-          owner_name: form.ownerName || null,
-          maker_name: form.makerName || null,
-          maker_model: form.makerModel || null,
-          model_variant_name: form.modelVariantName || null,
-          fuel_type: form.fuelType || null,
-          manufacturing_date: form.manufacturingDate || null,
-          ownership_type: form.ownershipType || null,
-          financer: form.financer || null,
-          finance_status: form.financeStatus || null,
-          insurance_company: form.insuranceCompany || null,
-          insurance_valid_upto: form.insuranceValidUpto || null,
-          pucc_valid_upto: form.puccValidUpto || null,
-          case_type: form.caseType === 'new_car_purchase' ? 'Purchase' : 
-                     form.caseType === 'used_car_purchase' ? 'Purchase' :
-                     form.caseType === 'used_car_refinance' ? 'Refinance' : 
-                     form.caseType === 'used_car_bt' ? 'BT' :
-                     form.caseType === 'used_car_topup' ? 'Top-up' : (form.caseType || null),
-          emi_amount: emi || null,
-          total_emi: Number(form.tenure) || null,
-          total_interest: (totalInterest > 0 ? totalInterest : null),
-          irr: Number(form.irr) || null,
-          tenure: Number(form.tenure) || 60,
-          emi_start_date: form.emiStartDate || null,
-          emi_end_date: form.emiEndDate || null,
-          processing_fee: Number(form.processingFee) || null,
-          emi: emi || null,
-          interest_rate: Number(form.irr) || null,
-          assigned_bank_id: form.assignedBankId || null,
-          assigned_broker_id: form.assignedBrokerId || null,
-          financier_name: assignmentForm.ledgerSelection || null,
-          financier_branch_name: assignmentForm.selectedBranchName || null,
-          financier_executive_name: assignmentForm.salesManagerName || null,
-          financier_executive_mobile: assignmentForm.salesManagerMobile || null,
-          financier_area_manager_name: assignmentForm.areaManagerName || null,
-          financier_area_manager_mobile: assignmentForm.areaManagerMobile || null,
-          assigned_to: assignmentForm.assignedTo ? Number(assignmentForm.assignedTo) : null,
-          bouncing_last_3m: form.bouncingLast3m ? Number(form.bouncingLast3m) : null,
-          bouncing_last_6m: form.bouncingLast6m ? Number(form.bouncingLast6m) : null,
-          existing_loan_status: form.loanStatus || null,
-          existing_loan_amount: form.existingLoanAmount ? Number(form.existingLoanAmount) : null,
-          existing_tenure: form.existingTenure ? Number(form.existingTenure) : null,
-          existing_emi: form.existingEmi ? Number(form.existingEmi) : null,
-          no_of_emi_paid: form.noOfEmiPaid ? Number(form.noOfEmiPaid) : null,
-          login_date: form.loginDate || null,
-          sourcing_person_name: form.sourcingPersonName || null,
-          remark: form.remark || null,
-          status: form.fileStatus || 'submitted',
-          created_by: user?.id,
-        }),
+        body: JSON.stringify(baseData),
       });
       if (!res.ok) throw new Error('Failed to update loan');
       return res.json();
