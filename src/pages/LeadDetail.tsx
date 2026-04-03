@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, User, Car, IndianRupee, ArrowRight, FileText, Copy, X, ClipboardCheck, Share2, Phone } from 'lucide-react';
+import { ArrowLeft, User, Car, IndianRupee, ArrowRight, FileText, Copy, X, ClipboardCheck, Share2, Phone, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/mock-data';
 import { FINANCIERS } from '@/lib/financiers';
@@ -238,6 +238,14 @@ Finonest India`;
             <button onClick={handleReapply} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
               Reapply
             </button>
+            {lead.is_converted_to_loan && lead.loan_application_status && (
+              <button
+                onClick={() => navigate(`/loans/${lead.loan_application_status.loan_id}`)}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold whitespace-nowrap"
+              >
+                <ExternalLink size={12} /> View Loan
+              </button>
+            )}
             <button onClick={() => navigate('/add-lead')} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-accent text-accent-foreground rounded-xl text-xs font-bold whitespace-nowrap">
               New Lead
             </button>
@@ -287,6 +295,33 @@ Finonest India`;
           Share
         </button>
       </div>
+
+      {/* Converted Loan File Banner */}
+      {lead.is_converted_to_loan && lead.loan_application_status && (
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 bg-emerald-100 rounded-xl shrink-0">
+              <FileText size={18} className="text-emerald-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-emerald-800">Loan File Created</p>
+              <p className="text-xs text-emerald-600 truncate">
+                {lead.loan_application_status.loan_number || `Loan #${lead.loan_application_status.loan_id}`} &nbsp;•&nbsp;
+                Stage: <span className="font-semibold">{lead.loan_application_status.label}</span>
+                {lead.loan_application_status.loan_amount && (
+                  <> &nbsp;•&nbsp; {formatCurrency(Number(lead.loan_application_status.loan_amount))}</>
+                )}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(`/loans/${lead.loan_application_status.loan_id}`)}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors"
+          >
+            <ExternalLink size={13} /> View Loan
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
         <div className="bg-card rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-300">

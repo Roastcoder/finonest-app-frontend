@@ -63,7 +63,8 @@ export default function LoanDetail() {
   const queryClient = useQueryClient();
 
   // Role-based permissions
-  const canEditStatus = true; // all roles can change stage
+  const isExecutive = user?.role === 'executive';
+  const canEditStatus = !isExecutive;
   const isTeamLeader = user?.role === 'team_leader';
   const canDelete = user?.role === 'admin';
 
@@ -345,23 +346,31 @@ export default function LoanDetail() {
           </div>
           {/* Row 2: action buttons */}
           <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide">
-            <button onClick={() => setShowReapplyModal(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
-              <RefreshCw size={12} className="text-orange-500" /> Reapply
-            </button>
-            {user?.role !== 'executive' && (
+            {!isExecutive && (
+              <button onClick={() => setShowReapplyModal(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+                <RefreshCw size={12} className="text-orange-500" /> Reapply
+              </button>
+            )}
+            {!isExecutive && (
               <button onClick={() => navigate(`/loans/edit/${loan.id}`)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
                 <Edit2 size={12} className="text-blue-500" /> Edit
               </button>
             )}
+            {!isExecutive && (
             <button onClick={() => setShowStageManager(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
+            )}
+            {!isExecutive && (
             <button onClick={() => setShowShareMenu(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="Share options">
               <Share2 size={12} className="text-blue-500" /> Share
             </button>
+            )}
+            {!isExecutive && (
             <button onClick={() => setShowRCMenu(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border" title="RC Template options">
               <FileText size={12} className="text-cyan-500" /> RC
             </button>
+            )}
             {canDelete && (
               <button onClick={() => { if (confirm('Delete this loan?')) deleteLoan.mutate(); }} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-xl text-xs font-bold whitespace-nowrap">
                 Delete
@@ -517,6 +526,7 @@ export default function LoanDetail() {
           <p className="text-sm text-muted-foreground mt-1">{loan.applicant_name} • {(loan as any).maker_name || loan.car_make} {(loan as any).model_variant_name || loan.car_model}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {!isExecutive && (
           <button
             onClick={() => exportLoanPDF(loan, documents as any[])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 hover:border-accent transition-colors"
@@ -524,6 +534,8 @@ export default function LoanDetail() {
             <Printer size={14} className="text-accent" />
             Export
           </button>
+          )}
+          {!isExecutive && (
           <button
             onClick={() => setShowReapplyModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-orange-500/10 hover:border-orange-500 transition-colors"
@@ -531,6 +543,8 @@ export default function LoanDetail() {
             <RefreshCw size={14} className="text-orange-500" />
             Reapply
           </button>
+          )}
+          {!isExecutive && (
           <button
             onClick={() => downloadLoanPDF(loan, documents as any[])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 hover:border-accent transition-colors"
@@ -538,7 +552,8 @@ export default function LoanDetail() {
             <Download size={14} className="text-accent" />
             Download
           </button>
-          {user?.role !== 'executive' && (
+          )}
+          {!isExecutive && (
             <button
               onClick={() => navigate(`/loans/edit/${loan.id}`)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
@@ -547,6 +562,7 @@ export default function LoanDetail() {
               Edit
             </button>
           )}
+          {!isExecutive && (
           <button
             onClick={() => setShowStageManager(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-purple-500/10 hover:border-purple-500 transition-colors"
@@ -554,7 +570,8 @@ export default function LoanDetail() {
             <Settings size={14} className="text-purple-500" />
             Update Stage
           </button>
-          <div className="relative group">
+          )}
+          {!isExecutive && <div className="relative group">
             <button
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors"
               title="Share options"
@@ -592,8 +609,8 @@ export default function LoanDetail() {
                 Download PDF
               </button>
             </div>
-          </div>
-          <div className="relative group">
+          </div>}
+          {!isExecutive && <div className="relative group">
             <button
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-cyan-500/10 hover:border-cyan-500 transition-colors"
               title="RC Template options"
@@ -629,7 +646,7 @@ export default function LoanDetail() {
                 </button>
               )}
             </div>
-          </div>
+          </div>}
           {canDelete && (
                 <button
                   onClick={() => {
