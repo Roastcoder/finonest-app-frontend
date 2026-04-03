@@ -190,11 +190,11 @@ export default function Loans() {
     }
   };
 
-  const canEditStatus = true; // all roles can change stage
+  const isExecutive = user?.role === 'executive';
+  const canEditStatus = !isExecutive;
   const isTeamLeader = user?.role === 'team_leader';
   const canDelete = user?.role === 'admin';
-  
-  const showUpdateColumn = true;
+  const showUpdateColumn = !isExecutive;
 
   const handleExport = () => {
     if (filtered.length === 0) { toast.error('No data to export'); return; }
@@ -329,6 +329,7 @@ export default function Loans() {
         </div>
         {/* Desktop buttons only — mobile has sticky toolbar */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">
+          {!isExecutive && (<>
           <button onClick={handleExport} className="flex items-center gap-2 bg-muted text-foreground font-medium py-2.5 px-4 rounded-xl hover:bg-muted/80 transition-opacity text-sm whitespace-nowrap">
             <Download size={16} /> Export
           </button>
@@ -339,6 +340,7 @@ export default function Loans() {
           <Link to="/loans/new" className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-white font-bold py-2.5 px-4 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all text-sm border border-white/20 whitespace-nowrap">
             <Plus size={16} /> New Application
           </Link>
+          </>)}
         </div>
       </div>
 
@@ -367,6 +369,7 @@ export default function Loans() {
           </div>
           {/* Row 1: buttons */}
           <div className="flex items-center gap-1.5">
+            {!isExecutive && (<>
             <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
               <Download size={13} /> Export
             </button>
@@ -376,6 +379,7 @@ export default function Loans() {
             <Link to="/loans/new" className="flex-1 inline-flex items-center justify-center gap-1 bg-gradient-to-r from-secondary to-primary text-white font-bold py-2 rounded-xl text-xs shadow-md active:scale-95 transition-all border border-white/20 whitespace-nowrap">
               <Plus size={13} /> New Application
             </Link>
+            </>)}
           </div>
           {/* Row 2: search + filter */}
           <div className="flex items-center gap-2">
@@ -435,16 +439,14 @@ export default function Loans() {
                 </div>
               </div>
               <div className="mt-4 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-                {/* Action buttons row */}
+                {!isExecutive && (
                 <div className="flex items-center gap-2">
-                  {user?.role !== 'executive' && (
-                    <button
-                      onClick={() => navigate(`/loans/edit/${loan.id}`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-blue-500/10 transition-colors"
-                    >
-                      <Edit2 size={14} className="text-blue-500" /> Edit
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigate(`/loans/edit/${loan.id}`)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground hover:bg-blue-500/10 transition-colors"
+                  >
+                    <Edit2 size={14} className="text-blue-500" /> Edit
+                  </button>
                   <button
                     onClick={() => void openShareMenu(loan)}
                     disabled={sharingLoanId === String(loan.id)}
@@ -461,7 +463,7 @@ export default function Loans() {
                     </button>
                   )}
                 </div>
-                {/* Status update row */}
+                )}
                 {showUpdateColumn && (
                   <button
                     onClick={() => handleStageUpdate(loan)}
@@ -591,6 +593,7 @@ export default function Loans() {
                     <td className="py-4 px-2 whitespace-nowrap"><LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} /></td>
                     <td className="py-4 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
+                        {!isExecutive && (
                         <button
                           onClick={() => exportLoanPDF(loan)}
                           className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 transition-colors"
@@ -598,7 +601,8 @@ export default function Loans() {
                         >
                           <Printer size={11} className="text-accent" />
                         </button>
-                        <div className="relative group/share">
+                        )}
+                        {!isExecutive && <div className="relative group/share">
                           <button
                             disabled={sharingLoanId === String(loan.id)}
                             className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-green-500/10 transition-colors" title="Share options">
@@ -691,8 +695,8 @@ export default function Loans() {
                               Download PDF
                             </button>
                           </div>
-                        </div>
-                        {user?.role !== 'executive' && (
+                        </div>}
+                        {!isExecutive && (
                           <button
                             onClick={() => navigate(`/loans/edit/${loan.id}`)}
                             className="p-1 rounded-md border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 transition-colors" title="Edit Loan">
