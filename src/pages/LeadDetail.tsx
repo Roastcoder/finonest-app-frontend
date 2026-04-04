@@ -261,6 +261,7 @@ Finonest India`;
 
       {/* Spacer for sticky header height on mobile */}
       <div className="lg:hidden h-[88px]" />
+
       <div className="hidden lg:flex items-center justify-between mb-8">
         <button 
           onClick={() => navigate('/leads-list')} 
@@ -282,18 +283,6 @@ Finonest India`;
             {lead.application_stage ? STAGE_LABELS[lead.application_stage as ApplicationStage] : 'Submitted'}
           </span>
         </div>
-      </div>
-
-      {/* Mobile Quick Action Bar */}
-      <div className="lg:hidden flex gap-2 mb-3">
-        <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-secondary to-primary text-white rounded-xl shadow-md active:scale-95 transition-all text-xs font-bold border border-white/20">
-          <Phone size={14} />
-          Call Now
-        </a>
-        <button onClick={handleShareLead} className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 text-white rounded-xl shadow-sm active:scale-95 transition-all text-xs font-bold">
-          <Share2 size={14} />
-          Share
-        </button>
       </div>
 
       {/* Converted Loan File Banner */}

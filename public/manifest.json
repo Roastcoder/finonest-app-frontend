@@ -8,6 +8,8 @@
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
   "orientation": "portrait-primary",
+  "capture_links": "none",
+  "screenshots": [],
   "icons": [
     {
       "src": "/logo192.png",

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useScreenshotProtection } from "@/hooks/useScreenshotProtection";
 import DashboardLayout from "@/components/DashboardLayout";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
@@ -73,6 +74,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const auth = useAuth();
+  useScreenshotProtection();
   if (!auth || auth.isLoading) return null;
   const { user } = auth;
   return (
