@@ -181,6 +181,16 @@ export default function Login() {
                 </div>
               </div>
 
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-mpin')}
+                  className="text-xs text-blue-700 dark:text-blue-400 font-semibold hover:underline underline-offset-2"
+                >
+                  Forgot MPIN?
+                </button>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}

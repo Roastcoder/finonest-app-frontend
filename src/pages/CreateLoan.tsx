@@ -11,6 +11,14 @@ import { FloatingLabelInput, FloatingLabelTextarea, FloatingLabelSelect } from '
 import { buildLoanApplicationPdfBlob } from '@/lib/pdf-export';
 import '@/styles/floating-labels.css';
 
+// Helper function to mask phone number - show only last 3 digits
+const maskPhoneNumber = (phone: string | null | undefined): string => {
+  if (!phone) return '';
+  const phoneStr = String(phone).trim();
+  if (phoneStr.length < 3) return phoneStr;
+  return 'XXXXXXX' + phoneStr.slice(-3);
+};
+
 // Helper component for document previews
 const DocumentPreview = ({ file }: { file: File | null }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -1107,12 +1115,12 @@ export default function CreateLoan() {
                     <div>
                       <p className="text-[10px] text-muted-foreground">Sales Manager</p>
                       <p className="text-xs font-semibold text-foreground">{assignmentForm.salesManagerName || '—'}</p>
-                      <p className="text-[10px] text-accent">{assignmentForm.salesManagerMobile || ''}</p>
+                      <p className="text-[10px] text-accent">{maskPhoneNumber(assignmentForm.salesManagerMobile)}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground">Area Manager</p>
                       <p className="text-xs font-semibold text-foreground">{assignmentForm.areaManagerName || '—'}</p>
-                      <p className="text-[10px] text-accent">{assignmentForm.areaManagerMobile || ''}</p>
+                      <p className="text-[10px] text-accent">{maskPhoneNumber(assignmentForm.areaManagerMobile)}</p>
                     </div>
                   </div>
                 </div>

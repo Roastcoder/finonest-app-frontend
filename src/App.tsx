@@ -8,6 +8,7 @@ import { useScreenshotProtection } from "@/hooks/useScreenshotProtection";
 import DashboardLayout from "@/components/DashboardLayout";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import ForgotMpin from "@/pages/ForgotMpin";
 import Dashboard from "@/pages/Dashboard";
 import Loans from "@/pages/Loans";
 import CreateLoan from "@/pages/CreateLoan";
@@ -64,11 +65,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   );
   if (!user) return <Navigate to="/login" replace />;
   
-  // Block executive from accessing loans routes
-  if (user.role === 'executive' && window.location.pathname.startsWith('/loans')) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  
   return <DashboardLayout>{children}</DashboardLayout>;
 }
 
@@ -81,6 +77,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+      <Route path="/forgot-mpin" element={user ? <Navigate to="/dashboard" replace /> : <ForgotMpin />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
       <Route path="/loans/new" element={<ProtectedRoute><CreateLoan /></ProtectedRoute>} />

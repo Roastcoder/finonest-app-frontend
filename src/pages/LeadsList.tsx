@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -165,9 +165,18 @@ export default function LeadsList() {
           <h1 className="text-2xl font-bold text-foreground">Pending Leads</h1>
           <p className="text-sm text-muted-foreground mt-1">Leads awaiting conversion to loan applications</p>
         </div>
-        <Link to="/add-lead" className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold py-2.5 px-6 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm">
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navigate('/add-lead');
+          }}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold py-2.5 px-6 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm"
+        >
           <Plus size={18} /> Add New Lead
-        </Link>
+        </button>
       </div>
 
       <div className="grid gap-2 lg:gap-6 mb-6 grid-cols-2">

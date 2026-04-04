@@ -65,9 +65,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved === 'true';
+  });
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [flyoutGroup, setFlyoutGroup] = useState<string | null>(null);
+
+  // Save collapse state to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', String(collapsed));
+    window.dispatchEvent(new Event('storage'));
+  }, [collapsed]);
 
   if (!user) return null;
 
@@ -148,7 +157,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <aside style={{
         width: collapsed ? 'clamp(3.5rem, 5vw, 3.5rem)' : 'clamp(11rem, 15vw, 11rem)',
         height: '100vh'
-      }} className={`fixed lg:static inset-y-0 left-0 z-[100] overflow-hidden glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:rounded-none`}>
+      }} className={`fixed lg:static inset-y-0 left-0 z-[90] overflow-hidden glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:rounded-none`}>
         {/* Logo */}
         <div style={{ height: 'clamp(4rem, 8vh, 4rem)' }} className={`flex items-center border-b border-white/20 dark:border-white/5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}`}>
           {collapsed ? (
