@@ -54,10 +54,9 @@ export default function Navbar({
   const isDashboard = location.pathname === '/dashboard';
 
   return (
-    <header style={{ 
-      height: 'clamp(3rem, 5vh, 3.5rem)',
-      left: sidebarCollapsed ? 'clamp(3.5rem, 5vw, 3.5rem)' : 'clamp(11rem, 15vw, 11rem)'
-    }} className="w-auto fixed top-0 right-0 border-b border-white/20 dark:border-white/5 flex items-center px-3 lg:px-5 gap-2 lg:gap-4 shrink-0 shadow-sm z-[110] bg-white dark:bg-gray-900 backdrop-blur-sm transition-all lg:left-auto max-lg:left-0">
+    <header className="fixed top-0 left-0 right-0 h-14 lg:h-[clamp(3rem,5vh,3.5rem)] border-b border-white/20 dark:border-white/5 flex items-center px-3 lg:px-5 gap-2 lg:gap-4 shrink-0 shadow-sm z-[110] bg-white dark:bg-gray-900 backdrop-blur-sm transition-all lg:left-[clamp(11rem,15vw,11rem)]" style={{
+      left: window.innerWidth >= 1024 && sidebarCollapsed ? 'clamp(3.5rem, 5vw, 3.5rem)' : undefined
+    }}>
       {/* Logo - Mobile Only */}
       <div className="lg:hidden flex items-center gap-3">
         <img src="/Finonest%20logo.png" alt="Finonest India" className="h-8 w-auto object-contain drop-shadow-md" />

@@ -408,10 +408,11 @@ export default function AddLead() {
       toast.error('Valid loan amount is required');
       return;
     }
-    if (user?.role !== 'executive' && !form.financier_id) {
-      toast.error('Please select a financier');
-      return;
-    }
+    // Financier is optional for all users
+    // if (!form.financier_id) {
+    //   toast.error('Please select a financier');
+    //   return;
+    // }
     
     // Documents are mandatory only for Direct Login
     if (isDirectLogin) {
@@ -429,7 +430,7 @@ export default function AddLead() {
     const submissionData = {
       ...form,
       loan_amount_required: Number(form.loan_amount_required),
-      financier_id: user?.role === 'executive' ? null : (form.financier_id || null)
+      financier_id: form.financier_id || null
     };
     
     console.log('Submitting lead with data:', submissionData);
@@ -533,18 +534,16 @@ export default function AddLead() {
             </select>
             <label className={labelClass}>Lead Source *</label>
           </div>
-          {user?.role !== 'executive' && (
-            <div className="col-span-2 floating-input-wrapper">
-              <select required className={inputClass} value={form.financier_id} onChange={e => setForm({ ...form, financier_id: e.target.value })}>
-                <option value="">Select Financier</option>
-                {banks.map((bank: any) => (
-                  <option key={bank.id} value={bank.id}>{bank.name}</option>
-                ))}
-              </select>
-              <label className={labelClass}>Preferred Financier *</label>
-              {banks.length === 0 && <p className="text-[10px] text-red-500 mt-1 font-bold">Error: No financiers available</p>}
-            </div>
-          )}
+          <div className="col-span-2 floating-input-wrapper">
+            <select className={inputClass} value={form.financier_id} onChange={e => setForm({ ...form, financier_id: e.target.value })}>
+              <option value="">Select Financier (Optional)</option>
+              {banks.map((bank: any) => (
+                <option key={bank.id} value={bank.id}>{bank.name}</option>
+              ))}
+            </select>
+            <label className={labelClass}>Preferred Financier</label>
+            {banks.length === 0 && <p className="text-[10px] text-red-500 mt-1 font-bold">Error: No financiers available</p>}
+          </div>
         </FormSection>
 
         <div className="mt-10 pt-8 border-t border-border/50">
