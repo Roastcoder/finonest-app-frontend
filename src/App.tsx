@@ -62,6 +62,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
+  
+  // Block executive from accessing loans routes
+  if (user.role === 'executive' && window.location.pathname.startsWith('/loans')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
   return <DashboardLayout>{children}</DashboardLayout>;
 }
 

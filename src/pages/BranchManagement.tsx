@@ -1,14 +1,72 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Building2, MapPin, Edit, Trash2, UserPlus } from 'lucide-react';
+import { Plus, Building2, MapPin, Edit, Trash2, UserPlus, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RoleAssignModal } from '@/components/RoleAssignModal';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+  };
+}
+
+interface AddressSuggestion {
+  place_id: string;
+  description: string;
+  main_text: string;
+  secondary_text: string;
+}
+
+async function getAddressSuggestions(input: string): Promise<AddressSuggestion[]> {
+  const trimmedInput = input.trim();
+  if (!trimmedInput || trimmedInput.length < 2) return [];
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/google-maps/autocomplete`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ input })
+    });
+    
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.predictions || [];
+  } catch (error) {
+    console.error('Address suggestions error:', error);
+    return [];
+  }
+}
+
+async function getPlaceDetails(placeId: string): Promise<{ lat: number; lng: number; address: string } | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/google-maps/place-details`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ place_id: placeId })
+    });
+    
+    const data = await response.json();
+    if (response.ok) return data;
+    return null;
+  } catch (error) {
+    console.error('Place details error:', error);
+    return null;
+  }
+}
 
 export default function BranchManagement() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<any>(null);
   const [addUserBranch, setAddUserBranch] = useState<any>(null);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const addressDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const addressSuggestionsRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -83,6 +141,55 @@ export default function BranchManagement() {
     },
   });
 
+  const handleAddressChange = (value: string) => {
+    setFormData({ ...formData, address: value });
+    
+    if (addressDebounceTimer.current) {
+      clearTimeout(addressDebounceTimer.current);
+    }
+    
+    const trimmedValue = value.trim();
+    if (trimmedValue.length < 2) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+    
+    const words = trimmedValue.split(/\s+/).filter(w => w.length > 0);
+    const shouldCallApi = words.length >= 1 && value.endsWith(' ');
+    
+    if (!shouldCallApi) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+    
+    setAddressLoading(true);
+    addressDebounceTimer.current = setTimeout(async () => {
+      const results = await getAddressSuggestions(value);
+      setAddressSuggestions(results);
+      setShowAddressSuggestions(results.length > 0);
+      setAddressLoading(false);
+    }, 300);
+  };
+
+  const handleSelectAddressSuggestion = async (suggestion: AddressSuggestion) => {
+    setAddressLoading(true);
+    try {
+      const details = await getPlaceDetails(suggestion.place_id);
+      if (details) {
+        setFormData({ ...formData, address: details.address });
+        setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+        toast.success('Address selected');
+      }
+    } catch (error) {
+      toast.error('Failed to get address details');
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -94,6 +201,8 @@ export default function BranchManagement() {
       is_active: true,
     });
     setEditingBranch(null);
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
   };
 
   const handleEdit = (branch: any) => {
@@ -202,15 +311,60 @@ export default function BranchManagement() {
                   />
                 </div>
               </div>
-              <div>
+              <div className="relative" ref={addressSuggestionsRef}>
                 <label className="block text-sm font-medium text-foreground mb-1">Address *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.address}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={formData.address}
+                    onChange={e => handleAddressChange(e.target.value)}
+                    onFocus={() => addressSuggestions.length > 0 && setShowAddressSuggestions(true)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+                    placeholder="Type address and press space..."
+                  />
+                  {formData.address && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, address: '' });
+                        setAddressSuggestions([]);
+                        setShowAddressSuggestions(false);
+                      }}
+                      className="absolute top-1/2 -translate-y-1/2 right-2 p-1 hover:bg-muted rounded transition-colors"
+                    >
+                      <X size={14} className="text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {showAddressSuggestions && addressSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto">
+                    {addressLoading ? (
+                      <div className="p-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 size={14} className="animate-spin" />
+                        Loading...
+                      </div>
+                    ) : (
+                      addressSuggestions.map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleSelectAddressSuggestion(suggestion)}
+                          className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border last:border-b-0 flex items-start gap-2"
+                        >
+                          <MapPin size={14} className="text-primary mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-foreground truncate">{suggestion.main_text}</p>
+                            {suggestion.secondary_text && (
+                              <p className="text-xs text-muted-foreground truncate">{suggestion.secondary_text}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>

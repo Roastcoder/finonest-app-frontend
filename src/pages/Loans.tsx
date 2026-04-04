@@ -11,6 +11,7 @@ import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
 import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings, Share2, FileText } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import MobileSidebar from '@/components/MobileSidebar';
 
 type ApplicationStageFilter = ApplicationStage | 'all';
 
@@ -321,7 +322,9 @@ export default function Loans() {
   }, [sharePrefetchKey]);
 
   return (
-    <div className="pb-24 lg:pb-0">
+    <>
+      <MobileSidebar />
+      <div className="pb-24 lg:pb-0">
       <div className="hidden sm:flex flex-row items-center justify-between gap-2 mb-4">
         <div className="min-w-0">
           <h1 className="text-base sm:text-2xl font-bold text-foreground leading-tight truncate">Loan Applications</h1>
@@ -735,6 +738,7 @@ export default function Loans() {
           setSelectedLoan(null);
         }}
       />
-    </div>
+      </div>
+    </>
   );
 }

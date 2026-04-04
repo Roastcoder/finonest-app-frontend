@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useRef } from 'react';
+import React, { ReactNode, useState, useRef, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { ROLE_LABELS } from '@/lib/auth';
@@ -12,6 +12,7 @@ import Navbar from './Navbar';
 import { toast } from 'sonner';
 import NotificationBell from './NotificationBell';
 import { useDashboardContextSafe } from '@/pages/Dashboard';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 
 
 interface NavItem {
@@ -48,7 +49,6 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { label: 'Reports', path: '/reports', icon: <BarChart3 size={16} />, roles: ['admin', 'manager', 'sales_manager', 'branch_manager', 'dsa'] },
       { label: 'Users', path: '/users', icon: <Users size={16} />, roles: ['admin', 'manager', 'sales_manager'] },
-      { label: 'My Team', path: '/my-team', icon: <Users size={16} />, roles: ['branch_manager'] },
       { label: 'Banks / NBFC', path: '/banks', icon: <Building2 size={16} />, roles: ['admin'] },
       { label: 'Brokers / DSA', path: '/brokers', icon: <UserCheck size={16} />, roles: ['admin'] },
       { label: 'Branches', path: '/branches', icon: <MapPin size={16} />, roles: ['admin', 'manager', 'sales_manager'] },
@@ -81,6 +81,45 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return item;
   }).filter(item => !item.children || item.children.length > 0);
 
+  // Get all navigable routes
+  const allRoutes = useMemo(() => {
+    const routes: string[] = [];
+    filteredNav.forEach(item => {
+      if (item.path) {
+        routes.push(item.path);
+      }
+      if (item.children) {
+        item.children.forEach(child => {
+          if (child.path) {
+            routes.push(child.path);
+          }
+        });
+      }
+    });
+    return routes;
+  }, [filteredNav]);
+
+  // Get current route index
+  const currentRouteIndex = allRoutes.indexOf(location.pathname);
+
+  // Swipe gesture handlers for mobile
+  useSwipeGesture({
+    onSwipeLeft: () => {
+      // Navigate to next page
+      if (currentRouteIndex >= 0 && currentRouteIndex < allRoutes.length - 1) {
+        navigate(allRoutes[currentRouteIndex + 1]);
+        toast.success('Next page', { duration: 800 });
+      }
+    },
+    onSwipeRight: () => {
+      // Navigate to previous page
+      if (currentRouteIndex > 0) {
+        navigate(allRoutes[currentRouteIndex - 1]);
+        toast.success('Previous page', { duration: 800 });
+      }
+    }
+  }, 100);
+
   const toggleGroup = (label: string) => {
     if (collapsed) {
       setFlyoutGroup(prev => prev === label ? null : label);
@@ -109,7 +148,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <aside style={{
         width: collapsed ? 'clamp(3.5rem, 5vw, 3.5rem)' : 'clamp(11rem, 15vw, 11rem)',
         height: '100vh'
-      }} className={`fixed lg:static inset-y-0 left-0 z-50 overflow-hidden glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:rounded-none`}>
+      }} className={`fixed lg:static inset-y-0 left-0 z-[100] overflow-hidden glass-panel border-r border-white/50 dark:border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} shadow-2xl lg:rounded-none`}>
         {/* Logo */}
         <div style={{ height: 'clamp(4rem, 8vh, 4rem)' }} className={`flex items-center border-b border-white/20 dark:border-white/5 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}`}>
           {collapsed ? (
@@ -308,15 +347,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Navbar */}
-        <div className="lg:hidden">
-          <Navbar showTimeline={false} showExport={false} />
-        </div>
+        {/* Navbar - Show on all screens */}
+        <Navbar showTimeline={false} showExport={false} />
+        
         {/* Page - Responsive with vh/vw */}
         <main style={{ 
           padding: 'clamp(1rem, 3vw, 1.25rem)',
           paddingBottom: 'clamp(5rem, 10vh, 1.25rem)',
-        }} className="flex-1 overflow-y-auto scroll-smooth pt-14 lg:pt-4">
+          marginTop: 'clamp(3rem, 5vh, 3.5rem)'
+        }} className="flex-1 overflow-y-auto scroll-smooth">
           <div className="animate-fade-in w-full">
             {children}
           </div>

@@ -375,7 +375,7 @@ export default function Dashboard() {
         showNotifications={true}
         showProfile={true}
       />
-      <div className="flex flex-col gap-3 lg:gap-4 w-full pb-6" style={{ padding: '0.5rem 0', paddingBottom: 'clamp(5rem, 10vh, 1.25rem)', marginTop: '5vh' }}>
+      <div className="flex flex-col gap-3 lg:gap-4 w-full pb-6" style={{ padding: '0.5rem 0', paddingBottom: 'clamp(5rem, 10vh, 1.25rem)' }}>
         {/* KPI Cards Grid */}
         <ScrollSection delay={0} className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 w-full">
           <div className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md transition-all group cursor-default">
