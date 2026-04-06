@@ -65,9 +65,10 @@ export function BankImportModal({ open, onClose, onSuccess }: { open: boolean; o
   };
 
   const downloadTemplate = () => {
-    const template = `Bank Name,Branch Name,Location,Geo Limit,Product,Sales Manager Name,Sales Manager Mobile,Area Manager Name,Area Manager Mobile
-HDFC Bank,Mumbai Main,Mumbai,50,New Car - Purchase,John Doe,9876543210,Jane Smith,9876543211
-ICICI Bank,Delhi Branch,Delhi,75,Used Car - Purchase,Mike Johnson,9876543212,Sarah Williams,9876543213`;
+    const headers = 'Bank Name,Branch Name,Location,Geo Limit,New Car - Purchase,Used Car - Purchase,Used Car - Refinance,Used Car - Top-up,Used Car - BT,Sales Manager Name,Sales Manager Mobile,Area Manager Name,Area Manager Mobile';
+    const row1 = 'HDFC Bank,Mumbai Main,Mumbai,50,Yes,Yes,No,No,No,John Doe,9876543210,Jane Smith,9876543211';
+    const row2 = 'ICICI Bank,Delhi Branch,Delhi,75,Yes,Yes,Yes,Yes,Yes,Mike Johnson,9876543212,Sarah Williams,9876543213';
+    const template = [headers, row1, row2].join('\n');
 
     const element = document.createElement('a');
     element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(template));
