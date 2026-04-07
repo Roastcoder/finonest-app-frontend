@@ -884,6 +884,25 @@ export default function LoanDetail() {
                   </div>
                 )}
 
+                {/* In Process Stage */}
+                {(l.tags && Array.isArray(l.tags) && l.tags.length > 0) && (
+                  <div>
+                    <p className="text-xs font-bold text-amber-600 mb-2 uppercase tracking-wide">In Process Stage</p>
+                    <div className="grid grid-cols-1 gap-1">
+                      <div className="min-w-0 bg-background/30 px-2 py-1 rounded-md border border-border">
+                        <p className="text-[10px] font-semibold text-muted-foreground tracking-wide">Pendency Tags</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {l.tags.map((tag: string, idx: number) => (
+                            <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-semibold border border-amber-200 dark:border-amber-800">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Submitted Stage Info */}
                 <div>
                   <p className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide">Submitted Stage</p>
