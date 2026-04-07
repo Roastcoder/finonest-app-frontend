@@ -602,41 +602,42 @@ export default function CreateLoan() {
         // Store draft_id for future updates
         sessionStorage.setItem('current_draft_id', String(draft.id));
         
-        // COMPLETELY REPLACE form with draft data (don't merge)
+        // Helper function to convert base64 to File
+        const base64ToFile = async (base64Data: any, fieldName: string) => {
+          if (!base64Data || typeof base64Data !== 'object') return null;
+          try {
+            const response = await fetch(base64Data.data);
+            const blob = await response.blob();
+            return new File([blob], base64Data.name || `${fieldName}.jpg`, { type: base64Data.type || 'image/jpeg' });
+          } catch {
+            return null;
+          }
+        };
+        
+        // COMPLETELY REPLACE form with draft data
         if (draft.form_data) {
-          // Create a fresh form object with only draft data
-          const freshForm = {
-            ...draft.form_data,
-            // Ensure File objects are not restored (they can't be serialized)
-            aadharFront: null,
-            aadharBack: null,
-            panCard: null,
-            drivingLicence: null,
-            lightBill: null,
-            bankStatement: null,
-            cheque: null,
-            rcFront: null,
-            rcBack: null,
-            incomeProof: null,
-            rentAgreement: null,
-            customerPhoto: null,
-            disbursementMemo: null,
-            insurance: null,
-            customerLedger: null,
-            coAadharFront: null,
-            coAadharBack: null,
-            coPanCard: null,
-            coPhoto: null,
-            guarantorAadharFront: null,
-            guarantorAadharBack: null,
-            guarantorPanCard: null,
-            guarantorRcFront: null,
-            guarantorRcBack: null,
-            guarantorPhoto: null,
-          };
+          const freshForm: any = { ...draft.form_data };
+          
+          // Convert base64 images back to File objects
+          const fileFields = [
+            'aadharFront', 'aadharBack', 'panCard', 'drivingLicence', 'lightBill',
+            'bankStatement', 'cheque', 'rcFront', 'rcBack', 'incomeProof',
+            'rentAgreement', 'customerPhoto', 'disbursementMemo', 'insurance', 'customerLedger',
+            'coAadharFront', 'coAadharBack', 'coPanCard', 'coPhoto',
+            'guarantorAadharFront', 'guarantorAadharBack', 'guarantorPanCard',
+            'guarantorRcFront', 'guarantorRcBack', 'guarantorPhoto'
+          ];
+          
+          for (const field of fileFields) {
+            if (draft.form_data[field]) {
+              freshForm[field] = await base64ToFile(draft.form_data[field], field);
+            } else {
+              freshForm[field] = null;
+            }
+          }
           
           // Replace entire form state
-          setForm(freshForm as any);
+          setForm(freshForm);
         }
         
         // Restore assignment data
@@ -1001,10 +1002,36 @@ export default function CreateLoan() {
       return;
     }
     try {
-      // Filter out File objects before sending to backend
-      const formDataToSave = Object.fromEntries(
-        Object.entries(form).filter(([_, value]) => !(value instanceof File))
-      );
+      // Convert File objects to base64 for storage
+      const formDataToSave: any = {};
+      const fileFields = [
+        'aadharFront', 'aadharBack', 'panCard', 'drivingLicence', 'lightBill',
+        'bankStatement', 'cheque', 'rcFront', 'rcBack', 'incomeProof',
+        'rentAgreement', 'customerPhoto', 'disbursementMemo', 'insurance', 'customerLedger',
+        'coAadharFront', 'coAadharBack', 'coPanCard', 'coPhoto',
+        'guarantorAadharFront', 'guarantorAadharBack', 'guarantorPanCard',
+        'guarantorRcFront', 'guarantorRcBack', 'guarantorPhoto'
+      ];
+
+      for (const [key, value] of Object.entries(form)) {
+        if (value instanceof File) {
+          // Convert File to base64
+          const reader = new FileReader();
+          const base64Promise = new Promise((resolve) => {
+            reader.onloadend = () => {
+              resolve({
+                data: reader.result,
+                name: value.name,
+                type: value.type
+              });
+            };
+            reader.readAsDataURL(value);
+          });
+          formDataToSave[key] = await base64Promise;
+        } else {
+          formDataToSave[key] = value;
+        }
+      }
       
       // Get existing draft_id from sessionStorage if available
       const existingDraftId = sessionStorage.getItem('current_draft_id');
@@ -1045,7 +1072,6 @@ export default function CreateLoan() {
       }
       
       toast.success('Loan draft saved successfully!');
-      navigate('/loans');
     } catch (error: any) {
       console.error('Save draft error:', error);
       toast.error(error.message || 'Failed to save draft');
