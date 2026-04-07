@@ -93,7 +93,8 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
       } else if (role === 'branch_manager' || role === 'dsa') {
         return users.filter((u: any) => u.role === 'sales_manager');
       } else if (role === 'team_leader') {
-        return users.filter((u: any) => ['branch_manager', 'dsa'].includes(u.role));
+        // Team Leader can report to BM, DSA, or Sales Manager
+        return users.filter((u: any) => ['branch_manager', 'dsa', 'sales_manager'].includes(u.role));
       } else if (role === 'executive') {
         // Executive can report to Team Leader, BM, DSA, or Sales Manager
         return users.filter((u: any) => ['team_leader', 'branch_manager', 'dsa', 'sales_manager'].includes(u.role));
@@ -389,13 +390,14 @@ export function RoleAssignModal({ open, onClose, onSuccess, user: targetUser, de
           {role === 'team_leader' && (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Reporting To (Branch Manager / DSA) *</label>
+                <label className="block text-sm font-medium mb-1.5">Reporting To *</label>
                 <select className="w-full px-3 py-2 rounded-lg border border-border bg-background" value={reportingTo} onChange={e => setReportingTo(e.target.value)}>
-                  <option value="">Select a manager</option>
+                  <option value="">Select reporting manager</option>
                   {managers.map((manager: any) => (
                     <option key={manager.id} value={manager.id}>{manager.full_name} ({ROLE_LABELS[manager.role as keyof typeof ROLE_LABELS] || manager.role})</option>
                   ))}
                 </select>
+                <p className="text-xs text-muted-foreground mt-1">Team Leader can report to Sales Manager, Branch Manager, or DSA</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">Select Branch *</label>
