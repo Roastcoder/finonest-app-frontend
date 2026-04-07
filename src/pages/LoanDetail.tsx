@@ -823,6 +823,7 @@ export default function LoanDetail() {
         <Section title="Income Details" icon={<IndianRupee size={18} />}>
           <div className="grid grid-cols-2 gap-1">
             <Field label="Income Source" value={(loan as any).income_source} />
+            {(loan as any).profile && <Field label="Profile" value={(loan as any).profile} />}
             <Field label="Monthly Income" value={(loan as any).monthly_income ? formatCurrency(Number((loan as any).monthly_income)) : (loan as any).net_monthly_salary ? formatCurrency(Number((loan as any).net_monthly_salary)) : '—'} />
 
             {/* Salaried */}
@@ -834,6 +835,31 @@ export default function LoanDetail() {
               <Field label="Net Monthly Salary" value={(loan as any).net_monthly_salary != null && (loan as any).net_monthly_salary !== '' ? formatCurrency(Number((loan as any).net_monthly_salary)) : '—'} />
               <Field label="Salary Credit Mode" value={(loan as any).salary_credit_mode} />
               <Field label="Salary Slip Available" value={(loan as any).salary_slip_available} />
+            </>}
+
+            {/* Self Employed - Show profile specific fields */}
+            {(loan as any).income_source === 'Self Employed' && <>
+              {(loan as any).profile === 'Business' && <>
+                <Field label="Business Name" value={(loan as any).business_name} />
+                <Field label="Business Type" value={(loan as any).business_type} />
+                <Field label="Business Vintage (Yrs)" value={(loan as any).business_vintage} />
+              </>}
+              {(loan as any).profile === 'Professional' && <>
+                <Field label="Professional Subtype" value={(loan as any).professional_subtype} />
+                <Field label="Practice Experience (Yrs)" value={(loan as any).practice_experience} />
+              </>}
+              {(loan as any).profile === 'Freelancer/Agent' && <>
+                <Field label="Freelancer Subtype" value={(loan as any).freelancer_subtype} />
+              </>}
+              {(loan as any).profile === 'Other Income' && <>
+                <Field label="Other Income Type" value={(loan as any).other_income_type} />
+              </>}
+              {(loan as any).itr_available && <>
+                <Field label="ITR Available" value={(loan as any).itr_available} />
+                {(loan as any).itr_available === 'Yes' && (loan as any).annual_income_itr && (
+                  <Field label="Annual Income (ITR)" value={formatCurrency(Number((loan as any).annual_income_itr))} />
+                )}
+              </>}
             </>}
           </div>
         </Section>
