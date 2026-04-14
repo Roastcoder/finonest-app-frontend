@@ -96,6 +96,65 @@ export default function LoanDetail() {
     enabled: !!id,
   });
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      return response.ok ? await response.json() : [];
+    },
+  });
+
+  const { data: userPermissions } = useQuery({
+    queryKey: ['user-permissions', user?.role],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/permissions`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return null;
+        return await response.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user,
+  });
+
+  const isLoginStageEnabled = () => {
+    const config = configs.find((c: any) => c.config_key === 'loan_timer_enabled');
+    if (!config) return false;
+    const configEnabled = config.config_value === 'true';
+    const hasPermission = user?.role === 'admin' || userPermissions?.permissions?.dashboard?.timer === true;
+    return configEnabled && hasPermission;
+  };
+
+  const isLoanTimerExpired = (createdAt: string, applicationStage: string): boolean => {
+    if (!['LOGIN', 'IN_PROCESS'].includes(applicationStage)) return false;
+    if (!createdAt) return true;
+    const created = new Date(createdAt).getTime();
+    const now = Date.now();
+    if (isNaN(created)) return true;
+    const elapsed = now - created;
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    return elapsed >= twentyFourHours;
+  };
+
+  const canUpdateStage = () => {
+    if (!loan) return false;
+    const stage = loan.application_stage;
+    // Check if it's LOGIN or IN_PROCESS stage
+    if (['LOGIN', 'IN_PROCESS'].includes(stage)) {
+      // If login stage is disabled, allow update (timer check bypassed)
+      if (!isLoginStageEnabled()) return true;
+      // If login stage is enabled, check timer
+      return !isLoanTimerExpired(loan.created_at, stage);
+    }
+    // For other stages, no timer check
+    return true;
+  };
+
   const updateStatus = useMutation({
     mutationFn: (newStatus: string) => api.put(`/loans/${id}`, { status: newStatus }),
     onSuccess: () => {
@@ -116,6 +175,33 @@ export default function LoanDetail() {
       navigate('/loans');
     },
     onError: () => toast.error('Failed to delete loan'),
+  });
+
+  const convertToLead = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans/${id}/convert-to-lead`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to convert to lead');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      toast.success(`Loan converted back to lead successfully! Lead ID: ${data.leadId}`);
+      navigate('/leads');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to convert to lead');
+    },
   });
 
 
@@ -352,12 +438,30 @@ export default function LoanDetail() {
               </button>
             )}
             {!isExecutive && (
+              <button 
+                onClick={() => {
+                  if (confirm('Convert this loan back to lead? This will create a new lead with the loan data.')) {
+                    convertToLead.mutate();
+                  }
+                }} 
+                disabled={convertToLead.isPending}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border disabled:opacity-50"
+              >
+                <RefreshCw size={12} className="text-blue-500" /> To Lead
+              </button>
+            )}
+            {!isExecutive && (
               <button onClick={() => navigate(`/loans/edit/${loan.id}`)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
                 <Edit2 size={12} className="text-blue-500" /> Edit
               </button>
             )}
             {!isExecutive && (
-            <button onClick={() => setShowStageManager(true)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
+            <button 
+              onClick={() => setShowStageManager(true)} 
+              disabled={!canUpdateStage()}
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!canUpdateStage() ? 'Stage update not allowed (timer expired or stage disabled)' : 'Update Stage'}
+            >
               <Settings size={12} className="text-purple-500" /> Stage
             </button>
             )}
@@ -546,6 +650,20 @@ export default function LoanDetail() {
           )}
           {!isExecutive && (
           <button
+            onClick={() => {
+              if (confirm('Convert this loan back to lead? This will create a new lead with the loan data.')) {
+                convertToLead.mutate();
+              }
+            }}
+            disabled={convertToLead.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={14} className="text-blue-500" />
+            {convertToLead.isPending ? 'Converting...' : 'To Lead'}
+          </button>
+          )}
+          {!isExecutive && (
+          <button
             onClick={() => downloadLoanPDF(loan, documents as any[])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-accent/10 hover:border-accent transition-colors"
           >
@@ -565,7 +683,9 @@ export default function LoanDetail() {
           {!isExecutive && (
           <button
             onClick={() => setShowStageManager(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-purple-500/10 hover:border-purple-500 transition-colors"
+            disabled={!canUpdateStage()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-purple-500/10 hover:border-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-card disabled:hover:border-border"
+            title={!canUpdateStage() ? 'Stage update not allowed (timer expired or stage disabled)' : 'Update Stage'}
           >
             <Settings size={14} className="text-purple-500" />
             Update Stage

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Save, Lock, Users, Eye, Edit, Trash2, ChevronDown, ChevronUp, RotateCcw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Lock, Users, Eye, Edit, Trash2, ChevronDown, ChevronUp, RotateCcw, AlertCircle, Power, PowerOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -62,6 +62,16 @@ export default function FieldPermissions() {
     },
   });
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      return response.ok ? await response.json() : [];
+    },
+  });
+
   useEffect(() => {
     if (allPermissions) {
       setPermissions(allPermissions);
@@ -116,6 +126,28 @@ export default function FieldPermissions() {
     },
   });
 
+  const toggleStage = useMutation({
+    mutationFn: async ({ stage_type, enabled }: any) => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config/toggle-stage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ stage_type, enabled })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to toggle stage');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['system-config'] });
+      toast.success(data.message);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to toggle stage');
+    },
+  });
+
   const toggleModulePermission = (module: string, permission: string) => {
     setPermissions(prev => ({
       ...prev,
@@ -158,6 +190,17 @@ export default function FieldPermissions() {
   const currentRolePermissions = permissions[selectedRole] || {};
   const isChanged = JSON.stringify(permissions[selectedRole]) !== JSON.stringify(initialPermissions[selectedRole]);
 
+  const handleToggleStage = (stage_type: string, enabled: boolean) => {
+    toggleStage.mutate({ stage_type, enabled });
+  };
+
+  const isStageEnabled = (stage: string) => {
+    const config = configs.find((c: any) => c.config_key === `${stage}_stage_enabled`);
+    // Default to true (enabled) if config not found
+    if (!config) return true;
+    return config.config_value === 'true';
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
@@ -195,6 +238,83 @@ export default function FieldPermissions() {
           <span className="text-sm text-amber-700 dark:text-amber-300">You have unsaved changes</span>
         </div>
       )}
+
+      {/* Stage Access Control Section */}
+      <div className="mb-6 bg-card rounded-lg border border-border overflow-hidden">
+        <div className="p-4 bg-muted/30 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">🔐 Stage Access Control (24hr On/Off)</h2>
+          <p className="text-xs text-muted-foreground mt-1">Enable or disable Lead and Login stages for 24 hours</p>
+        </div>
+        <div className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-card">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    {isStageEnabled('lead') ? <Power className="text-green-600" size={20} /> : <PowerOff className="text-red-600" size={20} />}
+                    Lead Stage
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">Control lead creation and access</p>
+                </div>
+                <div className="text-right">
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${isStageEnabled('lead') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
+                    {isStageEnabled('lead') ? 'ACTIVE' : 'DISABLED'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleToggleStage('lead', true)}
+                  disabled={isStageEnabled('lead')}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  Enable
+                </button>
+                <button
+                  onClick={() => handleToggleStage('lead', false)}
+                  disabled={!isStageEnabled('lead')}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  Disable 24hrs
+                </button>
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-card">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    {isStageEnabled('login') ? <Power className="text-green-600" size={20} /> : <PowerOff className="text-red-600" size={20} />}
+                    Login Stage
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">Control login stage access</p>
+                </div>
+                <div className="text-right">
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${isStageEnabled('login') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
+                    {isStageEnabled('login') ? 'ACTIVE' : 'DISABLED'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleToggleStage('login', true)}
+                  disabled={isStageEnabled('login')}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  Enable
+                </button>
+                <button
+                  onClick={() => handleToggleStage('login', false)}
+                  disabled={!isStageEnabled('login')}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  Disable 24hrs
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Sidebar - Roles */}

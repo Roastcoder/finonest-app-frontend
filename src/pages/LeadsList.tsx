@@ -1,12 +1,97 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit, Filter, Users, ClipboardCheck, TrendingUp } from 'lucide-react';
+import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit, Filter, Users, ClipboardCheck, TrendingUp, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
+
+// Timer Component
+const LeadTimer = ({ createdAt, timerEnabled = true }: { createdAt: string; timerEnabled?: boolean }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+  const [isExpired, setIsExpired] = useState(false);
+  const [isLastThreeHours, setIsLastThreeHours] = useState(false);
+
+  // Don't show timer if disabled by admin
+  if (!timerEnabled) return null;
+
+  useEffect(() => {
+    const calculateTime = () => {
+      if (!createdAt) {
+        setIsExpired(true);
+        setTimeLeft('NO TIME');
+        return;
+      }
+
+      const created = new Date(createdAt).getTime();
+      // Add IST offset (5.5 hours = 19800000 ms)
+      const istCreated = created + (5.5 * 60 * 60 * 1000);
+      const now = Date.now();
+      
+      // Check if date is valid
+      if (isNaN(created)) {
+        setIsExpired(true);
+        setTimeLeft('INVALID');
+        return;
+      }
+
+      const elapsed = now - istCreated;
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+      const remaining = twentyFourHours - elapsed;
+
+      if (remaining <= 0) {
+        setIsExpired(true);
+        setTimeLeft('TIME UP');
+        return;
+      }
+
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+
+      setIsLastThreeHours(hours < 3);
+      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  if (isExpired) {
+    return (
+      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500 text-white text-xs font-bold animate-pulse">
+        <Clock size={12} />
+        <span>{timeLeft}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold ${
+      isLastThreeHours 
+        ? 'bg-red-100 text-red-700 border border-red-300 animate-pulse' 
+        : 'bg-blue-100 text-blue-700 border border-blue-200'
+    }`}>
+      <Clock size={12} />
+      <span>{timeLeft}</span>
+    </div>
+  );
+};
+
+// Helper function to check if timer is expired
+const isTimerExpired = (createdAt: string): boolean => {
+  if (!createdAt) return true;
+  const created = new Date(createdAt).getTime();
+  const istCreated = created + (5.5 * 60 * 60 * 1000);
+  const now = Date.now();
+  if (isNaN(created)) return true;
+  const elapsed = now - istCreated;
+  const twentyFourHours = 24 * 60 * 60 * 1000;
+  return elapsed >= twentyFourHours;
+};
 
 // Lead stage colors and labels (simplified)
 const LEAD_STAGE_COLORS: { [key: string]: string } = {
@@ -67,6 +152,10 @@ export default function LeadsList() {
   const [filterBranch, setFilterBranch] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerRef = useRef<HTMLDivElement>(null);
+
   const queryClient = useQueryClient();
 
   const handleStageUpdate = (leadId: number, stageData: ApplicationStageData) => {
@@ -97,39 +186,30 @@ export default function LeadsList() {
     queryKey: ['leads'],
     queryFn: async () => {
       const leadsData = await api.get('/leads');
-
-      // Fetch loan data for each lead to get loan application stage
-      const leadsWithLoanStage = await Promise.all(
-        leadsData.map(async (lead: any) => {
-          if (lead.converted_to_loan) {
-            try {
-              // Fetch loan data for this lead
-              const loanResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans?lead_id=${lead.id}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-              });
-              if (loanResponse.ok) {
-                const loans = await loanResponse.json();
-                const loan = loans.find((l: any) => l.lead_id === lead.id);
-                if (loan) {
-                  return {
-                    ...lead,
-                    loan_application_stage: loan.application_stage || 'SUBMITTED',
-                    loan_id: loan.id
-                  };
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching loan data for lead:', lead.id, error);
-            }
-          }
-          return lead;
-        })
-      );
-
-      return leadsWithLoanStage;
+      
+      // Remove debug logging and complex processing for faster loading
+      return leadsData;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      return response.ok ? await response.json() : [];
+    },
+  });
+
+  const isLeadStageEnabled = () => {
+    const config = configs.find((c: any) => c.config_key === 'lead_stage_enabled');
+    if (!config) return true;
+    return config.config_value === 'true';
+  };
 
   const filtered = leads.filter((l: any) => {
     // Show only pending leads (not converted) for all roles
@@ -149,6 +229,87 @@ export default function LeadsList() {
       l.phone?.includes(search) ||
       l.customer_id?.toLowerCase().includes(search.toLowerCase());
   });
+
+  // Virtualization: Show only visible items
+  const visibleLeads = useMemo(() => {
+    return filtered.slice(0, visibleCount);
+  }, [filtered, visibleCount]);
+
+  // Auto load more function with better mobile support
+  const loadMore = useCallback(() => {
+    if (visibleCount < filtered.length && !isLoadingMore) {
+      setIsLoadingMore(true);
+      // Reduced delay for faster loading
+      setTimeout(() => {
+        setVisibleCount(prev => Math.min(prev + 10, filtered.length));
+        setIsLoadingMore(false);
+      }, 100);
+    }
+  }, [visibleCount, filtered.length, isLoadingMore]);
+
+  // Enhanced Intersection Observer for mobile with scroll fallback
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '300px' // Increased for better mobile detection
+      }
+    );
+
+    const currentRef = observerRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    // Fallback scroll listener for mobile
+    const handleScroll = () => {
+      if (isLoadingMore || visibleCount >= filtered.length) return;
+      
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Trigger when user is 300px from bottom
+      if (scrollTop + windowHeight >= documentHeight - 300) {
+        loadMore();
+      }
+    };
+
+    // Add scroll listener with throttling
+    let ticking = false;
+    const throttledScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledScroll, { passive: true });
+    window.addEventListener('touchmove', throttledScroll, { passive: true });
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+      window.removeEventListener('scroll', throttledScroll);
+      window.removeEventListener('touchmove', throttledScroll);
+    };
+  }, [loadMore, isLoadingMore, visibleCount, filtered.length]);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(10);
+    setIsLoadingMore(false);
+  }, [search, filterStage, filterBranch]);
 
   const stats = {
     total: filtered.length,
@@ -277,7 +438,7 @@ export default function LeadsList() {
         </div>
       )}
 
-      {/* Mobile Card View */}
+      {/* Mobile Card View - No Virtualization */}
       <div className="lg:hidden space-y-4">
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
@@ -300,10 +461,11 @@ export default function LeadsList() {
               onClick={() => navigate(`/leads/${lead.id}`)}
             >
               <div className="p-5">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-md border border-primary/10">{lead.customer_id || 'NO-ID'}</span>
+                      <LeadTimer createdAt={lead.created_at} timerEnabled={lead.timer_enabled} />
                     </div>
                     <p className="font-bold text-foreground text-lg tracking-tight mb-1 truncate">{lead.customer_name}</p>
                     <div className="flex items-center gap-2 text-muted-foreground font-medium text-sm">
@@ -363,7 +525,9 @@ export default function LeadsList() {
                 {user?.role !== 'executive' && (
                   <button
                     onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
-                    className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors"
+                    disabled={isLeadStageEnabled() && isTimerExpired(lead.created_at)}
+                    className="py-3 flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    title={isLeadStageEnabled() && isTimerExpired(lead.created_at) ? 'Time expired' : 'Convert to Loan'}
                   >
                     <ArrowRight size={14} /> Convert
                   </button>
@@ -387,6 +551,7 @@ export default function LeadsList() {
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Lead ID</th>
+                  <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Timer</th>
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Customer Info</th>
                   <th className="text-left py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Vehicle No.</th>
                   <th className="text-right py-4 px-4 font-bold text-xs uppercase tracking-wider text-muted-foreground">Loan Amount</th>
@@ -397,7 +562,7 @@ export default function LeadsList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
-                {filtered.map((lead: any, idx: number) => (
+                {visibleLeads.map((lead: any, idx: number) => (
                   <tr key={lead.id} className={`${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/10'} hover:bg-accent/5 transition-all group`}>
                     <td className="py-4 px-4">
                       <button
@@ -414,6 +579,9 @@ export default function LeadsList() {
                         <span>{lead.customer_id || '—'}</span>
                         {lead.customer_id && (copiedId === lead.customer_id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} className="opacity-0 group-hover:opacity-100" />)}
                       </button>
+                    </td>
+                    <td className="py-4 px-4">
+                      <LeadTimer createdAt={lead.created_at} timerEnabled={lead.timer_enabled} />
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex flex-col">
@@ -459,8 +627,9 @@ export default function LeadsList() {
                         {user?.role !== 'executive' && (
                           <button
                             onClick={() => navigate(`/loans/new?leadId=${lead.id}`)}
-                            className="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all hover:scale-110"
-                            title="Convert to Loan"
+                            disabled={isLeadStageEnabled() && isTimerExpired(lead.created_at)}
+                            className="p-2 rounded-lg hover:bg-emerald-500/10 text-emerald-500 transition-all hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-transparent"
+                            title={isLeadStageEnabled() && isTimerExpired(lead.created_at) ? 'Time expired' : 'Convert to Loan'}
                           >
                             <ArrowRight size={18} />
                           </button>
@@ -480,10 +649,24 @@ export default function LeadsList() {
                 ))}
               </tbody>
             </table>
-            {filtered.length === 0 && !isLoading && (
+            {visibleLeads.length === 0 && !isLoading && (
               <div className="py-20 text-center text-muted-foreground bg-muted/5">
                 <Users size={40} className="mx-auto mb-3 opacity-20" />
                 <p className="font-medium">No leads match your search criteria</p>
+              </div>
+            )}
+            
+            {/* Infinite Scroll Trigger for Desktop - Mobile Optimized with better visibility */}
+            {visibleCount < filtered.length && (
+              <div 
+                ref={observerRef} 
+                className="flex justify-center p-8 border-t border-border min-h-[120px] w-full"
+                style={{ minHeight: '120px', width: '100%' }}
+              >
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                  <span className="text-sm font-medium">Loading more...</span>
+                </div>
               </div>
             )}
           </div>

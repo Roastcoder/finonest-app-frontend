@@ -404,7 +404,21 @@ Finonest India`;
             <Field label="Lead Source" value={lead.lead_type?.replace(/_/g, ' ')} icon={FileText} />
             <Field label="Assigned Rep" value={lead.assigned_to_name} icon={User} />
             <Field label="Follow Up" value={lead.follow_up_date ? new Date(lead.follow_up_date).toLocaleDateString('en-IN') : 'None'} icon={FileText} />
-            <Field label="Created On" value={lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-IN') : '—'} icon={FileText} />
+            <Field label="Created On" value={lead.created_at ? (() => {
+              const date = new Date(lead.created_at);
+              // Convert UTC to IST (UTC + 5:30)
+              const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+              return istDate.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+                timeZone: 'Asia/Kolkata'
+              });
+            })() : '—'} icon={FileText} />
             <Field label="Last Updated" value={lead.updated_at ? new Date(lead.updated_at).toLocaleDateString('en-IN') : '—'} icon={FileText} />
             <div className="md:col-span-2"><Field label="Notes" value={lead.notes} icon={FileText} /></div>
           </div>

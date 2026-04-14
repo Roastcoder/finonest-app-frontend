@@ -141,6 +141,16 @@ export default function CreateLoan() {
     },
   });
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      return response.ok ? await response.json() : [];
+    },
+  });
+
   const { data: leads = [] } = useQuery({
     queryKey: ['leads-for-dropdown'],
     queryFn: async () => {
@@ -982,6 +992,8 @@ export default function CreateLoan() {
     },
   });
 
+
+
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.customerName.trim() || !form.mobile.trim() || !form.loanAmount) {
@@ -1254,6 +1266,8 @@ export default function CreateLoan() {
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-foreground mb-2">New Loan Application</h1>
       </div>
+
+
 
       <form onSubmit={handleNext} className="w-full max-w-full">
         <div className="bg-card rounded-lg border border-border p-4 shadow-sm mb-4 space-y-6 w-full">

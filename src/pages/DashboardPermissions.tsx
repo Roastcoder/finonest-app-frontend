@@ -21,6 +21,7 @@ const DASHBOARD_COMPONENTS = [
   { key: 'stageDistribution', label: '🎯 Stage Distribution Pie', description: 'Pie chart of application stages' },
   { key: 'bankDistribution', label: '🏢 Bank Distribution Pie', description: 'Pie chart of bank distribution' },
   { key: 'statusDistribution', label: '📊 Status Distribution Pie', description: 'Pie chart of status distribution' },
+  { key: 'timer', label: '⏱️ 24-Hour Stage Timer', description: 'Shows countdown timer for SUBMITTED→LOGIN and LOGIN→IN_PROCESS stage transitions' },
 ];
 
 export default function DashboardPermissions() {
@@ -32,6 +33,8 @@ export default function DashboardPermissions() {
   const [permissions, setPermissions] = useState<any>({});
   const [initialPermissions, setInitialPermissions] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [globalTimerEnabled, setGlobalTimerEnabled] = useState(true);
+  const [isTogglingTimer, setIsTogglingTimer] = useState(false);
 
   if (user?.role !== 'admin') {
     return (
@@ -62,12 +65,34 @@ export default function DashboardPermissions() {
     },
   });
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      return response.ok ? await response.json() : [];
+    },
+  });
+
   useEffect(() => {
     if (allPermissions) {
       setPermissions(allPermissions);
       setInitialPermissions(JSON.parse(JSON.stringify(allPermissions)));
+      
+      // Check if timer is enabled from system config
+      const timerConfig = configs.find((c: any) => c.config_key === 'login_stage_enabled');
+      const configEnabled = timerConfig ? timerConfig.config_value === 'true' : true;
+      
+      // Also check if timer is enabled in any role permissions
+      const anyTimerEnabled = Object.values(allPermissions).some(
+        (perm: any) => perm?.dashboard?.components?.timer === true
+      );
+      
+      // Timer is enabled only if BOTH config is true AND at least one role has permission
+      setGlobalTimerEnabled(configEnabled && anyTimerEnabled);
     }
-  }, [allPermissions]);
+  }, [allPermissions, configs]);
 
   const savePermissions = useMutation({
     mutationFn: async () => {
@@ -91,6 +116,62 @@ export default function DashboardPermissions() {
       toast.error(error.message || 'Failed to save permissions');
     },
   });
+
+  const toggleGlobalTimer = async () => {
+    setIsTogglingTimer(true);
+    try {
+      const newTimerState = !globalTimerEnabled;
+      
+      // Update login_stage_enabled config to match with permission page
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config/key/login_stage_enabled`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify({ 
+          config_value: newTimerState ? 'true' : 'false',
+          description: `Login stage ${newTimerState ? 'enabled' : 'disabled'} for all roles`
+        }),
+      });
+      
+      // Update all roles permissions
+      const updatedPermissions = { ...permissions };
+      Object.keys(updatedPermissions).forEach(role => {
+        if (!updatedPermissions[role].dashboard) {
+          updatedPermissions[role].dashboard = { view: true, export: true, components: {} };
+        }
+        if (!updatedPermissions[role].dashboard.components) {
+          updatedPermissions[role].dashboard.components = {};
+        }
+        updatedPermissions[role].dashboard.components.timer = newTimerState;
+      });
+      
+      // Save all roles to backend
+      for (const role of Object.keys(updatedPermissions)) {
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/permissions/dashboard`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+          body: JSON.stringify({ role, permissions: updatedPermissions[role] }),
+        });
+      }
+      
+      setPermissions(updatedPermissions);
+      setInitialPermissions(JSON.parse(JSON.stringify(updatedPermissions)));
+      setGlobalTimerEnabled(newTimerState);
+      queryClient.invalidateQueries({ queryKey: ['dashboard-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['system-config'] });
+      
+      toast.success(`Timer ${newTimerState ? 'enabled' : 'disabled'} for all roles`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to toggle timer');
+    } finally {
+      setIsTogglingTimer(false);
+    }
+  };
 
   const resetPermissions = useMutation({
     mutationFn: async () => {
@@ -144,6 +225,17 @@ export default function DashboardPermissions() {
           <p className="text-sm text-muted-foreground mt-1">Control which dashboard components each role can view</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={toggleGlobalTimer}
+            disabled={isTogglingTimer}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              globalTimerEnabled
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-600 hover:bg-gray-700 text-white'
+            } disabled:opacity-50`}
+          >
+            ⏱️ Timer: {isTogglingTimer ? 'Updating...' : globalTimerEnabled ? 'ON' : 'OFF'}
+          </button>
           <button
             onClick={() => resetPermissions.mutate()}
             disabled={resetPermissions.isPending}

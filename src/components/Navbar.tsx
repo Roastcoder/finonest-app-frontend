@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import { ROLE_LABELS } from '@/lib/auth';
 import { Download, LogOut, Eye, Share2, UserCircle } from 'lucide-react';
 import NotificationBell from './NotificationBell';
@@ -12,6 +13,8 @@ interface NavbarProps {
   showExport?: boolean;
   showNotifications?: boolean;
   showProfile?: boolean;
+  selectedManager?: number | null;
+  onManagerChange?: (managerId: number | null) => void;
 }
 
 export default function Navbar({
@@ -19,7 +22,9 @@ export default function Navbar({
   showTimeline = true,
   showExport = true,
   showNotifications = true,
-  showProfile = true
+  showProfile = true,
+  selectedManager,
+  onManagerChange
 }: NavbarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -28,6 +33,23 @@ export default function Navbar({
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const dashboardContext = useDashboardContextSafe();
+
+  // Fetch managers list for admin
+  const { data: managers = [] } = useQuery({
+    queryKey: ['sales-managers'],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/by-role?roles=sales_manager`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return [];
+        return await response.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: user?.role === 'admin',
+  });
 
   // Listen to sidebar collapse state from localStorage or context
   React.useEffect(() => {
@@ -74,6 +96,22 @@ export default function Navbar({
       {/* Timeline & Export Buttons - Only on Dashboard */}
       {isDashboard && dashboardContext && showTimeline && showExport && (
         <div className="hidden lg:flex items-center gap-2">
+          {/* Sales Manager Filter - Admin Only */}
+          {user?.role === 'admin' && (
+            <select
+              value={selectedManager || ''}
+              onChange={(e) => onManagerChange?.(e.target.value ? Number(e.target.value) : null)}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200/50 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-all cursor-pointer"
+            >
+              <option value="">All Sales Managers</option>
+              {managers.map((manager: any) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.full_name} ({manager.user_id})
+                </option>
+              ))}
+            </select>
+          )}
+          
           {/* Timeline Selector */}
           <select
             value={dashboardContext.timeline}

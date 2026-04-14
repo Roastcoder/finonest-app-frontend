@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -9,9 +9,157 @@ import { exportLoanPDF, downloadLoanPDF, prepareLoanShareBundle, prepareDocument
 import { toast } from 'sonner';
 import LoanStatusBadge from '@/components/LoanStatusBadge';
 import LoanApplicationStageManager from '@/components/LoanApplicationStageManager';
-import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings, Share2, FileText } from 'lucide-react';
+import { Search, Plus, ChevronRight, Download, Upload, Printer, MessageCircle, Edit2, Trash2, Settings, Share2, FileText, Clock } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import MobileSidebar from '@/components/MobileSidebar';
+
+// Loan Timer Component for SUBMITTED and LOGIN stages only
+const LoanStageTimer = ({ createdAt, applicationStage, stageChangedAt, timerEnabled = true }: { createdAt: string; applicationStage: string; stageChangedAt?: string; timerEnabled?: boolean }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+  const [isExpired, setIsExpired] = useState(false);
+  const [isLastThreeHours, setIsLastThreeHours] = useState(false);
+  const [shouldShow, setShouldShow] = useState(false);
+
+  // Check if timer should be shown - ONLY for SUBMITTED and LOGIN stages
+  const showTimer = timerEnabled && ['SUBMITTED', 'LOGIN'].includes(applicationStage);
+
+  useEffect(() => {
+    setShouldShow(showTimer);
+    
+    if (!showTimer) {
+      return;
+    }
+
+    const calculateTime = () => {
+      let startTime: string;
+      
+      // Timer logic for different stages
+      if (applicationStage === 'SUBMITTED') {
+        // SUBMITTED: 24hrs from creation to auto-move to LOGIN
+        // Always use created_at for SUBMITTED stage
+        startTime = createdAt;
+      } else if (applicationStage === 'LOGIN') {
+        // LOGIN: 24hrs from when moved to LOGIN to move to IN_PROCESS
+        // Use stage_changed_at if available, otherwise created_at
+        startTime = stageChangedAt || createdAt;
+      } else {
+        return; // No timer for other stages
+      }
+      
+      // Debug logging
+      console.log('🔍 Timer Debug:', {
+        applicationStage,
+        createdAt,
+        stageChangedAt,
+        startTime,
+        currentTime: new Date().toISOString(),
+        'createdAt parsed': new Date(createdAt).toISOString(),
+        'stageChangedAt parsed': stageChangedAt ? new Date(stageChangedAt).toISOString() : 'null'
+      });
+      
+      if (!startTime) {
+        setIsExpired(true);
+        setTimeLeft('NO TIME');
+        return;
+      }
+
+      // Parse the timestamp - ensure we're using the right format
+      const startTimeUTC = new Date(startTime).getTime();
+      const nowUTC = Date.now();
+      
+      if (isNaN(startTimeUTC)) {
+        setIsExpired(true);
+        setTimeLeft('INVALID');
+        return;
+      }
+
+      // Calculate elapsed time
+      const elapsed = nowUTC - startTimeUTC;
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+      const remaining = twentyFourHours - elapsed;
+      
+      console.log('⏰ Time Calculation:', {
+        stage: applicationStage,
+        startTimeUTC: new Date(startTimeUTC).toISOString(),
+        nowUTC: new Date(nowUTC).toISOString(),
+        elapsed: Math.floor(elapsed / (60 * 60 * 1000)) + 'h ' + Math.floor((elapsed % (60 * 60 * 1000)) / (60 * 1000)) + 'm',
+        remaining: Math.floor(remaining / (60 * 60 * 1000)) + 'h ' + Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000)) + 'm',
+        elapsedMs: elapsed,
+        remainingMs: remaining
+      });
+
+      if (remaining <= 0) {
+        setIsExpired(true);
+        setTimeLeft('TIME UP');
+        return;
+      }
+
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+
+      setIsExpired(false);
+      setIsLastThreeHours(hours < 3);
+      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt, stageChangedAt, timerEnabled, applicationStage, showTimer]);
+
+  // Don't render if conditions not met
+  if (!shouldShow) return null;
+
+  if (isExpired) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-500 text-white text-[10px] font-bold animate-pulse">
+        <Clock size={10} />
+        <span>{timeLeft}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+      isLastThreeHours 
+        ? 'bg-red-100 text-red-700 border border-red-300 animate-pulse' 
+        : 'bg-blue-100 text-blue-700 border border-blue-200'
+    }`}>
+      <Clock size={10} />
+      <span>{timeLeft}</span>
+    </div>
+  );
+};
+
+// Helper function to check if timer is expired for SUBMITTED and LOGIN stages only
+const isLoanTimerExpired = (createdAt: string, applicationStage: string, stageChangedAt?: string): boolean => {
+  // Timer only for SUBMITTED and LOGIN stages
+  if (!['SUBMITTED', 'LOGIN'].includes(applicationStage)) return false;
+  
+  let startTime: string;
+  
+  // Different timer logic for different stages
+  if (applicationStage === 'SUBMITTED') {
+    // SUBMITTED: 24hrs from creation
+    startTime = createdAt;
+  } else if (applicationStage === 'LOGIN') {
+    // LOGIN: 24hrs from when moved to LOGIN
+    startTime = stageChangedAt || createdAt;
+  } else {
+    return false;
+  }
+  
+  if (!startTime) return true;
+  
+  const startTimeUTC = new Date(startTime).getTime();
+  const nowUTC = Date.now();
+  if (isNaN(startTimeUTC)) return true;
+  
+  const elapsed = nowUTC - startTimeUTC;
+  const twentyFourHours = 24 * 60 * 60 * 1000;
+  return elapsed >= twentyFourHours;
+};
 
 type ApplicationStageFilter = ApplicationStage | 'all';
 
@@ -28,6 +176,9 @@ export default function Loans() {
   const [shareMenuLoan, setShareMenuLoan] = useState<any>(null);
   const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareBundle>>>>({});
   const [documentBundles, setDocumentBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareDocumentShareBundle>>>>({});
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   const { data: loans = [], isLoading } = useQuery({
@@ -40,13 +191,67 @@ export default function Loans() {
           }
         });
         if (!response.ok) return [];
-        return await response.json();
+        const data = await response.json();
+        return data;
       } catch {
         return [];
       }
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      return response.ok ? await response.json() : [];
+    },
+  });
+
+  const { data: userPermissions } = useQuery({
+    queryKey: ['user-permissions', user?.role],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/permissions/dashboard`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return null;
+        const allPerms = await response.json();
+        // Return permissions for current user's role
+        return allPerms[user?.role] || null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user,
+  });
+
+  const isLoginStageEnabled = () => {
+    const config = configs.find((c: any) => c.config_key === 'login_stage_enabled');
+    if (!config) {
+      console.log('❌ Login stage config not found, returning true');
+      return true;
+    }
+    const configEnabled = config.config_value === 'true';
+    const hasPermission = user?.role === 'admin' || userPermissions?.dashboard?.components?.timer === true;
+    
+    console.log('🔍 COMPLETE Timer Check:', {
+      configKey: config.config_key,
+      configValue: config.config_value,
+      configEnabled,
+      userRole: user?.role,
+      userPermissions: userPermissions,
+      timerPermission: userPermissions?.dashboard?.components?.timer,
+      hasPermission,
+      finalResult: configEnabled && hasPermission
+    });
+    
+    return configEnabled && hasPermission;
+  };
 
   const handleStageUpdate = (loan: any) => {
     setSelectedLoan(loan);
@@ -264,7 +469,61 @@ export default function Loans() {
     const matchStatus = statusFilter === 'all' || l.application_stage === statusFilter;
     return matchSearch && matchStatus;
   });
-  const sharePrefetchLoans = filtered;
+
+  // Virtualization: Show only visible items
+  const visibleLoans = useMemo(() => {
+    return filtered.slice(0, visibleCount);
+  }, [filtered, visibleCount]);
+
+  // Auto load more function - optimized for mobile
+  const loadMore = useCallback(() => {
+    if (visibleCount < filtered.length && !isLoadingMore) {
+      setIsLoadingMore(true);
+      // Immediate loading for mobile - no delay
+      setVisibleCount(prev => Math.min(prev + 10, filtered.length));
+      setIsLoadingMore(false);
+    }
+  }, [visibleCount, filtered.length, isLoadingMore]);
+
+  // Simplified mobile-first scroll detection
+  useEffect(() => {
+    // Simple scroll listener optimized for mobile
+    const handleScroll = () => {
+      if (isLoadingMore || visibleCount >= filtered.length) return;
+      
+      const scrollTop = window.pageYOffset;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Trigger earlier on mobile - 200px from bottom
+      if (scrollTop + windowHeight >= documentHeight - 200) {
+        loadMore();
+      }
+    };
+
+    // Throttled scroll with reduced delay
+    let timeout: NodeJS.Timeout;
+    const throttledScroll = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(handleScroll, 50); // Reduced from requestAnimationFrame
+    };
+
+    window.addEventListener('scroll', throttledScroll, { passive: true });
+    window.addEventListener('touchmove', throttledScroll, { passive: true });
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('scroll', throttledScroll);
+      window.removeEventListener('touchmove', throttledScroll);
+    };
+  }, [loadMore, isLoadingMore, visibleCount, filtered.length]);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(10);
+    setIsLoadingMore(false);
+  }, [search, statusFilter]);
+  const sharePrefetchLoans = visibleLoans;
   const sharePrefetchKey = sharePrefetchLoans.map(loan => String(loan.id)).join('|');
 
   useEffect(() => {
@@ -373,13 +632,31 @@ export default function Loans() {
           {/* Row 1: buttons */}
           <div className="flex items-center gap-1.5">
             {!isExecutive && (<>
-            <button onClick={handleExport} className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
+            <button 
+              onClick={handleExport} 
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap"
+            >
               <Download size={13} /> Export
             </button>
-            <button onClick={() => importRef.current?.click()} className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap">
+            <button 
+              onClick={() => importRef.current?.click()} 
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap"
+            >
               <Upload size={13} /> Import CSV
             </button>
-            <Link to="/loans/new" className="flex-1 inline-flex items-center justify-center gap-1 bg-gradient-to-r from-secondary to-primary text-white font-bold py-2 rounded-xl text-xs shadow-md active:scale-95 transition-all border border-white/20 whitespace-nowrap">
+            <Link 
+              to="/loans/new" 
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className="flex-1 inline-flex items-center justify-center gap-1 bg-gradient-to-r from-secondary to-primary text-white font-bold py-2 rounded-xl text-xs shadow-md active:scale-95 transition-all border border-white/20 whitespace-nowrap"
+            >
               <Plus size={13} /> New Application
             </Link>
             </>)}
@@ -388,11 +665,25 @@ export default function Loans() {
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all" />
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+                className="w-full pl-8 pr-3 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all" 
+              />
             </div>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as ApplicationStageFilter)}
-              className="shrink-0 px-2 py-2 rounded-xl border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent transition-all">
+            <select 
+              value={statusFilter} 
+              onChange={e => setStatusFilter(e.target.value as ApplicationStageFilter)}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              className="shrink-0 px-2 py-2 rounded-xl border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent transition-all"
+            >
               <option value="all">All</option>
               {APPLICATION_STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
@@ -403,10 +694,11 @@ export default function Loans() {
       <div className="lg:hidden space-y-3">
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground text-sm">Loading applications…</div>
-        ) : filtered.length === 0 ? (
+        ) : visibleLoans.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">No applications found</div>
         ) : (
-          filtered.map((loan: any) => (
+          <>
+            {visibleLoans.map((loan: any) => (
             <div
               key={loan.id}
               onClick={() => navigate(`/loans/${loan.id}`)}
@@ -415,7 +707,10 @@ export default function Loans() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground text-lg tracking-tight truncate">{loan.applicant_name}</p>
-                  <p className="text-xs font-semibold text-primary/70 bg-primary/5 border border-primary/10 px-2 py-0.5 rounded-md font-mono inline-block mt-1.5">{loan.loan_number || loan.id}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <p className="text-xs font-semibold text-primary/70 bg-primary/5 border border-primary/10 px-2 py-0.5 rounded-md font-mono inline-block">{loan.loan_number || loan.id}</p>
+                    <LoanStageTimer createdAt={loan.created_at} applicationStage={loan.application_stage} stageChangedAt={loan.stage_changed_at} timerEnabled={isLoginStageEnabled()} />
+                  </div>
                 </div>
                 <LoanStatusBadge applicationStage={loan.application_stage} applicationStageLabel={loan.application_stage_label} />
               </div>
@@ -470,14 +765,24 @@ export default function Loans() {
                 {showUpdateColumn && (
                   <button
                     onClick={() => handleStageUpdate(loan)}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 mt-1 rounded-lg border border-border bg-muted/30 text-xs font-semibold text-foreground hover:bg-muted/70 transition-colors"
+                    disabled={(['SUBMITTED', 'LOGIN'].includes(loan.application_stage) && isLoginStageEnabled()) && isLoanTimerExpired(loan.created_at, loan.application_stage, loan.stage_changed_at)}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 mt-1 rounded-lg border border-border bg-muted/30 text-xs font-semibold text-foreground hover:bg-muted/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-muted/30"
+                    title={(['SUBMITTED', 'LOGIN'].includes(loan.application_stage) && isLoginStageEnabled()) && isLoanTimerExpired(loan.created_at, loan.application_stage, loan.stage_changed_at) ? 'Time expired' : 'Update Stage'}
                   >
                     <Settings size={14} /> Update Stage
                   </button>
                 )}
               </div>
             </div>
-          ))
+            ))}
+            
+            {/* Simple loading indicator */}
+            {visibleCount < filtered.length && (
+              <div className="flex justify-center py-4">
+                <div className="text-xs text-muted-foreground">Scroll for more...</div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -575,10 +880,11 @@ export default function Loans() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((loan: any) => (
+                {visibleLoans.map((loan: any) => (
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
                     <td className="py-4 px-2 whitespace-nowrap">
                       <p className="font-mono text-xs text-primary font-semibold">{loan.loan_number || loan.id}</p>
+                      <LoanStageTimer createdAt={loan.created_at} applicationStage={loan.application_stage} stageChangedAt={loan.stage_changed_at} timerEnabled={isLoginStageEnabled()} />
                     </td>
                     <td className="py-4 px-2 whitespace-nowrap">
                       <p className="font-medium text-foreground text-xs">{loan.applicant_name}</p>
@@ -712,7 +1018,9 @@ export default function Loans() {
                       <td className="py-4 px-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleStageUpdate(loan)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-md border border-border bg-card text-[10px] font-medium text-foreground hover:bg-accent/10 transition-colors"
+                          disabled={(['SUBMITTED', 'LOGIN'].includes(loan.application_stage) && isLoginStageEnabled()) && isLoanTimerExpired(loan.created_at, loan.application_stage, loan.stage_changed_at)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md border border-border bg-card text-[10px] font-medium text-foreground hover:bg-accent/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-card"
+                          title={(['SUBMITTED', 'LOGIN'].includes(loan.application_stage) && isLoginStageEnabled()) && isLoanTimerExpired(loan.created_at, loan.application_stage, loan.stage_changed_at) ? 'Time expired' : 'Update Stage'}
                         >
                           <Settings size={11} /> Update
                         </button>
@@ -722,8 +1030,15 @@ export default function Loans() {
                 ))}
               </tbody>
             </table>
-            {filtered.length === 0 && !isLoading && (
+            {visibleLoans.length === 0 && !isLoading && (
               <div className="py-12 text-center text-muted-foreground">No applications found</div>
+            )}
+            
+            {/* Simple loading indicator for desktop */}
+            {visibleCount < filtered.length && (
+              <div className="flex justify-center p-4 border-t border-border">
+                <div className="text-xs text-muted-foreground">Scroll for more...</div>
+              </div>
             )}
           </div>
         )}

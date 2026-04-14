@@ -68,16 +68,38 @@ export default function Dashboard() {
   const [permissions, setPermissions] = useState<any>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [loansData, setLoansData] = useState<any[]>([]);
+  const [isLoadingLoans, setIsLoadingLoans] = useState(false);
+  const [selectedManager, setSelectedManager] = useState<number | null>(null);
+
+  // Fetch managers list for admin
+  const { data: managers = [] } = useQuery({
+    queryKey: ['sales-managers'],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/by-role?roles=sales_manager`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return [];
+        return await response.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: user?.role === 'admin',
+  });
 
   const { data: userPermissions } = useQuery({
     queryKey: ['user-permissions', user?.role],
     queryFn: async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/permissions`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/permissions/dashboard`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
         });
         if (!response.ok) return null;
-        return await response.json();
+        const allPerms = await response.json();
+        // Return permissions for current user's role
+        return { permissions: allPerms[user?.role] || null };
       } catch {
         return null;
       }
@@ -93,13 +115,16 @@ export default function Dashboard() {
   }, [userPermissions]);
 
   const { data: dashboardData, isLoading } = useQuery({
-    queryKey: ['dashboard-stats', user?.branch_id, timeline, dateRange],
+    queryKey: ['dashboard-stats', user?.branch_id, timeline, dateRange, selectedManager],
     queryFn: async () => {
       try {
         const params = new URLSearchParams({ timeline });
         if (timeline === 'custom' && dateRange.start && dateRange.end) {
           params.append('startDate', dateRange.start);
           params.append('endDate', dateRange.end);
+        }
+        if (selectedManager) {
+          params.append('managerId', selectedManager.toString());
         }
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/dashboard/stats?${params}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
@@ -115,7 +140,7 @@ export default function Dashboard() {
   });
 
   const { data: convertedLeadsData } = useQuery({
-    queryKey: ['converted-leads', timeline, dateRange],
+    queryKey: ['converted-leads', timeline, dateRange, selectedManager],
     queryFn: async () => {
       try {
         const params = new URLSearchParams({ timeline });
@@ -123,70 +148,65 @@ export default function Dashboard() {
           params.append('startDate', dateRange.start);
           params.append('endDate', dateRange.end);
         }
+        if (selectedManager) {
+          params.append('managerId', selectedManager.toString());
+        }
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/dashboard/converted-leads?${params}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
         });
-        if (!response.ok) return null;
+        if (!response.ok) return [];
         return await response.json();
       } catch (error) {
         console.error('Converted leads error:', error);
-        return null;
+        return [];
       }
     },
     enabled: !!user && user.role === 'executive',
   });
 
+  // Fetch performance chart data
+  const { data: performanceData } = useQuery({
+    queryKey: ['performance-data', timeline, dateRange, selectedManager],
+    queryFn: async () => {
+      try {
+        const params = new URLSearchParams({ timeline });
+        if (timeline === 'custom' && dateRange.start && dateRange.end) {
+          params.append('startDate', dateRange.start);
+          params.append('endDate', dateRange.end);
+        }
+        if (selectedManager) {
+          params.append('managerId', selectedManager.toString());
+        }
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/dashboard/performance?${params}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!response.ok) return [];
+        return await response.json();
+      } catch (error) {
+        console.error('Performance data error:', error);
+        return [];
+      }
+    },
+    enabled: !!user,
+  });
+
   if (!user) return null;
 
-  const convertedLeads = convertedLeadsData || [
-    { id: 1, leadName: 'Rajesh Kumar', loanId: 'LN001', loanAmount: 500000, status: 'APPROVED', bankName: 'HDFC Bank', createdAt: '2024-01-15' },
-    { id: 2, leadName: 'Priya Singh', loanId: 'LN002', loanAmount: 750000, status: 'DISBURSED', bankName: 'ICICI Bank', createdAt: '2024-01-14' },
-    { id: 3, leadName: 'Amit Patel', loanId: 'LN003', loanAmount: 600000, status: 'IN_PROCESS', bankName: 'Axis Bank', createdAt: '2024-01-13' },
-    { id: 4, leadName: 'Neha Sharma', loanId: 'LN004', loanAmount: 450000, status: 'APPROVED', bankName: 'SBI', createdAt: '2024-01-12' },
-    { id: 5, leadName: 'Vikram Desai', loanId: 'LN005', loanAmount: 800000, status: 'DISBURSED', bankName: 'HDFC Bank', createdAt: '2024-01-11' },
-  ];
+  const convertedLeads = convertedLeadsData || [];
 
   const stats = dashboardData || {
-    loginBankWise: [
-      { bankName: 'HDFC Bank', count: 45 },
-      { bankName: 'ICICI Bank', count: 38 },
-      { bankName: 'Axis Bank', count: 32 },
-      { bankName: 'SBI', count: 28 },
-      { bankName: 'Kotak Bank', count: 22 }
-    ],
-    disbursementBankWise: [
-      { bankName: 'HDFC Bank', amount: 4500000 },
-      { bankName: 'ICICI Bank', amount: 3800000 },
-      { bankName: 'Axis Bank', amount: 3200000 },
-      { bankName: 'SBI', amount: 2800000 },
-      { bankName: 'Kotak Bank', amount: 2200000 }
-    ],
-    approvedBankWise: [
-      { bankName: 'HDFC Bank', amount: 5500000, units: 12 },
-      { bankName: 'ICICI Bank', amount: 4200000, units: 10 },
-      { bankName: 'Axis Bank', amount: 3800000, units: 8 },
-      { bankName: 'SBI', amount: 3200000, units: 7 },
-      { bankName: 'Kotak Bank', amount: 2800000, units: 6 }
-    ],
+    loginBankWise: [],
+    disbursementBankWise: [],
+    approvedBankWise: [],
     pddTracker: {},
-    stageBreakdown: [
-      { stage: 'LOGIN', count: 45 },
-      { stage: 'IN_PROCESS', count: 32 },
-      { stage: 'APPROVED', count: 28 },
-      { stage: 'DISBURSED', count: 22 },
-      { stage: 'REJECTED', count: 8 }
-    ],
+    stageBreakdown: [],
     monthlyTracker: { 
-      login: 135, 
-      inProcess: 32, 
-      approved: { units: 28, amount: 19500000 }, 
-      disbursed: { units: 22, amount: 15500000 } 
+      login: 0, 
+      inProcess: 0, 
+      approved: { units: 0, amount: 0 }, 
+      disbursed: { units: 0, amount: 0 } 
     },
-    inProcessTags: [
-      { tag: 'Pending Follow-up', count: 12 },
-      { tag: 'Awaiting Documents', count: 8 },
-      { tag: 'Under Review', count: 12 }
-    ]
+    inProcessTags: []
   };
 
   const dashboardTitle = user.role ? DASHBOARD_TITLES[user.role] : 'Dashboard';
@@ -278,25 +298,17 @@ export default function Dashboard() {
     }
   };
 
-  const mockAreaData = [
-    { name: 'Mon', logins: 40, approved: 20 },
-    { name: 'Tue', logins: 70, approved: 40 },
-    { name: 'Wed', logins: 120, approved: 60 },
-    { name: 'Thu', logins: 150, approved: 80 },
-    { name: 'Fri', logins: 220, approved: 120 },
-    { name: 'Sat', logins: 140, approved: 70 },
-    { name: 'Sun', logins: 80, approved: 40 },
-  ];
+  const areaChartData = performanceData || [];
 
   const stageDistribution = stats.stageBreakdown?.filter((s: any) => s.stage === 'LOGIN' || s.stage === 'DISBURSED').map((s: any) => ({
     name: s.stage,
     value: s.count
   })) || [];
 
-  const bankDistribution = stats.loginBankWise?.slice(0, 5).map((b: any) => ({
-    name: b.bankName?.substring(0, 10),
-    value: b.count
-  })) || [];
+  const bankDistribution = stats.loginBankWise?.slice(0, 10).map((b: any) => ({
+    name: b.bankName || b.bank_name || 'Unknown',
+    value: b.count || 0
+  })).filter((b: any) => b.value > 0) || [];
 
   const approvedCount = stats.monthlyTracker?.approved?.units || 0;
   const disbursedCount = stats.monthlyTracker?.disbursed?.units || 0;
@@ -342,6 +354,250 @@ export default function Dashboard() {
   const canViewDashboard = isAdmin || permissions?.dashboard?.view !== false;
   const canExportDashboard = isAdmin || permissions?.dashboard?.export === true;
 
+  const BurstTableContent = () => {
+    const [burstTableData, setBurstTableData] = useState<any>({ SUBMITTED: [], LOGIN: [], IN_PROCESS: [] });
+    const [isTableLoading, setIsTableLoading] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [timerEnabled, setTimerEnabled] = useState(true);
+
+    // Check if user has permission to view timer
+    // Timer shows only if both config is enabled AND user has permission
+    const canViewTimer = timerEnabled && (isAdmin || permissions?.dashboard?.components?.timer === true);
+    
+    console.log('Dashboard Timer Permission Check:', {
+      isAdmin,
+      dashboardPermissions: permissions?.dashboard,
+      timerPermission: permissions?.dashboard?.components?.timer,
+      canViewTimer,
+      timerEnabled
+    });
+
+    useEffect(() => {
+      const timer = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+      return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+      const fetchTimerConfig = async () => {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config/key/login_stage_enabled`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+          });
+          if (response.ok) {
+            const config = await response.json();
+            console.log('Dashboard Timer config:', config);
+            console.log('Dashboard Timer config value type:', typeof config.config_value);
+            console.log('Dashboard Timer config value:', config.config_value);
+            const enabled = config.config_value === 'true' || config.config_value === true;
+            console.log('Dashboard Timer enabled set to:', enabled);
+            setTimerEnabled(enabled);
+          } else {
+            console.log('Dashboard Timer config not found, defaulting to true');
+            setTimerEnabled(true);
+          }
+        } catch (error) {
+          console.error('Failed to fetch dashboard timer config:', error);
+          setTimerEnabled(true);
+        }
+      };
+      fetchTimerConfig();
+    }, []);
+
+    useEffect(() => {
+      const fetchBurstTable = async () => {
+        setIsTableLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (selectedManager) {
+            params.append('managerId', selectedManager.toString());
+          }
+          
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans/burst-table?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const grouped = {
+              SUBMITTED: data.filter((loan: any) => loan.application_stage === 'SUBMITTED'),
+              LOGIN: data.filter((loan: any) => loan.application_stage === 'LOGIN'),
+              IN_PROCESS: data.filter((loan: any) => loan.application_stage === 'IN_PROCESS')
+            };
+            console.log('Burst Table Data:', {
+              total: data.length,
+              submitted: grouped.SUBMITTED.length,
+              login: grouped.LOGIN.length,
+              inProcess: grouped.IN_PROCESS.length,
+              sampleLoan: data[0]
+            });
+            setBurstTableData(grouped);
+          }
+        } catch (error) {
+          console.error('Failed to fetch burst table:', error);
+        } finally {
+          setIsTableLoading(false);
+        }
+      };
+      fetchBurstTable();
+    }, [selectedManager]);
+
+    const getTimeElapsed = (createdAt: string, stage: string) => {
+      // Check both config and permission
+      if (!timerEnabled || !canViewTimer) {
+        return '';
+      }
+      
+      const created = new Date(createdAt);
+      const diff = currentTime.getTime() - created.getTime();
+      
+      // All stages show countdown from 24:00:00 to 00:00:00
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+      const remaining = twentyFourHours - diff;
+      
+      if (remaining <= 0) {
+        return '00:00:00';
+      }
+      
+      const remainingHours = Math.floor(remaining / (1000 * 60 * 60));
+      const remainingMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const remainingSeconds = Math.floor((remaining % (1000 * 60)) / 1000);
+      
+      return `${remainingHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
+    const getTimerColor = (createdAt: string, stage: string) => {
+      // Check both config and permission
+      if (!timerEnabled || !canViewTimer) {
+        return 'text-gray-500 dark:text-gray-400';
+      }
+      
+      const created = new Date(createdAt);
+      const diff = currentTime.getTime() - created.getTime();
+      const totalHours = diff / (1000 * 60 * 60);
+      const remaining = 24 - totalHours;
+      
+      // Color changes as time runs out (green to red)
+      if (remaining <= 0) return 'text-red-700 dark:text-red-500 font-bold animate-pulse';
+      if (remaining <= 4) return 'text-red-600 dark:text-red-400';
+      if (remaining <= 8) return 'text-orange-600 dark:text-orange-400';
+      if (remaining <= 16) return 'text-yellow-600 dark:text-yellow-400';
+      return 'text-green-600 dark:text-green-400';
+    };
+
+    return (
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        {/* SUBMITTED Column */}
+        <div>
+          <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 font-semibold text-xs text-gray-700 dark:text-gray-300 border-b">
+            SUBMITTED ({burstTableData.SUBMITTED?.length || 0})
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {isTableLoading ? (
+              <div className="py-8 px-4 text-center text-muted-foreground text-xs">Loading...</div>
+            ) : burstTableData.SUBMITTED?.length === 0 ? (
+              <div className="py-8 px-4 text-center text-muted-foreground text-xs">No loans</div>
+            ) : (
+              burstTableData.SUBMITTED?.map((loan: any) => (
+                <div
+                  key={loan.id}
+                  onClick={() => navigate(`/loans/${loan.id}`)}
+                  className="border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-foreground font-mono text-xs font-semibold">
+                      {loan.loan_number || loan.id}
+                    </div>
+                    {timerEnabled && canViewTimer && (
+                      <div className={`text-xs font-mono font-semibold ${getTimerColor(loan.created_at, 'SUBMITTED')}`}>
+                        {getTimeElapsed(loan.created_at, 'SUBMITTED')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-muted-foreground text-xs mt-1">
+                    {loan.applicant_name || 'N/A'}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* LOGIN Column */}
+        <div>
+          <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 font-semibold text-xs text-blue-700 dark:text-blue-300 border-b">
+            LOGIN ({burstTableData.LOGIN?.length || 0})
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {isTableLoading ? (
+              <div className="py-8 px-4 text-center text-muted-foreground text-xs">Loading...</div>
+            ) : burstTableData.LOGIN?.length === 0 ? (
+              <div className="py-8 px-4 text-center text-muted-foreground text-xs">No loans</div>
+            ) : (
+              burstTableData.LOGIN?.map((loan: any) => (
+                <div
+                  key={loan.id}
+                  onClick={() => navigate(`/loans/${loan.id}`)}
+                  className="border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-foreground font-mono text-xs font-semibold">
+                      {loan.loan_number || loan.id}
+                    </div>
+                    {timerEnabled && canViewTimer && (
+                      <div className={`text-xs font-mono font-semibold ${getTimerColor(loan.created_at, 'LOGIN')}`}>
+                        {getTimeElapsed(loan.created_at, 'LOGIN')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-muted-foreground text-xs mt-1">
+                    {loan.applicant_name || 'N/A'}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* IN_PROCESS Column */}
+        <div>
+          <div className="bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 font-semibold text-xs text-yellow-700 dark:text-yellow-300 border-b">
+            IN PROCESS ({burstTableData.IN_PROCESS?.length || 0})
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {isTableLoading ? (
+              <div className="py-8 px-4 text-center text-muted-foreground text-xs">Loading...</div>
+            ) : burstTableData.IN_PROCESS?.length === 0 ? (
+              <div className="py-8 px-4 text-center text-muted-foreground text-xs">No loans</div>
+            ) : (
+              burstTableData.IN_PROCESS?.map((loan: any) => (
+                <div
+                  key={loan.id}
+                  onClick={() => navigate(`/loans/${loan.id}`)}
+                  className="border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-foreground font-mono text-xs font-semibold">
+                      {loan.loan_number || loan.id}
+                    </div>
+                    {timerEnabled && canViewTimer && (
+                      <div className={`text-xs font-mono font-semibold ${getTimerColor(loan.created_at, 'IN_PROCESS')}`}>
+                        {getTimeElapsed(loan.created_at, 'IN_PROCESS')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-muted-foreground text-xs mt-1">
+                    {loan.applicant_name || 'N/A'}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!canViewDashboard) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -374,79 +630,27 @@ export default function Dashboard() {
         showExport={true}
         showNotifications={true}
         showProfile={true}
+        selectedManager={selectedManager}
+        onManagerChange={setSelectedManager}
       />
       <div className="flex flex-col gap-3 lg:gap-4 w-full pb-6" style={{ padding: '0.5rem 0', paddingBottom: 'clamp(5rem, 10vh, 1.25rem)' }}>
-        {/* KPI Cards Grid */}
-        <ScrollSection delay={0} className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 w-full">
-          <div className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md transition-all group cursor-default">
-            <div className="flex items-start justify-between mb-2">
-              <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-primary group-hover:scale-110 transition-transform">
-                <Users size={13} />
+        
+       
+        <ScrollSection delay={0} className="w-full">
+          <div className="bg-white dark:bg-gray-900/40 rounded-xl border border-border/50 shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-border/50 bg-gray-50/30 dark:bg-gray-800/20">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-primary" />
+                <h3 className="font-bold text-sm text-foreground">Loans by Stage</h3>
               </div>
-              <ArrowUpRight size={10} className="text-emerald-500 opacity-50" />
             </div>
-            <div>
-              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Logins</p>
-              <h4 className="text-lg font-black text-foreground mt-0.5">{stats.monthlyTracker?.login || 0}</h4>
-              <p className="text-[8px] text-emerald-600 font-bold mt-1 flex items-center gap-0.5">
-                <TrendingUp size={7} /> +12%
-              </p>
+
+            {/* Burst Table */}
+            <div className="p-4">
+              <BurstTableContent />
             </div>
           </div>
-
-          <button 
-            onClick={() => handleNavigateToLoans('IN_PROCESS')}
-            className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md hover:border-amber-300 transition-all group cursor-pointer text-left"
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600 group-hover:scale-110 transition-transform">
-                <Clock size={13} />
-              </div>
-            </div>
-            <div>
-              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">In Process</p>
-              <h4 className="text-lg font-black text-foreground mt-0.5">{stats.monthlyTracker?.inProcess || 0}</h4>
-              <p className="text-[8px] text-amber-600 font-bold mt-1">Click to view</p>
-            </div>
-          </button>
-
-          <button 
-            onClick={() => handleNavigateToLoans('APPROVED')}
-            className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all group cursor-pointer text-left"
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 group-hover:scale-110 transition-transform">
-                <CheckCircle2 size={13} />
-              </div>
-            </div>
-            <div>
-              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Approved</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <h4 className="text-lg font-black text-foreground">{stats.monthlyTracker?.approved?.units || 0}</h4>
-                <span className="text-[7px] font-bold text-muted-foreground">₹{((stats.monthlyTracker?.approved?.amount || 0) / 100000).toFixed(1)}L</span>
-              </div>
-              <p className="text-[8px] text-emerald-600 font-bold mt-1">Click to view</p>
-            </div>
-          </button>
-
-          <button 
-            onClick={() => handleNavigateToLoans('DISBURSED')}
-            className="bg-white dark:bg-gray-900/40 rounded-xl p-2.5 border border-border/50 shadow-sm hover:shadow-md hover:border-purple-300 transition-all group cursor-pointer text-left"
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="p-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 group-hover:scale-110 transition-transform">
-                <IndianRupee size={13} />
-              </div>
-            </div>
-            <div>
-              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Disbursed</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <h4 className="text-lg font-black text-foreground">{stats.monthlyTracker?.disbursed?.units || 0}</h4>
-                <span className="text-[7px] font-bold text-muted-foreground">₹{((stats.monthlyTracker?.disbursed?.amount || 0) / 100000).toFixed(1)}L</span>
-              </div>
-              <p className="text-[8px] text-purple-600 font-bold mt-1">Click to view</p>
-            </div>
-          </button>
         </ScrollSection>
 
         {/* Charts Grid */}
@@ -628,7 +832,7 @@ export default function Dashboard() {
           </div>
           <div style={{ height: 'clamp(250px, 50vw, 500px)', width: '100%'}}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockAreaData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} >
+              <AreaChart data={areaChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} >
                 <defs>
                   <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>

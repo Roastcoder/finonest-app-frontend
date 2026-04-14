@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { FINANCIERS } from '@/lib/financiers';
@@ -39,9 +39,58 @@ export default function LoanLoginDetails() {
     },
   });
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/config`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      return response.ok ? await response.json() : [];
+    },
+  });
+
   const salesManagers = users.filter((u: any) => 
     u.role === 'sales_manager' || u.role === 'team_leader'
   );
+
+  const isLoginStageEnabled = () => {
+    const config = configs.find((c: any) => c.config_key === 'login_stage_enabled');
+    if (!config) return true;
+    return config.config_value === 'true';
+  };
+
+  const getLoginStageTimeRemaining = () => {
+    const config = configs.find((c: any) => c.config_key === 'login_stage_enabled');
+    if (!config || config.config_value === 'true') return null;
+    
+    const description = config.description || '';
+    const match = description.match(/Disabled until (.+)/);
+    if (!match) return null;
+    
+    const disableUntil = new Date(match[1]).getTime();
+    const now = Date.now();
+    const remaining = disableUntil - now;
+    
+    if (remaining <= 0) return 'Time Up - Admin can re-enable now';
+    
+    const hours = Math.floor(remaining / (60 * 60 * 1000));
+    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+    
+    return `${hours}h ${minutes}m remaining`;
+  };
+
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const updateTime = () => {
+      setTimeRemaining(getLoginStageTimeRemaining());
+    };
+    
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    
+    return () => clearInterval(interval);
+  }, [configs]);
 
   const update = (key: string, val: string) => setForm(f => ({ ...f, [key]: val }));
 
@@ -119,6 +168,11 @@ export default function LoanLoginDetails() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!isLoginStageEnabled()) {
+      toast.error('Login stage is currently disabled by admin. Please try again later.');
+      return;
+    }
+    
     if (!form.selectedLender) {
       toast.error('Please select a lender');
       return;
@@ -148,6 +202,27 @@ export default function LoanLoginDetails() {
         <h1 className="text-2xl font-bold text-foreground mb-2">Login Details</h1>
         <p className="text-sm text-muted-foreground">Complete the loan application by providing lender and sales information</p>
       </div>
+
+      {/* Login Stage Disabled Warning */}
+      {!isLoginStageEnabled() && (
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-400 dark:border-red-700 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <p className="font-bold text-red-700 dark:text-red-400 text-lg mb-1">🚫 Login Stage Disabled</p>
+              <p className="text-sm text-red-600 dark:text-red-300 mb-2">The login stage has been disabled by admin for 24 hours. You cannot submit loan applications at this time.</p>
+              {timeRemaining && (
+                <div className="flex items-center gap-2 mt-2 p-2 bg-red-100 dark:bg-red-900/40 rounded-md border border-red-300 dark:border-red-600">
+                  <Clock size={16} className="text-red-700 dark:text-red-400" />
+                  <span className="text-sm font-semibold text-red-700 dark:text-red-400">{timeRemaining}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="w-full">
         <div className="bg-card rounded-lg border border-border p-6 shadow-sm space-y-6">
@@ -235,8 +310,8 @@ export default function LoanLoginDetails() {
             </button>
             <button 
               type="submit" 
-              disabled={createLoan.isPending}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100"
+              disabled={createLoan.isPending || !isLoginStageEnabled()}
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed"
             >
               {createLoan.isPending ? (
                 <span className="flex items-center gap-2">
