@@ -46,17 +46,6 @@ const LoanStageTimer = ({ createdAt, applicationStage, stageChangedAt, timerEnab
         return; // No timer for other stages
       }
       
-      // Debug logging
-      console.log('🔍 Timer Debug:', {
-        applicationStage,
-        createdAt,
-        stageChangedAt,
-        startTime,
-        currentTime: new Date().toISOString(),
-        'createdAt parsed': new Date(createdAt).toISOString(),
-        'stageChangedAt parsed': stageChangedAt ? new Date(stageChangedAt).toISOString() : 'null'
-      });
-      
       if (!startTime) {
         setIsExpired(true);
         setTimeLeft('NO TIME');
@@ -77,16 +66,6 @@ const LoanStageTimer = ({ createdAt, applicationStage, stageChangedAt, timerEnab
       const elapsed = nowUTC - startTimeUTC;
       const twentyFourHours = 24 * 60 * 60 * 1000;
       const remaining = twentyFourHours - elapsed;
-      
-      console.log('⏰ Time Calculation:', {
-        stage: applicationStage,
-        startTimeUTC: new Date(startTimeUTC).toISOString(),
-        nowUTC: new Date(nowUTC).toISOString(),
-        elapsed: Math.floor(elapsed / (60 * 60 * 1000)) + 'h ' + Math.floor((elapsed % (60 * 60 * 1000)) / (60 * 1000)) + 'm',
-        remaining: Math.floor(remaining / (60 * 60 * 1000)) + 'h ' + Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000)) + 'm',
-        elapsedMs: elapsed,
-        remainingMs: remaining
-      });
 
       if (remaining <= 0) {
         setIsExpired(true);
@@ -233,22 +212,10 @@ export default function Loans() {
   const isLoginStageEnabled = () => {
     const config = configs.find((c: any) => c.config_key === 'login_stage_enabled');
     if (!config) {
-      console.log('❌ Login stage config not found, returning true');
       return true;
     }
     const configEnabled = config.config_value === 'true';
     const hasPermission = user?.role === 'admin' || userPermissions?.dashboard?.components?.timer === true;
-    
-    console.log('🔍 COMPLETE Timer Check:', {
-      configKey: config.config_key,
-      configValue: config.config_value,
-      configEnabled,
-      userRole: user?.role,
-      userPermissions: userPermissions,
-      timerPermission: userPermissions?.dashboard?.components?.timer,
-      hasPermission,
-      finalResult: configEnabled && hasPermission
-    });
     
     return configEnabled && hasPermission;
   };

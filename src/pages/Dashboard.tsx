@@ -109,7 +109,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (userPermissions?.permissions) {
-      console.log('Dashboard permissions loaded:', userPermissions.permissions);
       setPermissions(userPermissions.permissions);
     }
   }, [userPermissions]);
@@ -132,7 +131,6 @@ export default function Dashboard() {
         if (!response.ok) return null;
         return await response.json();
       } catch (error) {
-        console.error('Dashboard stats error:', error);
         return null;
       }
     },
@@ -157,7 +155,6 @@ export default function Dashboard() {
         if (!response.ok) return [];
         return await response.json();
       } catch (error) {
-        console.error('Converted leads error:', error);
         return [];
       }
     },
@@ -183,7 +180,6 @@ export default function Dashboard() {
         if (!response.ok) return [];
         return await response.json();
       } catch (error) {
-        console.error('Performance data error:', error);
         return [];
       }
     },
@@ -223,7 +219,6 @@ export default function Dashboard() {
             user: user
           });
         } catch (error) {
-          console.error('PDF generation error:', error);
           alert('Failed to generate PDF. Please try again.');
         } finally {
           setIsGeneratingPDF(false);
@@ -245,7 +240,6 @@ export default function Dashboard() {
       const url = URL.createObjectURL(pdfBlob);
       window.open(url, '_blank');
     } catch (error) {
-      console.error('PDF view error:', error);
       alert('Failed to view PDF. Please try again.');
     } finally {
       setIsGeneratingPDF(false);
@@ -275,7 +269,7 @@ export default function Dashboard() {
         alert('Sharing not available on this device. Please download the PDF instead.');
       }
     } catch (error) {
-      console.error('Share error:', error);
+      // Handle error silently
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -291,7 +285,6 @@ export default function Dashboard() {
         user: user
       });
     } catch (error) {
-      console.error('PDF generation error:', error);
       alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsGeneratingPDF(false);
@@ -363,14 +356,6 @@ export default function Dashboard() {
     // Check if user has permission to view timer
     // Timer shows only if both config is enabled AND user has permission
     const canViewTimer = timerEnabled && (isAdmin || permissions?.dashboard?.components?.timer === true);
-    
-    console.log('Dashboard Timer Permission Check:', {
-      isAdmin,
-      dashboardPermissions: permissions?.dashboard,
-      timerPermission: permissions?.dashboard?.components?.timer,
-      canViewTimer,
-      timerEnabled
-    });
 
     useEffect(() => {
       const timer = setInterval(() => {
@@ -387,18 +372,12 @@ export default function Dashboard() {
           });
           if (response.ok) {
             const config = await response.json();
-            console.log('Dashboard Timer config:', config);
-            console.log('Dashboard Timer config value type:', typeof config.config_value);
-            console.log('Dashboard Timer config value:', config.config_value);
             const enabled = config.config_value === 'true' || config.config_value === true;
-            console.log('Dashboard Timer enabled set to:', enabled);
             setTimerEnabled(enabled);
           } else {
-            console.log('Dashboard Timer config not found, defaulting to true');
             setTimerEnabled(true);
           }
         } catch (error) {
-          console.error('Failed to fetch dashboard timer config:', error);
           setTimerEnabled(true);
         }
       };
@@ -424,17 +403,10 @@ export default function Dashboard() {
               LOGIN: data.filter((loan: any) => loan.application_stage === 'LOGIN'),
               IN_PROCESS: data.filter((loan: any) => loan.application_stage === 'IN_PROCESS')
             };
-            console.log('Burst Table Data:', {
-              total: data.length,
-              submitted: grouped.SUBMITTED.length,
-              login: grouped.LOGIN.length,
-              inProcess: grouped.IN_PROCESS.length,
-              sampleLoan: data[0]
-            });
             setBurstTableData(grouped);
           }
         } catch (error) {
-          console.error('Failed to fetch burst table:', error);
+          // Handle error silently
         } finally {
           setIsTableLoading(false);
         }

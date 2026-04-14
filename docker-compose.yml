@@ -30,7 +30,9 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: car_credit_frontend
     ports:
       - "80:80"
