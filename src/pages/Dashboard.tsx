@@ -71,6 +71,9 @@ export default function Dashboard() {
   const [loansData, setLoansData] = useState<any[]>([]);
   const [isLoadingLoans, setIsLoadingLoans] = useState(false);
   const [selectedManager, setSelectedManager] = useState<number | null>(null);
+  const [loginVolumeFilter, setLoginVolumeFilter] = useState('LOGIN');
+  const [disbursementFilter, setDisbursementFilter] = useState('DISBURSED');
+  const [bankDistributionFilter, setBankDistributionFilter] = useState('ALL');
 
   // Fetch managers list for admin
   const { data: managers = [] } = useQuery({
@@ -114,7 +117,7 @@ export default function Dashboard() {
   }, [userPermissions]);
 
   const { data: dashboardData, isLoading } = useQuery({
-    queryKey: ['dashboard-stats', user?.branch_id, timeline, dateRange, selectedManager],
+    queryKey: ['dashboard-stats', user?.branch_id, timeline, dateRange, selectedManager, loginVolumeFilter, disbursementFilter, bankDistributionFilter],
     queryFn: async () => {
       try {
         const params = new URLSearchParams({ timeline });
@@ -124,6 +127,15 @@ export default function Dashboard() {
         }
         if (selectedManager) {
           params.append('managerId', selectedManager.toString());
+        }
+        if (loginVolumeFilter !== 'LOGIN') {
+          params.append('stageFilter', loginVolumeFilter);
+        }
+        if (disbursementFilter !== 'DISBURSED') {
+          params.append('disbursementFilter', disbursementFilter);
+        }
+        if (bankDistributionFilter !== 'ALL') {
+          params.append('bankDistributionFilter', bankDistributionFilter);
         }
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/dashboard/stats?${params}`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
@@ -193,6 +205,7 @@ export default function Dashboard() {
   const stats = dashboardData || {
     loginBankWise: [],
     disbursementBankWise: [],
+    bankDistribution: [],
     approvedBankWise: [],
     pddTracker: {},
     stageBreakdown: [],
@@ -298,10 +311,40 @@ export default function Dashboard() {
     value: s.count
   })) || [];
 
-  const bankDistribution = stats.loginBankWise?.slice(0, 10).map((b: any) => ({
-    name: b.bankName || b.bank_name || 'Unknown',
-    value: b.count || 0
-  })).filter((b: any) => b.value > 0) || [];
+  const bankDistribution = (() => {
+    if (!stats.bankDistribution || stats.bankDistribution.length === 0) return [];
+    
+    // Sort by count and get top 6
+    const sortedBanks = stats.bankDistribution
+      .map((b: any) => ({
+        name: b.bankName || b.bank_name || 'Unknown',
+        value: parseInt(b.count || 0)
+      }))
+      .filter((b: any) => b.value > 0)
+      .sort((a, b) => b.value - a.value);
+    
+    if (sortedBanks.length <= 6) {
+      return sortedBanks;
+    }
+    
+    // Take top 6 and sum the rest as "Others"
+    const top6 = sortedBanks.slice(0, 6);
+    const others = sortedBanks.slice(6);
+    const othersSum = others.reduce((sum, bank) => sum + bank.value, 0);
+    
+    if (othersSum > 0) {
+      top6.push({ name: 'Others', value: othersSum });
+    }
+    
+    return top6;
+  })();
+
+  console.log('🏦 Bank Distribution Frontend:', {
+    rawBankDistribution: stats.bankDistribution,
+    processedBankDistribution: bankDistribution,
+    hasData: bankDistribution.length > 0,
+    showingTop6WithOthers: bankDistribution.length === 7 && bankDistribution.some(b => b.name === 'Others')
+  });
 
   const approvedCount = stats.monthlyTracker?.approved?.units || 0;
   const disbursedCount = stats.monthlyTracker?.disbursed?.units || 0;
@@ -342,6 +385,39 @@ export default function Dashboard() {
 
   const roleBasedStats = getRoleBasedStats();
   const roleBasedComponents = ROLE_BASED_COMPONENTS[user?.role || 'dsa'] || [];
+
+  // Status colors mapping
+  const getStatusColor = (status: string) => {
+    const colors = {
+      'LOGIN': '#3b82f6',      // Blue
+      'IN_PROCESS': '#f59e0b',  // Orange
+      'APPROVED': '#10b981',    // Green
+      'DISBURSED': '#059669'    // Dark Green
+    };
+    return colors[status as keyof typeof colors] || '#6b7280';
+  };
+
+  // Status display names
+  const getStatusDisplayName = (status: string) => {
+    const names = {
+      'LOGIN': 'Login Volume',
+      'IN_PROCESS': 'In Process Volume', 
+      'APPROVED': 'Approved Volume',
+      'DISBURSED': 'Disbursed Volume'
+    };
+    return names[status as keyof typeof names] || 'Volume';
+  };
+
+  // Disbursement display names
+  const getDisbursementDisplayName = (status: string) => {
+    const names = {
+      'DISBURSED': 'Disbursement',
+      'APPROVED': 'Approved Amount',
+      'IN_PROCESS': 'In Process Amount',
+      'LOGIN': 'Login Amount'
+    };
+    return names[status as keyof typeof names] || 'Amount';
+  };
 
   const isAdmin = user?.role === 'admin';
   const canViewDashboard = isAdmin || permissions?.dashboard?.view !== false;
@@ -489,6 +565,9 @@ export default function Dashboard() {
                   <div className="text-muted-foreground text-xs mt-1">
                     {loan.applicant_name || 'N/A'}
                   </div>
+                  <div className="text-muted-foreground text-xs mt-0.5">
+                    RC: {loan.vehicle_number || 'N/A'} • {loan.case_type || 'N/A'}
+                  </div>
                 </div>
               ))
             )}
@@ -525,6 +604,9 @@ export default function Dashboard() {
                   <div className="text-muted-foreground text-xs mt-1">
                     {loan.applicant_name || 'N/A'}
                   </div>
+                  <div className="text-muted-foreground text-xs mt-0.5">
+                    RC: {loan.vehicle_number || 'N/A'} • {loan.case_type || 'N/A'}
+                  </div>
                 </div>
               ))
             )}
@@ -560,6 +642,9 @@ export default function Dashboard() {
                   </div>
                   <div className="text-muted-foreground text-xs mt-1">
                     {loan.applicant_name || 'N/A'}
+                  </div>
+                  <div className="text-muted-foreground text-xs mt-0.5">
+                    RC: {loan.vehicle_number || 'N/A'} • {loan.case_type || 'N/A'}
                   </div>
                 </div>
               ))
@@ -607,7 +692,8 @@ export default function Dashboard() {
       />
       <div className="flex flex-col gap-3 lg:gap-4 w-full pb-6" style={{ padding: '0.5rem 0', paddingBottom: 'clamp(5rem, 10vh, 1.25rem)' }}>
         
-       
+        {/* Burst Table - Hidden for executives */}
+        {user?.role !== 'executive' && (
         <ScrollSection delay={0} className="w-full">
           <div className="bg-white dark:bg-gray-900/40 rounded-xl border border-border/50 shadow-sm overflow-hidden">
             {/* Header */}
@@ -624,6 +710,7 @@ export default function Dashboard() {
             </div>
           </div>
         </ScrollSection>
+        )}
 
         {/* Charts Grid */}
         <ScrollSection delay={0.1} className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
@@ -633,8 +720,18 @@ export default function Dashboard() {
             <div className={headerClass}>
               <div className="flex items-center gap-1">
                 <Building2 size={13} className="text-primary" />
-                <h3 className="font-bold text-xs text-foreground">Login Volume</h3>
+                <h3 className="font-bold text-xs text-foreground">{getStatusDisplayName(loginVolumeFilter)}</h3>
               </div>
+              <select 
+                value={loginVolumeFilter} 
+                onChange={(e) => setLoginVolumeFilter(e.target.value)}
+                className="text-xs border border-border/50 rounded px-2 py-1 bg-background text-foreground"
+              >
+                <option value="LOGIN">Login</option>
+                <option value="IN_PROCESS">In Process</option>
+                <option value="APPROVED">Approved</option>
+                <option value="DISBURSED">Disbursed</option>
+              </select>
             </div>
             <div className="p-3 h-[350px]">
               {roleBasedStats.loginBankWise && roleBasedStats.loginBankWise.length > 0 ? (
@@ -647,7 +744,7 @@ export default function Dashboard() {
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
                       cursor={{fill: '#f8fafc'}}
                     />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[3, 3, 0, 0]} barSize={24} />
+                    <Bar dataKey="count" fill={getStatusColor(loginVolumeFilter)} radius={[3, 3, 0, 0]} barSize={24} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
@@ -661,8 +758,18 @@ export default function Dashboard() {
             <div className={headerClass}>
               <div className="flex items-center gap-1">
                 <IndianRupee size={13} className="text-primary" />
-                <h3 className="font-bold text-xs text-foreground">Disbursement</h3>
+                <h3 className="font-bold text-xs text-foreground">{getDisbursementDisplayName(disbursementFilter)}</h3>
               </div>
+              <select 
+                value={disbursementFilter} 
+                onChange={(e) => setDisbursementFilter(e.target.value)}
+                className="text-xs border border-border/50 rounded px-2 py-1 bg-background text-foreground"
+              >
+                <option value="DISBURSED">Disbursed</option>
+                <option value="APPROVED">Approved</option>
+                <option value="IN_PROCESS">In Process</option>
+                <option value="LOGIN">Login</option>
+              </select>
             </div>
             <div className="p-3 h-[350px]">
               {roleBasedStats.disbursementBankWise && roleBasedStats.disbursementBankWise.length > 0 ? (
@@ -676,7 +783,7 @@ export default function Dashboard() {
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
                       cursor={{fill: '#f8fafc'}}
                     />
-                    <Bar dataKey="amount" fill="#10b981" radius={[3, 3, 0, 0]} barSize={24} />
+                    <Bar dataKey="amount" fill={getStatusColor(disbursementFilter)} radius={[3, 3, 0, 0]} barSize={24} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
@@ -696,27 +803,45 @@ export default function Dashboard() {
                 <h3 className="font-bold text-xs text-foreground">Stage Distribution</h3>
               </div>
             </div>
-            <div className="p-3 h-[230px] w-[200px] flex items-center justify-center mx-auto">
+            <div className="p-3 h-[230px] flex items-center justify-center">
               {stageDistribution && stageDistribution.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={stageDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={50}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {stageDistribution.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => value} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="flex items-center w-full h-full">
+                  {/* Pie Chart */}
+                  <div className="w-1/2 h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={stageDistribution}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {stageDistribution.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => value} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Legend */}
+                  <div className="w-1/2 h-full flex flex-col justify-center pl-2">
+                    {stageDistribution.map((entry: any, index: number) => (
+                      <div key={index} className="flex items-center mb-1">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
+                          style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                        ></div>
+                        <div className="text-xs text-foreground">
+                          <div className="font-medium">{entry.name}</div>
+                          <div className="text-muted-foreground">{entry.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
@@ -730,28 +855,57 @@ export default function Dashboard() {
                 <Building2 size={13} className="text-primary" />
                 <h3 className="font-bold text-xs text-foreground">Bank Distribution</h3>
               </div>
+              <select 
+                value={bankDistributionFilter} 
+                onChange={(e) => setBankDistributionFilter(e.target.value)}
+                className="text-xs border border-border/50 rounded px-2 py-1 bg-background text-foreground"
+              >
+                <option value="ALL">All Stages</option>
+                <option value="LOGIN">Login</option>
+                <option value="IN_PROCESS">In Process</option>
+                <option value="APPROVED">Approved</option>
+                <option value="DISBURSED">Disbursed</option>
+              </select>
             </div>
-            <div className="p-3 h-[220px] w-[200px] flex items-center justify-center mx-auto">
+            <div className="p-3 h-[230px] flex items-center justify-center">
               {bankDistribution && bankDistribution.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={bankDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={50}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {bankDistribution.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => value} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="flex items-center w-full h-full">
+                  {/* Pie Chart */}
+                  <div className="w-1/2 h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={bankDistribution}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {bankDistribution.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => value} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Legend */}
+                  <div className="w-1/2 h-full flex flex-col justify-center pl-2 overflow-y-auto">
+                    {bankDistribution.map((entry: any, index: number) => (
+                      <div key={index} className="flex items-center mb-1">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
+                          style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                        ></div>
+                        <div className="text-xs text-foreground">
+                          <div className="font-medium truncate" title={entry.name}>{entry.name}</div>
+                          <div className="text-muted-foreground">{entry.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
@@ -766,27 +920,45 @@ export default function Dashboard() {
                 <h3 className="font-bold text-xs text-foreground">Status Distribution</h3>
               </div>
             </div>
-            <div className="p-3 h-[220px] w-[200px] flex items-center justify-center mx-auto">
+            <div className="p-3 h-[230px] flex items-center justify-center">
               {statusDistribution && statusDistribution.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={50}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {statusDistribution.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => value} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="flex items-center w-full h-full">
+                  {/* Pie Chart */}
+                  <div className="w-1/2 h-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusDistribution}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {statusDistribution.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => value} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Legend */}
+                  <div className="w-1/2 h-full flex flex-col justify-center pl-2">
+                    {statusDistribution.map((entry: any, index: number) => (
+                      <div key={index} className="flex items-center mb-1">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
+                          style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                        ></div>
+                        <div className="text-xs text-foreground">
+                          <div className="font-medium">{entry.name}</div>
+                          <div className="text-muted-foreground">{entry.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
             </div>
           </div>
