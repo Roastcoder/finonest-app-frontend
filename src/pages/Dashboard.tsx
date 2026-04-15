@@ -714,7 +714,7 @@ export default function Dashboard() {
 
         {/* Charts Grid */}
         <ScrollSection delay={0.1} className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
-          {/* Login Volume */}
+          {/* Login Volume - Takes full width on left */}
           {(canViewComponent('loginVolume') || isAdmin) && (
           <div className={chartCardClass}>
             <div className={headerClass}>
@@ -752,217 +752,178 @@ export default function Dashboard() {
           </div>
           )}
 
-          {/* Disbursement */}
-          {(canViewComponent('disbursement') || isAdmin) && (
-          <div className={chartCardClass}>
-            <div className={headerClass}>
-              <div className="flex items-center gap-1">
-                <IndianRupee size={13} className="text-primary" />
-                <h3 className="font-bold text-xs text-foreground">{getDisbursementDisplayName(disbursementFilter)}</h3>
-              </div>
-              <select 
-                value={disbursementFilter} 
-                onChange={(e) => setDisbursementFilter(e.target.value)}
-                className="text-xs border border-border/50 rounded px-2 py-1 bg-background text-foreground"
-              >
-                <option value="DISBURSED">Disbursed</option>
-                <option value="APPROVED">Approved</option>
-                <option value="IN_PROCESS">In Process</option>
-                <option value="LOGIN">Login</option>
-              </select>
-            </div>
-            <div className="p-3 h-[350px]">
-              {roleBasedStats.disbursementBankWise && roleBasedStats.disbursementBankWise.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={roleBasedStats.disbursementBankWise}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="bankName" hide />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8}} />
-                    <Tooltip 
-                      formatter={(value: number) => `₹${(value/100000).toFixed(2)}L`}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 4px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
-                      cursor={{fill: '#f8fafc'}}
-                    />
-                    <Bar dataKey="amount" fill={getStatusColor(disbursementFilter)} radius={[3, 3, 0, 0]} barSize={24} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
-            </div>
-          </div>
-          )}
-        </ScrollSection>
-
-        {/* Pie Charts Row */}
-        <ScrollSection delay={0.2} className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
-          {/* Stage Distribution */}
-          {(canViewComponent('stageDistribution') || isAdmin) && (
-          <div className={chartCardClass}>
-            <div className={headerClass}>
-              <div className="flex items-center gap-1">
-                <PieChartIcon size={13} className="text-primary" />
-                <h3 className="font-bold text-xs text-foreground">Stage Distribution</h3>
-              </div>
-            </div>
-            <div className="p-3 h-[230px] flex items-center justify-center">
-              {stageDistribution && stageDistribution.length > 0 ? (
-                <div className="flex items-center w-full h-full">
-                  {/* Pie Chart */}
-                  <div className="w-1/2 h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={stageDistribution}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={60}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {stageDistribution.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => value} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  {/* Legend */}
-                  <div className="w-1/2 h-full flex flex-col justify-center pl-2">
-                    {stageDistribution.map((entry: any, index: number) => (
-                      <div key={index} className="flex items-center mb-1">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
-                          style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
-                        ></div>
-                        <div className="text-xs text-foreground">
-                          <div className="font-medium">{entry.name}</div>
-                          <div className="text-muted-foreground">{entry.value}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+          {/* Pie Charts Column - Vertical stack on right */}
+          <div className="flex flex-col gap-3">
+            {/* Stage Distribution */}
+            {(canViewComponent('stageDistribution') || isAdmin) && (
+            <div className={chartCardClass}>
+              <div className={headerClass}>
+                <div className="flex items-center gap-1">
+                  <PieChartIcon size={13} className="text-primary" />
+                  <h3 className="font-bold text-xs text-foreground">Stage Distribution</h3>
                 </div>
-              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
-            </div>
-          </div>
-          )}
-
-          {/* Bank Distribution */}
-          {(canViewComponent('bankDistribution') || isAdmin) && (
-          <div className={chartCardClass}>
-            <div className={headerClass}>
-              <div className="flex items-center gap-1">
-                <Building2 size={13} className="text-primary" />
-                <h3 className="font-bold text-xs text-foreground">Bank Distribution</h3>
               </div>
-              <select 
-                value={bankDistributionFilter} 
-                onChange={(e) => setBankDistributionFilter(e.target.value)}
-                className="text-xs border border-border/50 rounded px-2 py-1 bg-background text-foreground"
-              >
-                <option value="ALL">All Stages</option>
-                <option value="LOGIN">Login</option>
-                <option value="IN_PROCESS">In Process</option>
-                <option value="APPROVED">Approved</option>
-                <option value="DISBURSED">Disbursed</option>
-              </select>
-            </div>
-            <div className="p-3 h-[230px] flex items-center justify-center">
-              {bankDistribution && bankDistribution.length > 0 ? (
-                <div className="flex items-center w-full h-full">
-                  {/* Pie Chart */}
-                  <div className="w-1/2 h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={bankDistribution}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={60}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {bankDistribution.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => value} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  {/* Legend */}
-                  <div className="w-1/2 h-full flex flex-col justify-center pl-2 overflow-y-auto">
-                    {bankDistribution.map((entry: any, index: number) => (
-                      <div key={index} className="flex items-center mb-1">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
-                          style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
-                        ></div>
-                        <div className="text-xs text-foreground">
-                          <div className="font-medium truncate" title={entry.name}>{entry.name}</div>
-                          <div className="text-muted-foreground">{entry.value}</div>
+              <div className="p-3 h-[110px] flex items-center justify-center">
+                {stageDistribution && stageDistribution.length > 0 ? (
+                  <div className="flex items-center w-full h-full">
+                    {/* Pie Chart */}
+                    <div className="w-1/2 h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={stageDistribution}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={35}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {stageDistribution.map((entry: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: number) => value} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Legend */}
+                    <div className="w-1/2 h-full flex flex-col justify-center pl-2">
+                      {stageDistribution.map((entry: any, index: number) => (
+                        <div key={index} className="flex items-center mb-0.5">
+                          <div 
+                            className="w-2 h-2 rounded-full mr-1 flex-shrink-0" 
+                            style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                          ></div>
+                          <div className="text-xs text-foreground">
+                            <div className="font-medium text-xs">{entry.name}</div>
+                            <div className="text-muted-foreground text-xs">{entry.value}</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
-            </div>
-          </div>
-          )}
-
-          {/* Status Distribution */}
-          {(canViewComponent('statusDistribution') || isAdmin) && (
-          <div className={chartCardClass}>
-            <div className={headerClass}>
-              <div className="flex items-center gap-1">
-                <Target size={13} className="text-primary" />
-                <h3 className="font-bold text-xs text-foreground">Status Distribution</h3>
+                ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
               </div>
             </div>
-            <div className="p-3 h-[230px] flex items-center justify-center">
-              {statusDistribution && statusDistribution.length > 0 ? (
-                <div className="flex items-center w-full h-full">
-                  {/* Pie Chart */}
-                  <div className="w-1/2 h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={statusDistribution}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={60}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {statusDistribution.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => value} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  {/* Legend */}
-                  <div className="w-1/2 h-full flex flex-col justify-center pl-2">
-                    {statusDistribution.map((entry: any, index: number) => (
-                      <div key={index} className="flex items-center mb-1">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
-                          style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
-                        ></div>
-                        <div className="text-xs text-foreground">
-                          <div className="font-medium">{entry.name}</div>
-                          <div className="text-muted-foreground">{entry.value}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            )}
+
+            {/* Bank Distribution */}
+            {(canViewComponent('bankDistribution') || isAdmin) && (
+            <div className={chartCardClass}>
+              <div className={headerClass}>
+                <div className="flex items-center gap-1">
+                  <Building2 size={13} className="text-primary" />
+                  <h3 className="font-bold text-xs text-foreground">Bank Distribution</h3>
                 </div>
-              ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
+                <select 
+                  value={bankDistributionFilter} 
+                  onChange={(e) => setBankDistributionFilter(e.target.value)}
+                  className="text-xs border border-border/50 rounded px-2 py-1 bg-background text-foreground"
+                >
+                  <option value="ALL">All Stages</option>
+                  <option value="LOGIN">Login</option>
+                  <option value="IN_PROCESS">In Process</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="DISBURSED">Disbursed</option>
+                </select>
+              </div>
+              <div className="p-3 h-[110px] flex items-center justify-center">
+                {bankDistribution && bankDistribution.length > 0 ? (
+                  <div className="flex items-center w-full h-full">
+                    {/* Pie Chart */}
+                    <div className="w-1/2 h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={bankDistribution}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={35}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {bankDistribution.map((entry: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: number) => value} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Legend */}
+                    <div className="w-1/2 h-full flex flex-col justify-center pl-2 overflow-y-auto">
+                      {bankDistribution.map((entry: any, index: number) => (
+                        <div key={index} className="flex items-center mb-0.5">
+                          <div 
+                            className="w-2 h-2 rounded-full mr-1 flex-shrink-0" 
+                            style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                          ></div>
+                          <div className="text-xs text-foreground">
+                            <div className="font-medium text-xs truncate" title={entry.name}>{entry.name}</div>
+                            <div className="text-muted-foreground text-xs">{entry.value}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
+              </div>
             </div>
+            )}
+
+            {/* Status Distribution */}
+            {(canViewComponent('statusDistribution') || isAdmin) && (
+            <div className={chartCardClass}>
+              <div className={headerClass}>
+                <div className="flex items-center gap-1">
+                  <Target size={13} className="text-primary" />
+                  <h3 className="font-bold text-xs text-foreground">Status Distribution</h3>
+                </div>
+              </div>
+              <div className="p-3 h-[110px] flex items-center justify-center">
+                {statusDistribution && statusDistribution.length > 0 ? (
+                  <div className="flex items-center w-full h-full">
+                    {/* Pie Chart */}
+                    <div className="w-1/2 h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={statusDistribution}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={35}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {statusDistribution.map((entry: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: number) => value} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Legend */}
+                    <div className="w-1/2 h-full flex flex-col justify-center pl-2">
+                      {statusDistribution.map((entry: any, index: number) => (
+                        <div key={index} className="flex items-center mb-0.5">
+                          <div 
+                            className="w-2 h-2 rounded-full mr-1 flex-shrink-0" 
+                            style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                          ></div>
+                          <div className="text-xs text-foreground">
+                            <div className="font-medium text-xs">{entry.name}</div>
+                            <div className="text-muted-foreground text-xs">{entry.value}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : <div className="h-full flex items-center justify-center opacity-20 text-[10px]">No data</div>}
+              </div>
+            </div>
+            )}
           </div>
-          )}
         </ScrollSection>
 
         {/* Performance Chart */}
