@@ -339,13 +339,6 @@ export default function Dashboard() {
     return top6;
   })();
 
-  console.log('🏦 Bank Distribution Frontend:', {
-    rawBankDistribution: stats.bankDistribution,
-    processedBankDistribution: bankDistribution,
-    hasData: bankDistribution.length > 0,
-    showingTop6WithOthers: bankDistribution.length === 7 && bankDistribution.some(b => b.name === 'Others')
-  });
-
   const approvedCount = stats.monthlyTracker?.approved?.units || 0;
   const disbursedCount = stats.monthlyTracker?.disbursed?.units || 0;
   const pendingDisbursement = approvedCount - disbursedCount;
@@ -491,7 +484,12 @@ export default function Dashboard() {
     }, [selectedManager]);
 
     const getTimeElapsed = (createdAt: string, stage: string) => {
-      // Check both config and permission
+      // Don't show timer for IN_PROCESS stage
+      if (stage === 'IN_PROCESS') {
+        return '';
+      }
+      
+      // Check both config and permission for other stages
       if (!timerEnabled || !canViewTimer) {
         return '';
       }
@@ -515,7 +513,12 @@ export default function Dashboard() {
     };
 
     const getTimerColor = (createdAt: string, stage: string) => {
-      // Check both config and permission
+      // Don't show timer for IN_PROCESS stage
+      if (stage === 'IN_PROCESS') {
+        return 'text-gray-500 dark:text-gray-400';
+      }
+      
+      // Check both config and permission for other stages
       if (!timerEnabled || !canViewTimer) {
         return 'text-gray-500 dark:text-gray-400';
       }
@@ -634,11 +637,7 @@ export default function Dashboard() {
                     <div className="text-foreground font-mono text-xs font-semibold">
                       {loan.loan_number || loan.id}
                     </div>
-                    {timerEnabled && canViewTimer && (
-                      <div className={`text-xs font-mono font-semibold ${getTimerColor(loan.created_at, 'IN_PROCESS')}`}>
-                        {getTimeElapsed(loan.created_at, 'IN_PROCESS')}
-                      </div>
-                    )}
+                    {/* No timer for IN_PROCESS loans */}
                   </div>
                   <div className="text-muted-foreground text-xs mt-1">
                     {loan.applicant_name || 'N/A'}

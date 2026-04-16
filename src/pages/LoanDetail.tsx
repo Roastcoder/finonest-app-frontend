@@ -437,19 +437,7 @@ export default function LoanDetail() {
                 <RefreshCw size={12} className="text-orange-500" /> Reapply
               </button>
             )}
-            {!isExecutive && (
-              <button 
-                onClick={() => {
-                  if (confirm('Convert this loan back to lead? This will create a new lead with the loan data.')) {
-                    convertToLead.mutate();
-                  }
-                }} 
-                disabled={convertToLead.isPending}
-                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border disabled:opacity-50"
-              >
-                <RefreshCw size={12} className="text-blue-500" /> To Lead
-              </button>
-            )}
+           
             {!isExecutive && (
               <button onClick={() => navigate(`/loans/edit/${loan.id}`)} className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-muted text-foreground rounded-xl text-xs font-bold whitespace-nowrap border border-border">
                 <Edit2 size={12} className="text-blue-500" /> Edit
@@ -648,20 +636,7 @@ export default function LoanDetail() {
             Reapply
           </button>
           )}
-          {!isExecutive && (
-          <button
-            onClick={() => {
-              if (confirm('Convert this loan back to lead? This will create a new lead with the loan data.')) {
-                convertToLead.mutate();
-              }
-            }}
-            disabled={convertToLead.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-blue-500/10 hover:border-blue-500 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={14} className="text-blue-500" />
-            {convertToLead.isPending ? 'Converting...' : 'To Lead'}
-          </button>
-          )}
+        
           {!isExecutive && (
           <button
             onClick={() => downloadLoanPDF(loan, documents as any[])}

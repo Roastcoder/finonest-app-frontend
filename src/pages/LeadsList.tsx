@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit, Filter, Users, ClipboardCheck, TrendingUp, Clock } from 'lucide-react';
+import { Search, Plus, ArrowRight, Copy, Check, Eye, Trash2, X, Edit, Filter, Users, ClipboardCheck, TrendingUp, Clock, UserX, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import ApplicationStageModal from '@/components/ApplicationStageModal';
 import { ApplicationStage, ApplicationStageData, STAGE_LABELS, STAGE_COLORS } from '@/types/applicationStages';
@@ -151,6 +151,9 @@ export default function LeadsList() {
   const [filterStage, setFilterStage] = useState<string>('all');
   const [filterBranch, setFilterBranch] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sourcingPersonName, setSourcingPersonName] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLeadsData, setDeleteLeadsData] = useState<any>(null);
 
   const [visibleCount, setVisibleCount] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -181,6 +184,58 @@ export default function LeadsList() {
       toast.error('Failed to delete lead');
     },
   });
+
+  const deleteLeadsBySourcingPerson = useMutation({
+    mutationFn: async (sourcingPersonName: string) => {
+      console.log('🗑️ Deleting leads by:', sourcingPersonName);
+      const response = await api.post('/leads/delete-by-sourcing-person', {
+        sourcing_person_name: sourcingPersonName
+      });
+      console.log('✅ Delete response:', response);
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success(`Successfully deleted ${data.deletedCount} leads!`);
+      setSourcingPersonName('');
+      setShowDeleteModal(false);
+      setDeleteLeadsData(null);
+    },
+    onError: (error: any) => {
+      console.error('❌ Delete error:', error);
+      toast.error(error.message || 'Failed to delete leads');
+    },
+  });
+
+  const searchLeadsBySourcingPerson = async (name: string) => {
+    if (!name.trim()) {
+      toast.error('Please enter a sourcing person name');
+      return;
+    }
+
+    try {
+      console.log('🔍 Searching for leads by:', name);
+      console.log('🌐 API URL:', import.meta.env.VITE_API_URL || 'http://localhost:5001/api');
+      
+      const response = await api.post('/leads/search-by-sourcing-person', {
+        sourcing_person_name: name.trim()
+      });
+      
+      console.log('📋 Search response:', response);
+      
+      if (response.leads.length === 0) {
+        toast.error(`No leads found for sourcing person: ${name}`);
+        return;
+      }
+
+      setDeleteLeadsData(response);
+      setShowDeleteModal(true);
+      toast.success(`Found ${response.leads.length} leads by ${name}`);
+    } catch (error: any) {
+      console.error('❌ Search error:', error);
+      toast.error(error.message || 'Failed to search leads');
+    }
+  };
 
   const { data: leads = [], isLoading, error: leadsError } = useQuery({
     queryKey: ['leads'],
@@ -401,33 +456,71 @@ export default function LeadsList() {
         </div>
 
         {isFilterOpen && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div>
-              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Branch</label>
-              <select
-                value={filterBranch}
-                onChange={e => setFilterBranch(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary transition-all"
-              >
-                <option value="all">All Branches</option>
-                {branches.map(branch => (
-                  <option key={branch} value={branch}>{branch}</option>
-                ))}
-              </select>
+          <div className="space-y-4 mt-4 pt-4 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Branch</label>
+                <select
+                  value={filterBranch}
+                  onChange={e => setFilterBranch(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary transition-all"
+                >
+                  <option value="all">All Branches</option>
+                  {branches.map(branch => (
+                    <option key={branch} value={branch}>{branch}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Application Stage</label>
+                <select
+                  value={filterStage}
+                  onChange={e => setFilterStage(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary transition-all"
+                >
+                  <option value="all">All Stages</option>
+                  {Object.entries(STAGE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">Application Stage</label>
-              <select
-                value={filterStage}
-                onChange={e => setFilterStage(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary transition-all"
-              >
-                <option value="all">All Stages</option>
-                {Object.entries(STAGE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
+            
+            {/* Admin Only: Delete Leads by Sourcing Person */}
+            {user?.role === 'admin' && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <UserX size={16} className="text-red-600" />
+                  <h3 className="text-sm font-bold text-red-800">Delete Leads by Sourcing Person</h3>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="Enter sourcing person name (e.g., HARSH VARDHAN)"
+                      value={sourcingPersonName}
+                      onChange={e => setSourcingPersonName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-red-200 bg-white text-sm focus:outline-none focus:border-red-400 transition-all"
+                    />
+                  </div>
+                  <button
+                    onClick={() => searchLeadsBySourcingPerson(sourcingPersonName)}
+                    disabled={!sourcingPersonName.trim() || deleteLeadsBySourcingPerson.isPending}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-all flex items-center gap-2"
+                  >
+                    {deleteLeadsBySourcingPerson.isPending ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                    Search & Delete
+                  </button>
+                </div>
+                <p className="text-xs text-red-600 mt-2">
+                  ⚠️ This will permanently delete all leads created by the specified sourcing person. Use with caution!
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -713,6 +806,101 @@ export default function LeadsList() {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showDeleteModal && deleteLeadsData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <AlertTriangle size={24} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Confirm Bulk Delete</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Found {deleteLeadsData.leads.length} leads by "{deleteLeadsData.sourcingPersonName}"
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteLeadsData(null);
+                }} 
+                className="p-1 rounded-lg hover:bg-muted"
+              >
+                <X size={20} className="text-muted-foreground" />
+              </button>
+            </div>
+
+            {deleteLeadsData.nonDeletableLeads.length > 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm font-medium text-yellow-800 mb-2">
+                  ⚠️ {deleteLeadsData.nonDeletableLeads.length} leads cannot be deleted (converted to loans):
+                </p>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {deleteLeadsData.nonDeletableLeads.map((lead: any) => (
+                    <div key={lead.id} className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
+                      {lead.customer_name} ({lead.phone}) → Loan: {lead.loan_number}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {deleteLeadsData.deletableLeads.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-foreground mb-2">
+                  ✅ {deleteLeadsData.deletableLeads.length} leads will be deleted:
+                </p>
+                <div className="max-h-40 overflow-y-auto space-y-1 bg-muted/30 p-3 rounded-lg">
+                  {deleteLeadsData.deletableLeads.slice(0, 10).map((lead: any) => (
+                    <div key={lead.id} className="text-xs text-muted-foreground">
+                      • {lead.customer_name} ({lead.phone}) - {lead.customer_id}
+                    </div>
+                  ))}
+                  {deleteLeadsData.deletableLeads.length > 10 && (
+                    <div className="text-xs text-muted-foreground font-medium">
+                      ... and {deleteLeadsData.deletableLeads.length - 10} more leads
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {deleteLeadsData.deletableLeads.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">No leads can be deleted safely.</p>
+              </div>
+            ) : (
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteLeadsData(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteLeadsBySourcingPerson.mutate(deleteLeadsData.sourcingPersonName)}
+                  disabled={deleteLeadsBySourcingPerson.isPending}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleteLeadsBySourcingPerson.isPending ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 size={16} />
+                  )}
+                  Delete {deleteLeadsData.deletableLeads.length} Leads
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

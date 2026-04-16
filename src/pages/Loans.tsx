@@ -155,30 +155,26 @@ export default function Loans() {
   const [shareMenuLoan, setShareMenuLoan] = useState<any>(null);
   const [shareBundles, setShareBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareLoanShareBundle>>>>({});
   const [documentBundles, setDocumentBundles] = useState<Record<string, Awaited<ReturnType<typeof prepareDocumentShareBundle>>>>({});
-  const [visibleCount, setVisibleCount] = useState(10);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const observerRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
-  const { data: loans = [], isLoading } = useQuery({
+  const { data: loans = [], isLoading, error: loansError } = useQuery({
     queryKey: ['loans', user?.branch_id],
     queryFn: async () => {
+      console.log('🔍 Fetching loans...');
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/loans`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
-        });
-        if (!response.ok) return [];
-        const data = await response.json();
+        const data = await api.get('/loans');
+        console.log('✅ Loans fetched successfully:', data.length);
         return data;
-      } catch {
-        return [];
+      } catch (error) {
+        console.error('❌ Failed to fetch loans:', error);
+        throw error;
       }
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { data: configs = [] } = useQuery({
@@ -436,61 +432,7 @@ export default function Loans() {
     const matchStatus = statusFilter === 'all' || l.application_stage === statusFilter;
     return matchSearch && matchStatus;
   });
-
-  // Virtualization: Show only visible items
-  const visibleLoans = useMemo(() => {
-    return filtered.slice(0, visibleCount);
-  }, [filtered, visibleCount]);
-
-  // Auto load more function - optimized for mobile
-  const loadMore = useCallback(() => {
-    if (visibleCount < filtered.length && !isLoadingMore) {
-      setIsLoadingMore(true);
-      // Immediate loading for mobile - no delay
-      setVisibleCount(prev => Math.min(prev + 10, filtered.length));
-      setIsLoadingMore(false);
-    }
-  }, [visibleCount, filtered.length, isLoadingMore]);
-
-  // Simplified mobile-first scroll detection
-  useEffect(() => {
-    // Simple scroll listener optimized for mobile
-    const handleScroll = () => {
-      if (isLoadingMore || visibleCount >= filtered.length) return;
-      
-      const scrollTop = window.pageYOffset;
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      
-      // Trigger earlier on mobile - 200px from bottom
-      if (scrollTop + windowHeight >= documentHeight - 200) {
-        loadMore();
-      }
-    };
-
-    // Throttled scroll with reduced delay
-    let timeout: NodeJS.Timeout;
-    const throttledScroll = () => {
-      clearTimeout(timeout);
-      timeout = setTimeout(handleScroll, 50); // Reduced from requestAnimationFrame
-    };
-
-    window.addEventListener('scroll', throttledScroll, { passive: true });
-    window.addEventListener('touchmove', throttledScroll, { passive: true });
-
-    return () => {
-      clearTimeout(timeout);
-      window.removeEventListener('scroll', throttledScroll);
-      window.removeEventListener('touchmove', throttledScroll);
-    };
-  }, [loadMore, isLoadingMore, visibleCount, filtered.length]);
-
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(10);
-    setIsLoadingMore(false);
-  }, [search, statusFilter]);
-  const sharePrefetchLoans = visibleLoans;
+  const sharePrefetchLoans = filtered;
   const sharePrefetchKey = sharePrefetchLoans.map(loan => String(loan.id)).join('|');
 
   useEffect(() => {
@@ -661,11 +603,22 @@ export default function Loans() {
       <div className="lg:hidden space-y-3">
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground text-sm">Loading applications…</div>
-        ) : visibleLoans.length === 0 ? (
+        ) : loansError ? (
+          <div className="py-12 text-center">
+            <div className="text-red-500 font-medium mb-2">Failed to load loans</div>
+            <div className="text-sm text-muted-foreground mb-4">{(loansError as Error).message}</div>
+            <button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['loans'] })}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">No applications found</div>
         ) : (
           <>
-            {visibleLoans.map((loan: any) => (
+            {filtered.map((loan: any) => (
             <div
               key={loan.id}
               onClick={() => navigate(`/loans/${loan.id}`)}
@@ -742,13 +695,6 @@ export default function Loans() {
               </div>
             </div>
             ))}
-            
-            {/* Simple loading indicator */}
-            {visibleCount < filtered.length && (
-              <div className="flex justify-center py-4">
-                <div className="text-xs text-muted-foreground">Scroll for more...</div>
-              </div>
-            )}
           </>
         )}
       </div>
@@ -826,6 +772,17 @@ export default function Loans() {
       <div className="stat-card max-lg:hidden" style={{ height: 'calc(100vh - 120px)', overflowY: 'auto', overflowX: 'auto' }}>
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground text-sm">Loading applications…</div>
+        ) : loansError ? (
+          <div className="py-12 text-center">
+            <div className="text-red-500 font-medium mb-2">Failed to load loans</div>
+            <div className="text-sm text-muted-foreground mb-4">{(loansError as Error).message}</div>
+            <button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['loans'] })}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"
+            >
+              Retry
+            </button>
+          </div>
         ) : (
           <div>
             <table className="w-full text-sm">
@@ -847,7 +804,7 @@ export default function Loans() {
                 </tr>
               </thead>
               <tbody>
-                {visibleLoans.map((loan: any) => (
+                {filtered.map((loan: any) => (
                   <tr key={loan.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={() => navigate(`/loans/${loan.id}`)}>
                     <td className="py-4 px-2 whitespace-nowrap">
                       <p className="font-mono text-xs text-primary font-semibold">{loan.loan_number || loan.id}</p>
@@ -997,14 +954,9 @@ export default function Loans() {
                 ))}
               </tbody>
             </table>
-            {visibleLoans.length === 0 && !isLoading && (
-              <div className="py-12 text-center text-muted-foreground">No applications found</div>
-            )}
-            
-            {/* Simple loading indicator for desktop */}
-            {visibleCount < filtered.length && (
-              <div className="flex justify-center p-4 border-t border-border">
-                <div className="text-xs text-muted-foreground">Scroll for more...</div>
+            {filtered.length === 0 && !isLoading && (
+              <div className="py-20 text-center text-muted-foreground bg-muted/5">
+                <p className="font-medium">No loans match your search criteria</p>
               </div>
             )}
           </div>
