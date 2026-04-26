@@ -12,7 +12,6 @@ import Navbar from './Navbar';
 import { toast } from 'sonner';
 import NotificationBell from './NotificationBell';
 import { useDashboardContextSafe } from '@/pages/Dashboard';
-import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 
 
 interface NavItem {
@@ -110,24 +109,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Get current route index
   const currentRouteIndex = allRoutes.indexOf(location.pathname);
-
-  // Swipe gesture handlers for mobile
-  useSwipeGesture({
-    onSwipeLeft: () => {
-      // Navigate to next page
-      if (currentRouteIndex >= 0 && currentRouteIndex < allRoutes.length - 1) {
-        navigate(allRoutes[currentRouteIndex + 1]);
-        toast.success('Next page', { duration: 800 });
-      }
-    },
-    onSwipeRight: () => {
-      // Navigate to previous page
-      if (currentRouteIndex > 0) {
-        navigate(allRoutes[currentRouteIndex - 1]);
-        toast.success('Previous page', { duration: 800 });
-      }
-    }
-  }, 100);
 
   const toggleGroup = (label: string) => {
     if (collapsed) {

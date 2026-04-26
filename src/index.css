@@ -187,4 +187,17 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
+
+  /* Disable swipe gestures globally */
+  .no-swipe {
+    touch-action: pan-y pinch-zoom;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Apply no-swipe to body to prevent page-level swipe navigation */
+  body {
+    touch-action: pan-y pinch-zoom;
+  }
 }

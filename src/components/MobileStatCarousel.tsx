@@ -30,9 +30,9 @@ export default function MobileStatCarousel({ items }: { items: StatItem[] }) {
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
+    <div className="flex gap-3 pb-2 -mx-4 px-4 flex-wrap">
       {items.map((item, i) => (
-        <div key={i} className="stat-card min-w-[160px] snap-start shrink-0">
+        <div key={i} className="stat-card min-w-[160px] shrink-0">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-accent">{item.icon}</span>
             <span className="text-[10px] text-muted-foreground leading-tight">{item.label}</span>
