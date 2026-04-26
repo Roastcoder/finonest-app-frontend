@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     : user.email.slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen h-[100dvh] overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-foreground/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -344,8 +344,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <main style={{ 
           padding: 'clamp(1rem, 3vw, 1.25rem)',
           paddingBottom: 'clamp(5rem, 10vh, 1.25rem)',
-          marginTop: 'clamp(3rem, 5vh, 3.5rem)'
-        }} className="flex-1 overflow-y-auto scroll-smooth">
+          marginTop: 'clamp(3rem, 5vh, 3.5rem)',
+          WebkitOverflowScrolling: 'touch'
+        }} className="flex-1 overflow-y-auto">
           <div className="animate-fade-in w-full">
             {children}
           </div>

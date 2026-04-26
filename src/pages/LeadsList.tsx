@@ -387,8 +387,6 @@ export default function LeadsList() {
             e.stopPropagation();
             navigate('/add-lead');
           }}
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => e.stopPropagation()}
           className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold py-2.5 px-6 rounded-xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl active:scale-95 text-sm"
         >
           <Plus size={18} /> Add New Lead

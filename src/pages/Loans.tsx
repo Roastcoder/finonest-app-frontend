@@ -543,27 +543,18 @@ export default function Loans() {
             {!isExecutive && (<>
             <button 
               onClick={handleExport} 
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
               className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap"
             >
               <Download size={13} /> Export
             </button>
             <button 
               onClick={() => importRef.current?.click()} 
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
               className="flex-1 flex items-center justify-center gap-1 bg-muted text-foreground font-semibold py-2 rounded-xl text-xs whitespace-nowrap"
             >
               <Upload size={13} /> Import CSV
             </button>
             <Link 
               to="/loans/new" 
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
               className="flex-1 inline-flex items-center justify-center gap-1 bg-gradient-to-r from-secondary to-primary text-white font-bold py-2 rounded-xl text-xs shadow-md active:scale-95 transition-all border border-white/20 whitespace-nowrap"
             >
               <Plus size={13} /> New Application
@@ -579,18 +570,12 @@ export default function Loans() {
                 placeholder="Search..." 
                 value={search} 
                 onChange={e => setSearch(e.target.value)}
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-                onTouchEnd={(e) => e.stopPropagation()}
                 className="w-full pl-8 pr-3 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all" 
               />
             </div>
             <select 
               value={statusFilter} 
               onChange={e => setStatusFilter(e.target.value as ApplicationStageFilter)}
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
               className="shrink-0 px-2 py-2 rounded-xl border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:border-accent transition-all"
             >
               <option value="all">All</option>
